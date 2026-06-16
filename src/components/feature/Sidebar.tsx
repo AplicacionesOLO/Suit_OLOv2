@@ -8,33 +8,25 @@ interface NavItem {
   path: string;
   icon: string;
   module: string;
+  alwaysVisible?: boolean;
 }
 
 interface NavGroup {
   title: string;
   items: NavItem[];
-  superAdminOnly?: boolean;
 }
 
 const navGroups: NavGroup[] = [
-  {
-    title: 'Principal',
-    items: [
-      { label: 'Dashboard', path: '/dashboard', icon: 'ri-dashboard-line', module: 'dashboard' },
-      { label: 'Catalogo', path: '/catalog', icon: 'ri-store-2-line', module: 'catalog' },
-    ],
-  },
   {
     title: 'Plataforma',
     items: [
       { label: 'Tenants', path: '/tenants', icon: 'ri-building-4-line', module: 'tenants' },
     ],
-    superAdminOnly: true,
   },
   {
-    title: 'Administracion',
+    title: 'Administración',
     items: [
-      { label: 'Paises', path: '/countries', icon: 'ri-global-line', module: 'countries' },
+      { label: 'Países', path: '/countries', icon: 'ri-global-line', module: 'countries' },
       { label: 'Almacenes', path: '/warehouses', icon: 'ri-store-2-line', module: 'warehouses' },
       { label: 'Clientes', path: '/clients', icon: 'ri-building-2-line', module: 'clients' },
       { label: 'Usuarios', path: '/users', icon: 'ri-team-line', module: 'users' },
@@ -43,33 +35,24 @@ const navGroups: NavGroup[] = [
   {
     title: 'Aplicaciones',
     items: [
-      { label: 'Categorias', path: '/categories', icon: 'ri-folder-2-line', module: 'categories' },
+      { label: 'Categorías', path: '/categories', icon: 'ri-folder-2-line', module: 'categories' },
       { label: 'Aplicaciones', path: '/applications', icon: 'ri-apps-2-line', module: 'applications' },
       { label: 'Instancias', path: '/instances', icon: 'ri-server-line', module: 'instances' },
-      { label: 'Asignacion', path: '/assignments', icon: 'ri-link-m', module: 'assignments' },
+      { label: 'Asignaciones', path: '/assignments', icon: 'ri-link-m', module: 'assignments' },
     ],
   },
   {
     title: 'Seguridad',
     items: [
-      { label: 'Roles', path: '/roles', icon: 'ri-shield-user-line', module: 'roles' },
-      { label: 'Perfiles', path: '/profiles', icon: 'ri-user-settings-line', module: 'profiles' },
-      { label: 'Matriz de Permisos', path: '/permissions', icon: 'ri-key-2-line', module: 'permissions' },
-      { label: 'Accesos', path: '/app-access', icon: 'ri-shield-keyhole-line', module: 'app-access' },
-      { label: 'Mis Accesos', path: '/my-access', icon: 'ri-user-received-line', module: 'my-access' },
-      { label: 'Auditoria', path: '/audit', icon: 'ri-file-search-line', module: 'audit' },
-      { label: 'Configuracion', path: '/security-settings', icon: 'ri-shield-check-line', module: 'security-settings' },
+      { label: 'Roles y Permisos', path: '/roles', icon: 'ri-shield-user-line', module: 'roles' },
+      { label: 'Apps Asignadas', path: '/app-access', icon: 'ri-shield-keyhole-line', module: 'app-access' },
     ],
   },
-  {
-    title: 'Sistema',
-    items: [
-      { label: 'Perfil', path: '/profile', icon: 'ri-user-line', module: 'profile' },
-      { label: 'Sesiones', path: '/sessions', icon: 'ri-user-follow-line', module: 'sessions' },
-      { label: 'Alertas', path: '/security-alerts', icon: 'ri-alert-fill', module: 'alerts' },
-      { label: 'Integracion', path: '/integration', icon: 'ri-plug-line', module: 'integration' },
-    ],
-  },
+];
+
+const alwaysVisibleItems: NavItem[] = [
+  { label: 'Dashboard', path: '/dashboard', icon: 'ri-dashboard-line', module: 'dashboard', alwaysVisible: true },
+  { label: 'Mis Accesos', path: '/my-access', icon: 'ri-user-received-line', module: 'my-access', alwaysVisible: true },
 ];
 
 interface SidebarProps {
@@ -86,11 +69,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
     Object.fromEntries(navGroups.map((g) => [g.title, true]))
   );
 
-  const isSuperAdmin = (platformUser?.role_level ?? 0) >= 100;
-
   const visibleGroups = navGroups.filter((g) => {
-    if (g.superAdminOnly && !isSuperAdmin) return false;
-    // Filter by permissions
     return g.items.some((item) => hasMenuAccess(item.module));
   });
 
@@ -99,6 +78,12 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   };
 
   const isActive = (path: string) => location.pathname === path;
+
+  const displayName = platformUser?.first_name || platformUser?.last_name
+    ? `${platformUser?.first_name || ''} ${platformUser?.last_name || ''}`.trim()
+    : (user?.email?.split('@')[0] || 'Usuario');
+
+  const avatarLetter = platformUser?.first_name?.[0] || platformUser?.last_name?.[0] || user?.email?.[0]?.toUpperCase() || 'U';
 
   return (
     <aside
@@ -130,6 +115,41 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto overflow-x-hidden py-4 px-2 space-y-1">
+        {/* Always visible items */}
+        <div className="space-y-0.5 mb-3">
+          {alwaysVisibleItems.map((item) => (
+            <button
+              key={item.path}
+              onClick={() => navigate(item.path)}
+              className={`
+                flex items-center gap-3 w-full rounded-lg transition-all duration-150 text-sm
+                ${collapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2'}
+                ${isActive(item.path)
+                  ? 'bg-primary-500/10 text-primary-400 font-medium'
+                  : 'text-foreground-500 hover:text-foreground-200 hover:bg-background-200/50'
+                }
+              `}
+              title={collapsed ? item.label : undefined}
+            >
+              <span className={`w-5 h-5 flex items-center justify-center shrink-0 ${isActive(item.path) ? 'text-primary-400' : ''}`}>
+                <i className={`${item.icon} text-lg`}></i>
+              </span>
+              {!collapsed && <span className="whitespace-nowrap">{item.label}</span>}
+              {!collapsed && isActive(item.path) && (
+                <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-400"></span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Divider */}
+        {visibleGroups.length > 0 && (
+          <div className="px-3 py-1">
+            <div className="border-t border-secondary-500/8"></div>
+          </div>
+        )}
+
+        {/* Permission-based groups */}
         {visibleGroups.map((group) => {
           const visibleItems = group.items.filter((item) => hasMenuAccess(item.module));
           if (visibleItems.length === 0) return null;
@@ -194,16 +214,11 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
           title={collapsed ? 'Perfil' : undefined}
         >
           <div className="w-7 h-7 rounded-full bg-accent-500/20 border border-accent-500/25 flex items-center justify-center shrink-0">
-            <span className="text-accent-400 text-xs font-semibold">
-              {platformUser?.first_name?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}
-              {platformUser?.last_name?.[0] || ''}
-            </span>
+            <span className="text-accent-400 text-xs font-semibold">{avatarLetter}</span>
           </div>
           {!collapsed && (
             <div className="flex-1 min-w-0 text-left">
-              <div className="text-xs font-medium text-foreground-300 truncate">
-                {platformUser?.first_name ? `${platformUser.first_name} ${platformUser.last_name || ''}` : user?.email?.split('@')[0] || 'Usuario'}
-              </div>
+              <div className="text-xs font-medium text-foreground-300 truncate">{displayName}</div>
               <div className="text-2xs text-foreground-600 truncate">{user?.email || ''}</div>
             </div>
           )}

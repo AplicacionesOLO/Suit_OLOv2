@@ -8,7 +8,6 @@ export interface PlatformUserFull {
   warehouse_id: string | null;
   client_id: string | null;
   role_id: string | null;
-  profile_id: string | null;
   first_name: string | null;
   last_name: string | null;
   email: string | null;
@@ -32,7 +31,6 @@ export interface UserInvitation {
   email: string;
   tenant_id: string;
   role_id: string;
-  profile_id: string | null;
   country_id: string | null;
   warehouse_id: string | null;
   client_id: string | null;
@@ -56,7 +54,6 @@ export interface CreateInvitationInput {
   email: string;
   tenant_id: string;
   role_id: string;
-  profile_id?: string;
   country_id?: string;
   warehouse_id?: string;
   client_id?: string;
@@ -69,7 +66,6 @@ export interface UpdateUserInput {
   country_id?: string;
   warehouse_id?: string;
   client_id?: string;
-  profile_id?: string;
   first_name?: string;
   last_name?: string;
   status?: string;
@@ -200,7 +196,7 @@ export async function createUserInvitation(input: CreateInvitationInput): Promis
     p_email: input.email.trim().toLowerCase(),
     p_tenant_id: input.tenant_id,
     p_role_id: input.role_id,
-    p_profile_id: input.profile_id || null,
+    p_profile_id: null,
     p_country_id: input.country_id || null,
     p_warehouse_id: input.warehouse_id || null,
     p_client_id: input.client_id || null,
@@ -243,7 +239,6 @@ export async function updatePlatformUser(userId: string, input: UpdateUserInput)
   if (input.country_id !== undefined) updateData.country_id = input.country_id;
   if (input.warehouse_id !== undefined) updateData.warehouse_id = input.warehouse_id;
   if (input.client_id !== undefined) updateData.client_id = input.client_id;
-  if (input.profile_id !== undefined) updateData.profile_id = input.profile_id;
   if (input.first_name !== undefined) updateData.first_name = input.first_name;
   if (input.last_name !== undefined) updateData.last_name = input.last_name;
   if (input.status !== undefined) updateData.status = input.status;

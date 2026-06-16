@@ -71,8 +71,8 @@ export default function AppAccessPage() {
       <div className="animate-fade-in space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold text-foreground-100">Accesos a Aplicaciones</h1>
-            <p className="text-sm text-foreground-500 mt-1">Gestiona quien puede acceder a cada aplicacion. Aprueba, revoca o deniega solicitudes.</p>
+            <h1 className="text-xl font-bold text-foreground-100">Aplicaciones Asignadas</h1>
+            <p className="text-sm text-foreground-500 mt-1">Gestiona qué usuarios pueden acceder a cada aplicación e instancia. Aprueba, revoca o deniega solicitudes.</p>
           </div>
           <button onClick={() => setShowAssignModal(true)} className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-sm font-medium whitespace-nowrap">
             <span className="w-4 h-4 flex items-center justify-center"><i className="ri-add-line text-base"></i></span>

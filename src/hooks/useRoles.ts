@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { fetchRolesWithCounts, createRole, updateRole, type Role, type RoleWithCounts } from '@/services/security/rolesService';
+import { fetchRolesWithCounts, createRole, updateRole, type CreateRoleInput, type UpdateRoleInput, type RoleWithCounts } from '@/services/security/rolesService';
 
 export function useRoles() {
   const [roles, setRoles] = useState<RoleWithCounts[]>([]);
@@ -22,14 +22,14 @@ export function useRoles() {
 
   useEffect(() => { load(); }, [load]);
 
-  const addRole = useCallback(async (role: Partial<Role>) => {
-    const result = await createRole(role);
+  const addRole = useCallback(async (input: CreateRoleInput) => {
+    const result = await createRole(input);
     if (result.error) return { error: result.error.message };
     await load();
     return { error: null };
   }, [load]);
 
-  const editRole = useCallback(async (id: string, updates: Partial<Role>) => {
+  const editRole = useCallback(async (id: string, updates: UpdateRoleInput) => {
     const result = await updateRole(id, updates);
     if (result.error) return { error: result.error.message };
     await load();

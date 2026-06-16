@@ -25,7 +25,6 @@ export interface PlatformUser {
   client_id: string | null;
   role_id: string | null;
   role_level: number | null;
-  profile_id: string | null;
   first_name: string | null;
   last_name: string | null;
   email: string | null;
@@ -37,7 +36,6 @@ export interface PlatformUser {
   tenant_name?: string | null;
   role_name?: string | null;
   country_name?: string | null;
-  profile_name?: string | null;
   suite_permissions?: SuitePermissions | null;
 }
 
@@ -55,7 +53,7 @@ export async function loginWithEmail({ email, password }: LoginCredentials): Pro
         .update({ last_login: new Date().toISOString() })
         .eq('auth_user_id', data.user.id);
     } catch {
-      // Non-critical — profile update can fail silently
+      // Non-critical
     }
 
     try {
@@ -70,7 +68,7 @@ export async function loginWithEmail({ email, password }: LoginCredentials): Pro
         severity: 'info',
       });
     } catch {
-      // Non-critical audit log
+      // Non-critical
     }
   }
 
@@ -131,10 +129,15 @@ export async function getPlatformUser(authUserId: string): Promise<PlatformUser 
   const pu = data as PlatformUser;
 
   if (pu.role_id) {
-    const { data: role } = await supabase.from('roles').select('level, name').eq('id', pu.role_id).maybeSingle();
+    const { data: role } = await supabase
+      .from('roles')
+      .select('level, name, permissions')
+      .eq('id', pu.role_id)
+      .maybeSingle();
     if (role) {
       pu.role_level = role.level;
       pu.role_name = role.name;
+      pu.suite_permissions = (role.permissions as SuitePermissions) || null;
     }
   }
 
@@ -146,14 +149,6 @@ export async function getPlatformUser(authUserId: string): Promise<PlatformUser 
   if (pu.country_id) {
     const { data: country } = await supabase.from('countries').select('name').eq('id', pu.country_id).maybeSingle();
     if (country) pu.country_name = country.name;
-  }
-
-  if (pu.profile_id) {
-    const { data: profile } = await supabase.from('profiles').select('name, permissions').eq('id', pu.profile_id).maybeSingle();
-    if (profile) {
-      pu.profile_name = profile.name;
-      pu.suite_permissions = (profile.permissions as SuitePermissions) || null;
-    }
   }
 
   return pu;

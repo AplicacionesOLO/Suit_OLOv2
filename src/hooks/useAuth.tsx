@@ -25,6 +25,7 @@ interface AuthContextValue {
   resetPassword: (email: string) => Promise<{ error: string | null }>;
   clearError: () => void;
   isAuthenticated: boolean;
+  refreshPermissions: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -132,6 +133,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const clearError = useCallback(() => setError(null), []);
 
+  const refreshPermissions = useCallback(async () => {
+    const currentUser = await getCurrentUser();
+    if (currentUser) {
+      await fetchPlatformUser(currentUser.id);
+    }
+  }, [fetchPlatformUser]);
+
   const value: AuthContextValue = {
     session,
     user,
@@ -144,6 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     resetPassword,
     clearError,
     isAuthenticated: !!session && !!user,
+    refreshPermissions,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

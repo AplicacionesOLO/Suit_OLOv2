@@ -65,7 +65,7 @@ export default function MyAccessPage() {
             <h1 className="text-xl font-bold text-foreground-100">Mis Accesos</h1>
             <p className="text-sm text-foreground-500 mt-1">
               Aplicaciones e instancias autorizadas para tu usuario.
-              {platformUser && <span className="text-foreground-400"> Conectado como <span className="text-primary-400 font-medium">{platformUser.first_name} {platformUser.last_name}</span></span>}
+              {platformUser && <span className="text-foreground-400"> Conectado como <span className="text-primary-400 font-medium">{platformUser.first_name || platformUser.last_name ? `${platformUser.first_name || ''} ${platformUser.last_name || ''}`.trim() : (platformUser.email || user?.email || 'Usuario')}</span></span>}
             </p>
           </div>
         </div>

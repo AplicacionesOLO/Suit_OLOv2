@@ -213,9 +213,8 @@ export default function DashboardPage() {
                 {[
                   { label: 'Usuarios', desc: 'Gestionar e invitar', icon: 'ri-user-add-line', path: '/users', color: 'text-primary-400', bg: 'bg-primary-500/10' },
                   { label: 'Aplicaciones', desc: 'Catalogo de apps', icon: 'ri-apps-2-line', path: '/applications', color: 'text-accent-400', bg: 'bg-accent-500/10' },
-                  { label: 'Asignaciones', desc: 'Gestionar accesos', icon: 'ri-link-m', path: '/assignments', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-                  { label: 'Roles y Perfiles', desc: 'Configurar seguridad', icon: 'ri-shield-user-line', path: '/roles', color: 'text-amber-400', bg: 'bg-amber-500/10' },
-                  { label: 'Matriz Permisos', desc: 'Permisos SuiteOLO', icon: 'ri-key-2-line', path: '/permissions', color: 'text-violet-400', bg: 'bg-violet-500/10' },
+                  { label: 'Apps Asignadas', desc: 'Gestionar accesos', icon: 'ri-shield-keyhole-line', path: '/app-access', color: 'text-violet-400', bg: 'bg-violet-500/10' },
+                  { label: 'Roles y Permisos', desc: 'Configurar seguridad', icon: 'ri-shield-user-line', path: '/roles', color: 'text-amber-400', bg: 'bg-amber-500/10' },
                   { label: 'Auditoria', desc: 'Registros del sistema', icon: 'ri-file-search-line', path: '/audit', color: 'text-rose-400', bg: 'bg-rose-500/10' },
                 ].map((action) => (
                   <button

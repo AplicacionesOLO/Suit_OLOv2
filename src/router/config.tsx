@@ -11,8 +11,6 @@ import CatalogPage from "../pages/catalog/page";
 import AssignmentsPage from "../pages/assignments/page";
 import IntegrationPage from "../pages/integration/page";
 import RolesPage from "../pages/roles/page";
-import ProfilesPage from "../pages/profiles/page";
-import PermissionsPage from "../pages/permissions/page";
 import AppAccessPage from "../pages/app-access/page";
 import MyAccessPage from "../pages/my-access/page";
 import AuditPage from "../pages/audit/page";
@@ -77,14 +75,6 @@ const routes: RouteObject[] = [
   {
     path: "/roles",
     element: <RolesPage />,
-  },
-  {
-    path: "/profiles",
-    element: <ProfilesPage />,
-  },
-  {
-    path: "/permissions",
-    element: <PermissionsPage />,
   },
   {
     path: "/app-access",

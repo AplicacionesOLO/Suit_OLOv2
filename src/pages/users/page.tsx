@@ -330,7 +330,7 @@ export default function UsersPage() {
                             <span className="text-xs font-semibold">{user.first_name ? `${user.first_name[0]}${user.last_name ? user.last_name[0] : ''}` : (user.email || '?')[0].toUpperCase()}</span>
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-foreground-200">{user.first_name ? `${user.first_name} ${user.last_name || ''}` : 'Sin nombre'}</p>
+                            <p className="text-sm font-medium text-foreground-200">{user.first_name || user.last_name ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : (user.email || 'Usuario')}</p>
                           </div>
                         </div>
                       </td>
@@ -581,7 +581,7 @@ export default function UsersPage() {
                   </span>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-foreground-200">{editingUser.first_name ? `${editingUser.first_name} ${editingUser.last_name || ''}` : 'Sin nombre'}</p>
+                  <p className="text-sm font-medium text-foreground-200">{editingUser.first_name || editingUser.last_name ? `${editingUser.first_name || ''} ${editingUser.last_name || ''}`.trim() : (editingUser.email || 'Usuario')}</p>
                   <p className="text-xs text-foreground-500">{editingUser.email}</p>
                 </div>
               </div>
