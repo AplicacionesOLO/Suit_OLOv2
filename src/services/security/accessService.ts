@@ -315,7 +315,7 @@ export async function canAccessInstance(instanceId: string): Promise<{ allowed: 
       .from('application_instances')
       .select('id, tenant_id, application_id, status, instance_name, url, open_mode, allows_iframe')
       .eq('id', instanceId)
-      .eq('deleted_at', null)
+      .is('deleted_at', null)
       .maybeSingle();
 
     if (instError) {

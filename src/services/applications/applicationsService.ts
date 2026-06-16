@@ -172,7 +172,7 @@ export async function fetchInstanceById(instanceId: string): Promise<{ data: (Ap
       .from('application_instances')
       .select('*')
       .eq('id', instanceId)
-      .eq('deleted_at', null)
+      .is('deleted_at', null)
       .maybeSingle();
 
     if (instError) {
