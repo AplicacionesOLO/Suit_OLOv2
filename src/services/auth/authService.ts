@@ -12,6 +12,10 @@ export interface LoginResult {
   error: AuthError | null;
 }
 
+export interface SuitePermissions {
+  modules: Record<string, { menu: boolean; actions: string[] }>;
+}
+
 export interface PlatformUser {
   id: string;
   auth_user_id: string;
@@ -34,9 +38,8 @@ export interface PlatformUser {
   role_name?: string | null;
   country_name?: string | null;
   profile_name?: string | null;
+  suite_permissions?: SuitePermissions | null;
 }
-
-const TENANT_ID = '00000000-0000-0000-0000-000000000001';
 
 export async function loginWithEmail({ email, password }: LoginCredentials): Promise<LoginResult> {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -56,8 +59,9 @@ export async function loginWithEmail({ email, password }: LoginCredentials): Pro
     }
 
     try {
+      const { data: pu } = await supabase.from('platform_users').select('tenant_id').eq('auth_user_id', data.user.id).maybeSingle();
       await supabase.from('audit_logs').insert({
-        tenant_id: TENANT_ID,
+        tenant_id: pu?.tenant_id || null,
         user_id: null,
         action: 'login',
         entity_type: 'auth',
@@ -145,8 +149,11 @@ export async function getPlatformUser(authUserId: string): Promise<PlatformUser 
   }
 
   if (pu.profile_id) {
-    const { data: profile } = await supabase.from('profiles').select('name').eq('id', pu.profile_id).maybeSingle();
-    if (profile) pu.profile_name = profile.name;
+    const { data: profile } = await supabase.from('profiles').select('name, permissions').eq('id', pu.profile_id).maybeSingle();
+    if (profile) {
+      pu.profile_name = profile.name;
+      pu.suite_permissions = (profile.permissions as SuitePermissions) || null;
+    }
   }
 
   return pu;

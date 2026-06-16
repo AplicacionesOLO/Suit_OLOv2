@@ -1,95 +1,110 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  fetchAllPermissions,
   fetchProfilePermissions,
   saveProfilePermissions,
-  buildPermissionTree,
-  type Permission,
-  type PermissionNode,
 } from '@/services/security/permissionsService';
+import { SUITE_MODULES, ALL_ACTIONS } from '@/hooks/useSuitePermissions';
+
+export interface SuiteModulePerms {
+  menu: boolean;
+  actions: string[];
+}
+
+export interface SuitePermissionsMap {
+  modules: Record<string, SuiteModulePerms>;
+}
+
+function emptyPermissions(): SuitePermissionsMap {
+  const modules: Record<string, SuiteModulePerms> = {};
+  SUITE_MODULES.forEach((m) => {
+    modules[m] = { menu: false, actions: [] };
+  });
+  return { modules };
+}
 
 export function usePermissions() {
-  const [permissions, setPermissions] = useState<Permission[]>([]);
-  const [tree, setTree] = useState<PermissionNode[]>([]);
-  const [grantedIds, setGrantedIds] = useState<string[]>([]);
+  const [perms, setPerms] = useState<SuitePermissionsMap>(emptyPermissions);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
+  const [selectedProfileName, setSelectedProfileName] = useState<string>('');
+
+  const loadForProfile = useCallback(async (profileId: string, profileName?: string) => {
+    setLoading(true);
+    setError(null);
+    setSelectedProfileId(profileId);
+    setSelectedProfileName(profileName || '');
+    try {
+      const result = await fetchProfilePermissions(profileId);
+      if (result.error) throw result.error;
+      const data = result.data as SuitePermissionsMap | null;
+
+      if (data?.modules) {
+        // Valid new-format permissions found
+        setPerms(data);
+      } else {
+        // No permissions saved yet — start fresh
+        setPerms(emptyPermissions());
+      }
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const loadAll = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await fetchAllPermissions();
-      if (result.error) throw result.error;
-      setPermissions(result.data);
-      setTree(buildPermissionTree(result.data, grantedIds));
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  }, [grantedIds]);
-
-  useEffect(() => { loadAll(); }, [loadAll]);
-
-  const loadForProfile = useCallback(async (profileId: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [allResult, grantedResult] = await Promise.all([
-        fetchAllPermissions(),
-        fetchProfilePermissions(profileId),
-      ]);
-      if (allResult.error) throw allResult.error;
-      const ids = grantedResult.data;
-      setGrantedIds(ids);
-      setPermissions(allResult.data);
-      setTree(buildPermissionTree(allResult.data, ids));
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setLoading(false);
-    }
+    setPerms(emptyPermissions());
+    setSelectedProfileId(null);
+    setSelectedProfileName('');
+    setLoading(false);
   }, []);
 
-  const togglePermission = useCallback((permId: string) => {
-    setGrantedIds((prev) => {
-      if (prev.includes(permId)) return prev.filter((id) => id !== permId);
-      return [...prev, permId];
+  useEffect(() => {
+    loadAll();
+  }, [loadAll]);
+
+  const toggleAction = useCallback((module: string, action: string) => {
+    setPerms((prev) => {
+      const next = { ...prev, modules: { ...prev.modules } };
+      next.modules = { ...next.modules };
+      const mod = { ...(next.modules[module] || { menu: false, actions: [] }) };
+      const hasAction = mod.actions.includes(action);
+      mod.actions = hasAction
+        ? mod.actions.filter((a) => a !== action)
+        : [...mod.actions, action];
+      mod.menu = mod.actions.length > 0 && mod.actions.includes('view');
+      next.modules[module] = mod;
+      return next;
     });
   }, []);
 
-  const toggleAllFeature = useCallback((featurePerms: { id: string }[], grant: boolean) => {
-    setGrantedIds((prev) => {
-      const ids = featurePerms.map((p) => p.id);
-      if (grant) {
-        const toAdd = ids.filter((id) => !prev.includes(id));
-        return [...prev, ...toAdd];
+  const toggleMenu = useCallback((module: string) => {
+    setPerms((prev) => {
+      const next = { ...prev, modules: { ...prev.modules } };
+      const mod = { ...(next.modules[module] || { menu: false, actions: [] }) };
+      if (mod.menu) {
+        mod.menu = false;
+        mod.actions = [];
+      } else {
+        mod.menu = true;
+        if (!mod.actions.includes('view')) mod.actions = ['view', ...mod.actions];
       }
-      return prev.filter((id) => !ids.includes(id));
+      next.modules[module] = mod;
+      return next;
     });
   }, []);
 
-  const toggleAllModule = useCallback((modulePerms: { id: string }[], grant: boolean) => {
-    setGrantedIds((prev) => {
-      const ids = modulePerms.map((p) => p.id);
-      if (grant) {
-        const toAdd = ids.filter((id) => !prev.includes(id));
-        return [...prev, ...toAdd];
-      }
-      return prev.filter((id) => !ids.includes(id));
-    });
-  }, []);
-
-  const toggleAllApplication = useCallback((appPerms: { id: string }[], grant: boolean) => {
-    setGrantedIds((prev) => {
-      const ids = appPerms.map((p) => p.id);
-      if (grant) {
-        const toAdd = ids.filter((id) => !prev.includes(id));
-        return [...prev, ...toAdd];
-      }
-      return prev.filter((id) => !ids.includes(id));
+  const toggleAllActions = useCallback((module: string) => {
+    setPerms((prev) => {
+      const next = { ...prev, modules: { ...prev.modules } };
+      const mod = { ...(next.modules[module] || { menu: false, actions: [] }) };
+      const allGranted = ALL_ACTIONS.every((a) => mod.actions.includes(a));
+      mod.actions = allGranted ? [] : [...ALL_ACTIONS];
+      mod.menu = mod.actions.length > 0 && mod.actions.includes('view');
+      next.modules[module] = mod;
+      return next;
     });
   }, []);
 
@@ -97,26 +112,45 @@ export function usePermissions() {
     setSaving(true);
     setError(null);
     try {
-      const result = await saveProfilePermissions(profileId, grantedIds);
+      const result = await saveProfilePermissions(profileId, JSON.parse(JSON.stringify(perms)));
       if (result.error) throw result.error;
+      // Reload to confirm
+      await loadForProfile(profileId, selectedProfileName);
     } catch (err) {
       setError((err as Error).message);
     } finally {
       setSaving(false);
     }
-  }, [grantedIds]);
+  }, [perms, loadForProfile, selectedProfileName]);
 
-  const stats = {
-    total: permissions.length,
-    granted: grantedIds.length,
-    critical: permissions.filter((p) => ['Aprobar', 'Eliminar', 'Configurar', 'Auditar'].includes(p.action) && grantedIds.includes(p.id)).length,
-    apps: [...new Set(permissions.filter((p) => grantedIds.includes(p.id)).map((p) => p.application))].length,
-  };
+  const stats = useMemo(() => {
+    let totalActions = 0;
+    let grantedActions = 0;
+    let grantedMenus = 0;
+    SUITE_MODULES.forEach((m) => {
+      const mod = perms.modules[m];
+      if (!mod) return;
+      totalActions += ALL_ACTIONS.length;
+      grantedActions += mod.actions.length;
+      if (mod.menu) grantedMenus += 1;
+    });
+    return {
+      total: totalActions,
+      granted: grantedActions,
+      menus: grantedMenus,
+      apps: grantedMenus,
+      critical: SUITE_MODULES.filter((m) => {
+        const mod = perms.modules[m];
+        return mod?.actions.includes('delete') || mod?.actions.includes('configure');
+      }).length,
+    };
+  }, [perms]);
 
   return {
-    permissions, tree, grantedIds, loading, saving, error,
-    loadAll, loadForProfile, togglePermission,
-    toggleAllFeature, toggleAllModule, toggleAllApplication,
-    save, stats,
+    perms, loading, saving, error, stats,
+    selectedProfileId, selectedProfileName,
+    loadAll, loadForProfile,
+    toggleAction, toggleMenu, toggleAllActions,
+    save,
   };
 }

@@ -16,7 +16,7 @@ const complianceChecks = [
 
 export default function SecuritySettingsPage() {
   const { platformUser } = useAuth();
-  const tenantId = platformUser?.tenant_id || '00000000-0000-0000-0000-000000000001';
+  const tenantId = platformUser?.tenant_id || '';
   const { settings, loading, saving, error, success, update, save } = useSecuritySettings(tenantId);
   const [showConfirm, setShowConfirm] = useState(false);
   const [pendingChanges, setPendingChanges] = useState<string[]>([]);

@@ -12,6 +12,16 @@ async function getEffectiveTenantId(): Promise<string | null> {
   return pu.tenant_context_override || pu.tenant_id;
 }
 
+export interface SuitePermissionsModule {
+  menu: boolean;
+  actions: string[];
+}
+
+export interface SuitePermissionsData {
+  modules: Record<string, SuitePermissionsModule>;
+}
+
+// Legacy interfaces kept for backward compat with app-access feature
 export interface Permission {
   id: string;
   tenant_id: string;
@@ -44,28 +54,7 @@ export interface ActionNode {
   granted: boolean;
 }
 
-export async function fetchAllPermissions(): Promise<{ data: Permission[]; error: Error | null }> {
-  try {
-    const tenantId = await getEffectiveTenantId();
-    if (!tenantId) return { data: [], error: new Error('No se pudo determinar el tenant') };
-
-    const { data, error } = await supabase
-      .from('permissions')
-      .select('*')
-      .eq('tenant_id', tenantId)
-      .is('deleted_at', null)
-      .order('application', { ascending: true })
-      .order('module', { ascending: true })
-      .order('feature', { ascending: true });
-
-    if (error) throw error;
-    return { data: (data || []) as Permission[], error: null };
-  } catch (err) {
-    return { data: [], error: err as Error };
-  }
-}
-
-export async function fetchProfilePermissions(profileId: string): Promise<{ data: string[]; error: Error | null }> {
+export async function fetchProfilePermissions(profileId: string): Promise<{ data: SuitePermissionsData | null; error: Error | null }> {
   try {
     const { data, error } = await supabase
       .from('profiles')
@@ -74,18 +63,18 @@ export async function fetchProfilePermissions(profileId: string): Promise<{ data
       .single();
 
     if (error) throw error;
-    const perms = (data?.permissions as { granted?: string[] })?.granted || [];
-    return { data: perms, error: null };
+    const perms = data?.permissions as SuitePermissionsData | null;
+    return { data: perms || null, error: null };
   } catch (err) {
-    return { data: [], error: err as Error };
+    return { data: null, error: err as Error };
   }
 }
 
-export async function saveProfilePermissions(profileId: string, grantedIds: string[]): Promise<{ error: Error | null }> {
+export async function saveProfilePermissions(profileId: string, permissions: SuitePermissionsData): Promise<{ error: Error | null }> {
   try {
     const { error } = await supabase
       .from('profiles')
-      .update({ permissions: { granted: grantedIds } })
+      .update({ permissions: permissions as unknown as Record<string, unknown> })
       .eq('id', profileId);
 
     if (error) throw error;
@@ -104,10 +93,37 @@ export async function fetchProfilePermissionsCount(profileId: string): Promise<{
       .single();
 
     if (error) throw error;
-    const perms = (data?.permissions as { granted?: string[] })?.granted || [];
-    return { count: perms.length, error: null };
+    const perms = data?.permissions as SuitePermissionsData | null;
+    if (!perms?.modules) return { count: 0, error: null };
+    let count = 0;
+    Object.values(perms.modules).forEach((mod) => {
+      count += (mod.actions?.length || 0);
+    });
+    return { count, error: null };
   } catch (err) {
     return { count: 0, error: err as Error };
+  }
+}
+
+// Legacy functions for app-access pages
+export async function fetchAllPermissions(): Promise<{ data: Permission[]; error: Error | null }> {
+  try {
+    const tenantId = await getEffectiveTenantId();
+    if (!tenantId) return { data: [], error: new Error('No se pudo determinar el tenant') };
+
+    const { data, error } = await supabase
+      .from('permissions')
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .is('deleted_at', null)
+      .order('application', { ascending: true })
+      .order('module', { ascending: true })
+      .order('feature', { ascending: true });
+
+    if (error) throw error;
+    return { data: (data || []) as Permission[], error: null };
+  } catch (err) {
+    return { data: [], error: err as Error };
   }
 }
 

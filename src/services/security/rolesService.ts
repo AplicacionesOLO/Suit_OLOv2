@@ -1,6 +1,16 @@
 import { supabase } from '@/services/supabase/client';
 
-const TENANT_ID = '00000000-0000-0000-0000-000000000001';
+async function getEffectiveTenantId(): Promise<string | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data: pu } = await supabase
+    .from('platform_users')
+    .select('tenant_id, tenant_context_override')
+    .eq('auth_user_id', user.id)
+    .maybeSingle();
+  if (!pu) return null;
+  return pu.tenant_context_override || pu.tenant_id;
+}
 
 export interface Role {
   id: string;
@@ -20,10 +30,13 @@ export interface RoleWithCounts extends Role {
 
 export async function fetchRoles(): Promise<{ data: Role[]; error: Error | null }> {
   try {
+    const tenantId = await getEffectiveTenantId();
+    if (!tenantId) return { data: [], error: new Error('No se pudo determinar el tenant') };
+
     const { data, error } = await supabase
       .from('roles')
       .select('*')
-      .eq('tenant_id', TENANT_ID)
+      .eq('tenant_id', tenantId)
       .order('level', { ascending: false });
 
     if (error) throw error;
@@ -35,10 +48,13 @@ export async function fetchRoles(): Promise<{ data: Role[]; error: Error | null 
 
 export async function fetchRolesWithCounts(): Promise<{ data: RoleWithCounts[]; error: Error | null }> {
   try {
+    const tenantId = await getEffectiveTenantId();
+    if (!tenantId) return { data: [], error: new Error('No se pudo determinar el tenant') };
+
     const { data: roles, error: rolesErr } = await supabase
       .from('roles')
       .select('*')
-      .eq('tenant_id', TENANT_ID)
+      .eq('tenant_id', tenantId)
       .order('level', { ascending: false });
 
     if (rolesErr) throw rolesErr;
@@ -69,10 +85,13 @@ export async function fetchRolesWithCounts(): Promise<{ data: RoleWithCounts[]; 
 
 export async function createRole(role: Partial<Role>): Promise<{ data: Role | null; error: Error | null }> {
   try {
+    const tenantId = await getEffectiveTenantId();
+    if (!tenantId) return { data: null, error: new Error('No se pudo determinar el tenant') };
+
     const { data, error } = await supabase
       .from('roles')
       .insert({
-        tenant_id: TENANT_ID,
+        tenant_id: tenantId,
         name: role.name,
         code: role.code,
         description: role.description || null,

@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useSuitePermissions } from '@/hooks/useSuitePermissions';
 
 interface NavItem {
   label: string;
   path: string;
   icon: string;
+  module: string;
 }
 
 interface NavGroup {
@@ -18,54 +20,54 @@ const navGroups: NavGroup[] = [
   {
     title: 'Principal',
     items: [
-      { label: 'Dashboard', path: '/dashboard', icon: 'ri-dashboard-line' },
-      { label: 'Catalogo', path: '/catalog', icon: 'ri-store-2-line' },
+      { label: 'Dashboard', path: '/dashboard', icon: 'ri-dashboard-line', module: 'dashboard' },
+      { label: 'Catalogo', path: '/catalog', icon: 'ri-store-2-line', module: 'catalog' },
     ],
   },
   {
     title: 'Plataforma',
     items: [
-      { label: 'Tenants', path: '/tenants', icon: 'ri-building-4-line' },
+      { label: 'Tenants', path: '/tenants', icon: 'ri-building-4-line', module: 'tenants' },
     ],
     superAdminOnly: true,
   },
   {
     title: 'Administracion',
     items: [
-      { label: 'Paises', path: '/countries', icon: 'ri-global-line' },
-      { label: 'Almacenes', path: '/warehouses', icon: 'ri-store-2-line' },
-      { label: 'Clientes', path: '/clients', icon: 'ri-building-2-line' },
-      { label: 'Usuarios', path: '/users', icon: 'ri-user-line' },
+      { label: 'Paises', path: '/countries', icon: 'ri-global-line', module: 'countries' },
+      { label: 'Almacenes', path: '/warehouses', icon: 'ri-store-2-line', module: 'warehouses' },
+      { label: 'Clientes', path: '/clients', icon: 'ri-building-2-line', module: 'clients' },
+      { label: 'Usuarios', path: '/users', icon: 'ri-team-line', module: 'users' },
     ],
   },
   {
     title: 'Aplicaciones',
     items: [
-      { label: 'Categorias', path: '/categories', icon: 'ri-folder-2-line' },
-      { label: 'Aplicaciones', path: '/applications', icon: 'ri-apps-2-line' },
-      { label: 'Instancias', path: '/instances', icon: 'ri-server-line' },
-      { label: 'Asignacion', path: '/assignments', icon: 'ri-link-m' },
+      { label: 'Categorias', path: '/categories', icon: 'ri-folder-2-line', module: 'categories' },
+      { label: 'Aplicaciones', path: '/applications', icon: 'ri-apps-2-line', module: 'applications' },
+      { label: 'Instancias', path: '/instances', icon: 'ri-server-line', module: 'instances' },
+      { label: 'Asignacion', path: '/assignments', icon: 'ri-link-m', module: 'assignments' },
     ],
   },
   {
     title: 'Seguridad',
     items: [
-      { label: 'Roles', path: '/roles', icon: 'ri-shield-user-line' },
-      { label: 'Perfiles', path: '/profiles', icon: 'ri-user-settings-line' },
-      { label: 'Matriz de Permisos', path: '/permissions', icon: 'ri-key-2-line' },
-      { label: 'Accesos', path: '/app-access', icon: 'ri-shield-keyhole-line' },
-      { label: 'Mis Accesos', path: '/my-access', icon: 'ri-user-received-line' },
-      { label: 'Auditoria', path: '/audit', icon: 'ri-file-search-line' },
-      { label: 'Configuracion', path: '/security-settings', icon: 'ri-shield-check-line' },
+      { label: 'Roles', path: '/roles', icon: 'ri-shield-user-line', module: 'roles' },
+      { label: 'Perfiles', path: '/profiles', icon: 'ri-user-settings-line', module: 'profiles' },
+      { label: 'Matriz de Permisos', path: '/permissions', icon: 'ri-key-2-line', module: 'permissions' },
+      { label: 'Accesos', path: '/app-access', icon: 'ri-shield-keyhole-line', module: 'app-access' },
+      { label: 'Mis Accesos', path: '/my-access', icon: 'ri-user-received-line', module: 'my-access' },
+      { label: 'Auditoria', path: '/audit', icon: 'ri-file-search-line', module: 'audit' },
+      { label: 'Configuracion', path: '/security-settings', icon: 'ri-shield-check-line', module: 'security-settings' },
     ],
   },
   {
     title: 'Sistema',
     items: [
-      { label: 'Perfil', path: '/profile', icon: 'ri-user-line' },
-      { label: 'Sesiones', path: '/sessions', icon: 'ri-user-follow-line' },
-      { label: 'Alertas', path: '/security-alerts', icon: 'ri-alert-fill' },
-      { label: 'Integracion', path: '/integration', icon: 'ri-plug-line' },
+      { label: 'Perfil', path: '/profile', icon: 'ri-user-line', module: 'profile' },
+      { label: 'Sesiones', path: '/sessions', icon: 'ri-user-follow-line', module: 'sessions' },
+      { label: 'Alertas', path: '/security-alerts', icon: 'ri-alert-fill', module: 'alerts' },
+      { label: 'Integracion', path: '/integration', icon: 'ri-plug-line', module: 'integration' },
     ],
   },
 ];
@@ -79,13 +81,18 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, platformUser } = useAuth();
+  const { hasMenuAccess } = useSuitePermissions();
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
     Object.fromEntries(navGroups.map((g) => [g.title, true]))
   );
 
-  const isSuperAdmin = platformUser?.role_level === 100;
+  const isSuperAdmin = (platformUser?.role_level ?? 0) >= 100;
 
-  const visibleGroups = navGroups.filter((g) => !g.superAdminOnly || isSuperAdmin);
+  const visibleGroups = navGroups.filter((g) => {
+    if (g.superAdminOnly && !isSuperAdmin) return false;
+    // Filter by permissions
+    return g.items.some((item) => hasMenuAccess(item.module));
+  });
 
   const toggleGroup = (title: string) => {
     setExpandedGroups((prev) => ({ ...prev, [title]: !prev[title] }));
@@ -102,7 +109,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
         ${collapsed ? 'w-[68px]' : 'w-[260px]'}
       `}
     >
-      {/* Logo area - Suite OLO */}
+      {/* Logo area */}
       <div className={`flex items-center h-[60px] border-b border-secondary-500/10 shrink-0 ${collapsed ? 'justify-center px-0' : 'px-5'}`}>
         {!collapsed ? (
           <div className="flex items-center gap-2.5">
@@ -123,51 +130,56 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto overflow-x-hidden py-4 px-2 space-y-1">
-        {visibleGroups.map((group) => (
-          <div key={group.title}>
-            {!collapsed && (
-              <button
-                onClick={() => toggleGroup(group.title)}
-                className="flex items-center justify-between w-full px-3 py-1.5 text-xs font-semibold text-foreground-600 uppercase tracking-wider hover:text-foreground-400 transition-colors"
-              >
-                <span>{group.title}</span>
-                <span className={`w-3 h-3 flex items-center justify-center transition-transform duration-200 ${expandedGroups[group.title] ? 'rotate-90' : ''}`}>
-                  <i className="ri-arrow-right-s-line text-xs"></i>
-                </span>
-              </button>
-            )}
-            {collapsed && (
-              <div className="px-2 py-1.5 mb-0.5">
-                <div className="border-t border-secondary-500/8"></div>
-              </div>
-            )}
-            <div className={`space-y-0.5 overflow-hidden transition-all duration-200 ${collapsed || expandedGroups[group.title] ? 'max-h-96' : 'max-h-0'}`}>
-              {group.items.map((item) => (
+        {visibleGroups.map((group) => {
+          const visibleItems = group.items.filter((item) => hasMenuAccess(item.module));
+          if (visibleItems.length === 0) return null;
+
+          return (
+            <div key={group.title}>
+              {!collapsed && (
                 <button
-                  key={item.path}
-                  onClick={() => navigate(item.path)}
-                  className={`
-                    flex items-center gap-3 w-full rounded-lg transition-all duration-150 text-sm
-                    ${collapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2'}
-                    ${isActive(item.path)
-                      ? 'bg-primary-500/10 text-primary-400 font-medium'
-                      : 'text-foreground-500 hover:text-foreground-200 hover:bg-background-200/50'
-                    }
-                  `}
-                  title={collapsed ? item.label : undefined}
+                  onClick={() => toggleGroup(group.title)}
+                  className="flex items-center justify-between w-full px-3 py-1.5 text-xs font-semibold text-foreground-600 uppercase tracking-wider hover:text-foreground-400 transition-colors"
                 >
-                  <span className={`w-5 h-5 flex items-center justify-center shrink-0 ${isActive(item.path) ? 'text-primary-400' : ''}`}>
-                    <i className={`${item.icon} text-lg`}></i>
+                  <span>{group.title}</span>
+                  <span className={`w-3 h-3 flex items-center justify-center transition-transform duration-200 ${expandedGroups[group.title] ? 'rotate-90' : ''}`}>
+                    <i className="ri-arrow-right-s-line text-xs"></i>
                   </span>
-                  {!collapsed && <span className="whitespace-nowrap">{item.label}</span>}
-                  {!collapsed && isActive(item.path) && (
-                    <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-400"></span>
-                  )}
                 </button>
-              ))}
+              )}
+              {collapsed && (
+                <div className="px-2 py-1.5 mb-0.5">
+                  <div className="border-t border-secondary-500/8"></div>
+                </div>
+              )}
+              <div className={`space-y-0.5 overflow-hidden transition-all duration-200 ${collapsed || expandedGroups[group.title] ? 'max-h-96' : 'max-h-0'}`}>
+                {visibleItems.map((item) => (
+                  <button
+                    key={item.path}
+                    onClick={() => navigate(item.path)}
+                    className={`
+                      flex items-center gap-3 w-full rounded-lg transition-all duration-150 text-sm
+                      ${collapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2'}
+                      ${isActive(item.path)
+                        ? 'bg-primary-500/10 text-primary-400 font-medium'
+                        : 'text-foreground-500 hover:text-foreground-200 hover:bg-background-200/50'
+                      }
+                    `}
+                    title={collapsed ? item.label : undefined}
+                  >
+                    <span className={`w-5 h-5 flex items-center justify-center shrink-0 ${isActive(item.path) ? 'text-primary-400' : ''}`}>
+                      <i className={`${item.icon} text-lg`}></i>
+                    </span>
+                    {!collapsed && <span className="whitespace-nowrap">{item.label}</span>}
+                    {!collapsed && isActive(item.path) && (
+                      <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-400"></span>
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </nav>
 
       {/* Footer */}

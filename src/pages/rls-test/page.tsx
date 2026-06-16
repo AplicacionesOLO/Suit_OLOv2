@@ -233,7 +233,7 @@ export default function RlsTestPage() {
       const totalWarning = testResults.filter((r) => r.status === 'warning').length;
 
       await supabase.from('audit_logs').insert({
-        tenant_id: platformUser?.tenant_id || '00000000-0000-0000-0000-000000000001',
+        tenant_id: platformUser?.tenant_id || '',
         user_id: platformUser?.id || user.id,
         action: 'RLS_TEST_RUN',
         entity_type: 'rls_validation',
@@ -256,7 +256,7 @@ export default function RlsTestPage() {
       for (const r of testResults) {
         if (r.status === 'pass' || r.status === 'fail') {
           await supabase.from('audit_logs').insert({
-            tenant_id: platformUser?.tenant_id || '00000000-0000-0000-0000-000000000001',
+            tenant_id: platformUser?.tenant_id || '',
             user_id: platformUser?.id || user.id,
             action: r.status === 'pass' ? 'RLS_TEST_PASS' : 'RLS_TEST_FAIL',
             entity_type: 'rls_validation',

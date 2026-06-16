@@ -227,7 +227,7 @@ export default function ApplicationsPage() {
         showToast('Aplicación actualizada correctamente', 'success');
       } else {
         const ctx = await getUserContext();
-        const tenantId = ctx?.tenant_id || '00000000-0000-0000-0000-000000000001';
+        const tenantId = ctx?.tenant_id || '';
         const { error } = await createApplication({ ...basePayload, tenant_id: tenantId } as CreateApplicationPayload);
         if (error) { showToast(error, 'error'); return; }
         showToast('Aplicación creada correctamente', 'success');

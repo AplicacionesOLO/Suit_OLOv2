@@ -73,12 +73,19 @@ export async function fetchProfilesWithDetails(): Promise<{ data: ProfileWithDet
     (users || []).forEach((u) => { userCounts[u.profile_id] = (userCounts[u.profile_id] || 0) + 1; });
 
     const result: ProfileWithDetails[] = profiles.map((p) => {
-      const perms = (p.permissions as { granted?: string[] })?.granted || [];
+      let permsCount = 0;
+      const permsData = p.permissions as Record<string, unknown> | null;
+      if (permsData?.modules) {
+        const modules = permsData.modules as Record<string, { actions?: string[] }>;
+        Object.values(modules).forEach((mod) => {
+          permsCount += (mod.actions?.length || 0);
+        });
+      }
       return {
         ...p,
         role_name: p.role_id ? roleMap[p.role_id] : undefined,
         user_count: userCounts[p.id] || 0,
-        permissions_count: perms.length,
+        permissions_count: permsCount,
       };
     });
 
