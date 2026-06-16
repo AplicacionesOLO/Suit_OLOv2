@@ -28,6 +28,7 @@ import TenantDetailPage from "../pages/tenants/detail";
 import RlsTestPage from "../pages/rls-test/page";
 import { ModulesPage } from "../pages/placeholders/page";
 import RouteGuard from "../components/feature/RouteGuard";
+import WorkspacePage from "../pages/workspace/page";
 
 function Guarded({ children }: { children: React.ReactNode }) {
   return <RouteGuard>{children}</RouteGuard>;
@@ -93,6 +94,10 @@ const routes: RouteObject[] = [
   {
     path: "/my-access",
     element: <Guarded><MyAccessPage /></Guarded>,
+  },
+  {
+    path: "/workspace/:instanceId",
+    element: <Guarded><WorkspacePage /></Guarded>,
   },
   {
     path: "/audit",

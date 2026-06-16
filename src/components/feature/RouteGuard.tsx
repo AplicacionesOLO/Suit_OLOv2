@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useSuitePermissions } from '@/hooks/useSuitePermissions';
 
-const ALWAYS_ACCESSIBLE = ['/dashboard', '/my-access', '/profile'];
+const ALWAYS_ACCESSIBLE = ['/dashboard', '/my-access', '/profile', '/workspace'];
 
 const ROUTE_MODULE_MAP: Record<string, string> = {
   '/tenants': 'tenants',

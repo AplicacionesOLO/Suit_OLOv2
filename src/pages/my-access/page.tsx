@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/feature/AppLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { useApplicationAccess } from '@/hooks/useApplicationAccess';
+import { logAuditEvent } from '@/services/security/accessService';
 
 const statusConfig: Record<string, { label: string; bg: string; text: string; border: string }> = {
   assigned: { label: 'Activo', bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20' },
@@ -23,6 +25,7 @@ const colorMap: Record<string, { bg: string; text: string; border: string }> = {
 function getColors(c: string) { return colorMap[c] || colorMap.emerald; }
 
 export default function MyAccessPage() {
+  const navigate = useNavigate();
   const { platformUser, user } = useAuth();
   const { myAccesses, myLoading, loadMyAccesses } = useApplicationAccess();
   const [searchQuery, setSearchQuery] = useState('');
@@ -32,6 +35,37 @@ export default function MyAccessPage() {
       loadMyAccesses(platformUser.id);
     }
   }, [platformUser, loadMyAccesses]);
+
+  const handleOpenApp = (acc: any) => {
+    const openMode = acc.instance_open_mode || 'external';
+    const instanceId = acc.instance_id;
+    const instanceUrl = acc.instance_url || acc.application_base_url;
+
+    if (openMode === 'embedded' && instanceId) {
+      // Navigate to workspace for embedded apps
+      navigate(`/workspace/${instanceId}`);
+    } else if (instanceUrl) {
+      // Open in new tab for external apps
+      window.open(instanceUrl, '_blank', 'noopener,noreferrer');
+      logAuditEvent({
+        action: 'USER_OPENED_EXTERNAL_APPLICATION',
+        entity_type: 'user_application_access',
+        entity_id: acc.id,
+        details: {
+          application_name: acc.application_name,
+          instance_name: acc.instance_name,
+          url: instanceUrl,
+          open_mode: 'external_direct',
+        },
+        severity: 'info',
+      });
+    } else {
+      // Fallback: try workspace if instance exists
+      if (instanceId) {
+        navigate(`/workspace/${instanceId}`);
+      }
+    }
+  };
 
   const filtered = myAccesses.filter((a) => {
     if (!searchQuery) return true;
@@ -123,18 +157,29 @@ export default function MyAccessPage() {
                   {activeAccesses.map((acc) => {
                     const colors = getColors(acc.application_color || 'emerald');
                     const grantedDate = acc.granted_at ? new Date(acc.granted_at).toLocaleDateString() : null;
+                    const openMode = acc.instance_open_mode || 'external';
+                    const isEmbedded = openMode === 'embedded';
                     return (
                       <div key={acc.id} className="glass-panel rounded-2xl p-5 hover:border-secondary-500/20 transition-all duration-200 group">
                         <div className="flex items-start justify-between mb-4">
                           <div className={`w-11 h-11 rounded-xl ${colors.bg} border ${colors.border} flex items-center justify-center group-hover:scale-110 transition-transform duration-200`}>
                             <i className={`${acc.application_icon || 'ri-apps-line'} ${colors.text} text-xl`}></i>
                           </div>
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Activo</span>
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-medium border ${
+                            isEmbedded
+                              ? 'bg-accent-500/10 text-accent-400 border-accent-500/20'
+                              : 'bg-secondary-500/10 text-secondary-400 border-secondary-500/20'
+                          }`}>
+                            {isEmbedded ? 'EMBEBIDA' : 'EXTERNA'}
+                          </span>
                         </div>
                         <h3 className="text-sm font-semibold text-foreground-200 mb-1.5">{acc.application_name}</h3>
                         {acc.instance_name && <p className="text-xs text-foreground-500 mb-2">Instancia: {acc.instance_name}</p>}
                         {grantedDate && <p className="text-2xs text-foreground-600 mb-3">Desde {grantedDate}</p>}
-                        <button className="flex items-center gap-1.5 text-xs font-medium text-primary-400 hover:text-primary-300 transition-colors">
+                        <button
+                          onClick={() => handleOpenApp(acc)}
+                          className="flex items-center gap-1.5 text-xs font-medium text-primary-400 hover:text-primary-300 transition-colors cursor-pointer"
+                        >
                           <span className="w-4 h-4 flex items-center justify-center"><i className="ri-external-link-line"></i></span>
                           Abrir aplicacion
                         </button>

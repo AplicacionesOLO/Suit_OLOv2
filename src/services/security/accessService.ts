@@ -34,7 +34,11 @@ export interface AccessWithDetails extends UserAppAccess {
   application_code?: string;
   application_icon?: string;
   application_color?: string;
+  application_base_url?: string;
   instance_name?: string;
+  instance_url?: string;
+  instance_open_mode?: string;
+  instance_allows_iframe?: boolean;
   role_name?: string;
 }
 
@@ -144,7 +148,6 @@ export async function fetchMyAccesses(userId: string): Promise<{ data: AccessWit
     const tenantId = await getEffectiveTenantId();
     if (!tenantId) return { data: [], error: 'No se pudo determinar el tenant' };
 
-    // userId here is platform_user.id
     const { data, error } = await supabase
       .from('user_application_access')
       .select('*')
@@ -176,7 +179,11 @@ export async function fetchMyAccesses(userId: string): Promise<{ data: AccessWit
         application_code: appMap[a.application_id]?.code,
         application_icon: appMap[a.application_id]?.icon,
         application_color: appMap[a.application_id]?.color,
+        application_base_url: appMap[a.application_id]?.base_url,
         instance_name: a.instance_id ? instMap[a.instance_id]?.instance_name : undefined,
+        instance_url: a.instance_id ? instMap[a.instance_id]?.url : undefined,
+        instance_open_mode: a.instance_id ? instMap[a.instance_id]?.open_mode : undefined,
+        instance_allows_iframe: a.instance_id ? instMap[a.instance_id]?.allows_iframe : undefined,
       })),
       error: null,
     };
@@ -277,5 +284,100 @@ export async function reactivateUserAccess(id: string): Promise<{ error: string 
     return { error: null };
   } catch (err: any) {
     return { error: err.message || 'Error al reactivar acceso' };
+  }
+}
+
+export async function canAccessInstance(instanceId: string): Promise<{ allowed: boolean; access: AccessWithDetails | null; error: string | null }> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { allowed: false, access: null, error: 'No autenticado' };
+
+    const { data: pu } = await supabase
+      .from('platform_users')
+      .select('id, tenant_id, tenant_context_override')
+      .eq('auth_user_id', user.id)
+      .maybeSingle();
+
+    if (!pu) return { allowed: false, access: null, error: 'Usuario no encontrado' };
+
+    const effectiveTenantId = pu.tenant_context_override || pu.tenant_id;
+
+    // Check instance exists and is active
+    const { data: instance, error: instError } = await supabase
+      .from('application_instances')
+      .select('id, tenant_id, application_id, status, instance_name, url, open_mode, allows_iframe')
+      .eq('id', instanceId)
+      .eq('deleted_at', null)
+      .maybeSingle();
+
+    if (instError || !instance) return { allowed: false, access: null, error: 'Instancia no encontrada' };
+    if (instance.status !== 'active') return { allowed: false, access: null, error: 'Instancia no activa' };
+
+    // Check user has active access
+    const { data: access, error: accessError } = await supabase
+      .from('user_application_access')
+      .select('*')
+      .eq('user_id', pu.id)
+      .eq('application_id', instance.application_id)
+      .eq('tenant_id', effectiveTenantId)
+      .eq('access_status', 'assigned')
+      .maybeSingle();
+
+    if (accessError || !access) return { allowed: false, access: null, error: 'No tienes acceso a esta instancia' };
+
+    // Check instance belongs to user's tenant (or super admin bypass)
+    if (instance.tenant_id !== effectiveTenantId) {
+      const { data: roleData } = await supabase
+        .from('roles')
+        .select('level')
+        .eq('id', pu.role_id || '')
+        .maybeSingle();
+      const isSA = (roleData?.level || 0) >= 100;
+      if (!isSA) return { allowed: false, access: null, error: 'La instancia no pertenece a tu tenant' };
+    }
+
+    return { allowed: true, access: access as AccessWithDetails, error: null };
+  } catch (err: any) {
+    return { allowed: false, access: null, error: err.message || 'Error al validar acceso' };
+  }
+}
+
+export async function logAuditEvent(payload: {
+  action: string;
+  entity_type: string;
+  entity_id?: string | null;
+  details?: Record<string, unknown> | null;
+  severity?: string;
+}): Promise<{ error: string | null }> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: 'No autenticado' };
+
+    const { data: pu } = await supabase
+      .from('platform_users')
+      .select('id, tenant_id, tenant_context_override')
+      .eq('auth_user_id', user.id)
+      .maybeSingle();
+
+    if (!pu) return { error: 'Usuario no encontrado' };
+
+    const { error } = await supabase
+      .from('audit_logs')
+      .insert({
+        tenant_id: pu.tenant_context_override || pu.tenant_id,
+        user_id: pu.id,
+        action: payload.action,
+        entity_type: payload.entity_type,
+        entity_id: payload.entity_id || null,
+        details: payload.details || null,
+        severity: payload.severity || 'info',
+        ip_address: null,
+        user_agent: typeof navigator !== 'undefined' ? navigator.userAgent?.slice(0, 512) : null,
+      });
+
+    if (error) throw error;
+    return { error: null };
+  } catch (err: any) {
+    return { error: err.message || 'Error al registrar evento' };
   }
 }

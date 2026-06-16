@@ -82,6 +82,7 @@ export interface AppInstance {
   open_in_olo: boolean;
   open_in_new_tab: boolean;
   allows_iframe: boolean;
+  open_mode: string;
   sso_enabled: boolean;
   jwt_federated: boolean;
   allowed_domains: string[] | null;
@@ -96,6 +97,7 @@ export interface CreateInstancePayload {
   application_id: string;
   instance_name: string;
   url?: string | null;
+  open_mode?: string;
   open_in_olo?: boolean;
   open_in_new_tab?: boolean;
   allows_iframe?: boolean;
@@ -108,6 +110,7 @@ export interface UpdateInstancePayload {
   instance_name?: string;
   url?: string | null;
   status?: string;
+  open_mode?: string;
   open_in_olo?: boolean;
   open_in_new_tab?: boolean;
   allows_iframe?: boolean;
@@ -158,6 +161,33 @@ export async function fetchInstances(): Promise<{ data: AppInstance[]; error: st
     return { data: (data || []) as AppInstance[], error: null };
   } catch (err: any) {
     return { data: [], error: err.message || 'Error al cargar instancias' };
+  }
+}
+
+export async function fetchInstanceById(instanceId: string): Promise<{ data: (AppInstance & { application_name?: string; application_icon?: string; application_color?: string; tenant_name?: string }) | null; error: string | null }> {
+  try {
+    const { data, error } = await supabase
+      .from('application_instances')
+      .select('*, applications!inner(name, icon, color), tenants!inner(name)')
+      .eq('id', instanceId)
+      .eq('deleted_at', null)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!data) return { data: null, error: 'Instancia no encontrada' };
+
+    return {
+      data: {
+        ...data,
+        application_name: (data as any).applications?.name,
+        application_icon: (data as any).applications?.icon,
+        application_color: (data as any).applications?.color,
+        tenant_name: (data as any).tenants?.name,
+      } as any,
+      error: null,
+    };
+  } catch (err: any) {
+    return { data: null, error: err.message || 'Error al cargar instancia' };
   }
 }
 
@@ -259,6 +289,8 @@ export async function restoreApplication(id: string): Promise<{ error: string | 
 
 export async function createInstance(payload: CreateInstancePayload): Promise<{ data: AppInstance | null; error: string | null }> {
   try {
+    // Enforce open_mode rule: if allows_iframe is false, open_mode must be external
+    const effectiveOpenMode = payload.open_mode || (payload.allows_iframe ? 'embedded' : 'external');
     const { data, error } = await supabase
       .from('application_instances')
       .insert({
@@ -266,6 +298,7 @@ export async function createInstance(payload: CreateInstancePayload): Promise<{ 
         application_id: payload.application_id,
         instance_name: payload.instance_name,
         url: payload.url || null,
+        open_mode: effectiveOpenMode,
         open_in_olo: payload.open_in_olo ?? false,
         open_in_new_tab: payload.open_in_new_tab ?? false,
         allows_iframe: payload.allows_iframe ?? false,
@@ -288,9 +321,16 @@ export async function updateInstance(id: string, payload: UpdateInstancePayload)
     if (payload.instance_name !== undefined) updateData.instance_name = payload.instance_name;
     if (payload.url !== undefined) updateData.url = payload.url;
     if (payload.status !== undefined) updateData.status = payload.status;
+    if (payload.open_mode !== undefined) updateData.open_mode = payload.open_mode;
     if (payload.open_in_olo !== undefined) updateData.open_in_olo = payload.open_in_olo;
     if (payload.open_in_new_tab !== undefined) updateData.open_in_new_tab = payload.open_in_new_tab;
-    if (payload.allows_iframe !== undefined) updateData.allows_iframe = payload.allows_iframe;
+    if (payload.allows_iframe !== undefined) {
+      updateData.allows_iframe = payload.allows_iframe;
+      // Enforce: if allows_iframe is false and open_mode was embedded, force to external
+      if (!payload.allows_iframe && payload.open_mode === 'embedded') {
+        updateData.open_mode = 'external';
+      }
+    }
     if (payload.sso_enabled !== undefined) updateData.sso_enabled = payload.sso_enabled;
     if (payload.jwt_federated !== undefined) updateData.jwt_federated = payload.jwt_federated;
     if (payload.allowed_domains !== undefined) updateData.allowed_domains = payload.allowed_domains;
