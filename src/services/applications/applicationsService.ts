@@ -1,4 +1,5 @@
 import { supabase } from '@/services/supabase/client';
+import { cleanDate } from '@/utils/sanitize';
 
 async function getEffectiveTenantId(): Promise<string | null> {
   const { data: { user } } = await supabase.auth.getUser();
@@ -256,7 +257,7 @@ export async function createApplication(payload: CreateApplicationPayload): Prom
 
 export async function updateApplication(id: string, payload: UpdateApplicationPayload): Promise<{ data: Application | null; error: string | null }> {
   try {
-    const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    const updateData: Record<string, unknown> = { updated_at: cleanDate(new Date()) };
     if (payload.category_id !== undefined) updateData.category_id = payload.category_id;
     if (payload.name !== undefined) updateData.name = payload.name;
     if (payload.code !== undefined) updateData.code = payload.code;
@@ -289,7 +290,7 @@ export async function softDeleteApplication(id: string): Promise<{ error: string
 
     const { error } = await supabase
       .from('applications')
-      .update({ deleted_at: new Date().toISOString(), deleted_by: pu?.id || null, updated_at: new Date().toISOString() })
+      .update({ deleted_at: cleanDate(new Date()), deleted_by: pu?.id || null, updated_at: cleanDate(new Date()) })
       .eq('id', id);
     if (error) throw error;
     return { error: null };
@@ -302,7 +303,7 @@ export async function restoreApplication(id: string): Promise<{ error: string | 
   try {
     const { error } = await supabase
       .from('applications')
-      .update({ deleted_at: null, deleted_by: null, updated_at: new Date().toISOString() })
+      .update({ deleted_at: cleanDate(null), deleted_by: null, updated_at: cleanDate(new Date()) })
       .eq('id', id);
     if (error) throw error;
     return { error: null };
@@ -341,7 +342,7 @@ export async function createInstance(payload: CreateInstancePayload): Promise<{ 
 
 export async function updateInstance(id: string, payload: UpdateInstancePayload): Promise<{ data: AppInstance | null; error: string | null }> {
   try {
-    const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    const updateData: Record<string, unknown> = { updated_at: cleanDate(new Date()) };
     if (payload.instance_name !== undefined) updateData.instance_name = payload.instance_name;
     if (payload.url !== undefined) updateData.url = payload.url;
     if (payload.status !== undefined) updateData.status = payload.status;
@@ -379,7 +380,7 @@ export async function softDeleteInstance(id: string): Promise<{ error: string | 
 
     const { error } = await supabase
       .from('application_instances')
-      .update({ deleted_at: new Date().toISOString(), deleted_by: pu?.id || null, updated_at: new Date().toISOString() })
+      .update({ deleted_at: cleanDate(new Date()), deleted_by: pu?.id || null, updated_at: cleanDate(new Date()) })
       .eq('id', id);
     if (error) throw error;
     return { error: null };
@@ -392,7 +393,7 @@ export async function restoreInstance(id: string): Promise<{ error: string | nul
   try {
     const { error } = await supabase
       .from('application_instances')
-      .update({ deleted_at: null, deleted_by: null, updated_at: new Date().toISOString() })
+      .update({ deleted_at: cleanDate(null), deleted_by: null, updated_at: cleanDate(new Date()) })
       .eq('id', id);
     if (error) throw error;
     return { error: null };

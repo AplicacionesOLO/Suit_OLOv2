@@ -1,4 +1,5 @@
 import { supabase } from '@/services/supabase/client';
+import { cleanDate } from '@/utils/sanitize';
 import type { AuthError, Session, User } from '@supabase/supabase-js';
 
 export interface LoginCredentials {
@@ -50,7 +51,7 @@ export async function loginWithEmail({ email, password }: LoginCredentials): Pro
     try {
       await supabase
         .from('platform_users')
-        .update({ last_login: new Date().toISOString() })
+        .update({ last_login: cleanDate(new Date()) })
         .eq('auth_user_id', data.user.id);
     } catch {
       // Non-critical

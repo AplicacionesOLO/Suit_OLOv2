@@ -1,4 +1,5 @@
 import { supabase } from '@/services/supabase/client';
+import { cleanDate } from '@/utils/sanitize';
 
 export interface PlatformUserFull {
   id: string;
@@ -214,7 +215,7 @@ export async function createUserInvitation(input: CreateInvitationInput): Promis
 export async function revokeInvitation(invitationId: string): Promise<{ error: string | null }> {
   const { error } = await supabase
     .from('user_invitations')
-    .update({ status: 'revoked', updated_at: new Date().toISOString() })
+    .update({ status: 'revoked', updated_at: cleanDate(new Date()) })
     .eq('id', invitationId);
 
   if (error) return { error: error.message };
@@ -242,7 +243,7 @@ export async function updatePlatformUser(userId: string, input: UpdateUserInput)
   if (input.first_name !== undefined) updateData.first_name = input.first_name;
   if (input.last_name !== undefined) updateData.last_name = input.last_name;
   if (input.status !== undefined) updateData.status = input.status;
-  updateData.updated_at = new Date().toISOString();
+    updateData.updated_at = cleanDate(new Date());
 
   const { error } = await supabase
     .from('platform_users')

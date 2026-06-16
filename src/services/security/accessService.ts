@@ -1,4 +1,5 @@
 import { supabase } from '@/services/supabase/client';
+import { cleanDate } from '@/utils/sanitize';
 
 async function getEffectiveTenantId(): Promise<string | null> {
   const { data: { user } } = await supabase.auth.getUser();
@@ -224,11 +225,11 @@ export async function createUserAccess(payload: CreateAccessPayload): Promise<{ 
           .from('user_application_access')
           .update({
             access_status: 'assigned',
-            revoked_at: null,
+            revoked_at: cleanDate(null),
             role_id: payload.role_id || null,
-            expires_at: payload.expires_at || null,
+            expires_at: cleanDate(payload.expires_at),
             granted_by: grantedBy,
-            granted_at: new Date().toISOString(),
+            granted_at: cleanDate(new Date()),
           })
           .eq('id', existing.id)
           .select()
@@ -247,9 +248,9 @@ export async function createUserAccess(payload: CreateAccessPayload): Promise<{ 
         instance_id: payload.instance_id || null,
         access_status: payload.access_status || 'assigned',
         role_id: payload.role_id || null,
-        expires_at: payload.expires_at || null,
+        expires_at: cleanDate(payload.expires_at),
         granted_by: grantedBy,
-        granted_at: new Date().toISOString(),
+        granted_at: cleanDate(new Date()),
       })
       .select()
       .single();
@@ -265,7 +266,7 @@ export async function revokeUserAccess(id: string): Promise<{ error: string | nu
   try {
     const { error } = await supabase
       .from('user_application_access')
-      .update({ access_status: 'revoked', revoked_at: new Date().toISOString() })
+      .update({ access_status: 'revoked', revoked_at: cleanDate(new Date()) })
       .eq('id', id);
     if (error) throw error;
     return { error: null };
@@ -278,7 +279,7 @@ export async function reactivateUserAccess(id: string): Promise<{ error: string 
   try {
     const { error } = await supabase
       .from('user_application_access')
-      .update({ access_status: 'assigned', revoked_at: null, granted_at: new Date().toISOString() })
+      .update({ access_status: 'assigned', revoked_at: cleanDate(null), granted_at: cleanDate(new Date()) })
       .eq('id', id);
     if (error) throw error;
     return { error: null };

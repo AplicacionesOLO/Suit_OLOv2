@@ -1,4 +1,5 @@
 import { supabase } from '@/services/supabase/client';
+import { cleanDate } from '@/utils/sanitize';
 
 export interface Tenant {
   id: string;
@@ -185,7 +186,7 @@ export async function updateTenant(id: string, input: UpdateTenantInput): Promis
 
     const { error } = await supabase
       .from('tenants')
-      .update({ ...payload, updated_at: new Date().toISOString() })
+      .update({ ...payload, updated_at: cleanDate(new Date()) })
       .eq('id', id);
 
     if (error) throw error;
@@ -202,7 +203,7 @@ export async function changeTenantStatus(
   try {
     const { error } = await supabase
       .from('tenants')
-      .update({ status: newStatus, updated_at: new Date().toISOString() })
+      .update({ status: newStatus, updated_at: cleanDate(new Date()) })
       .eq('id', id);
 
     if (error) throw error;
