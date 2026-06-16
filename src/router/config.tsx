@@ -2,6 +2,7 @@ import type { RouteObject } from "react-router-dom";
 import NotFound from "../pages/NotFound";
 import LoginPage from "../pages/login/page";
 import ForgotPasswordPage from "../pages/forgot-password/page";
+import AuthCallbackPage from "../pages/auth-callback/page";
 import DashboardPage from "../pages/dashboard/page";
 import CategoriesPage from "../pages/categories/page";
 import ApplicationsPage from "../pages/applications/page";
@@ -38,6 +39,10 @@ const routes: RouteObject[] = [
   {
     path: "/forgot-password",
     element: <ForgotPasswordPage />,
+  },
+  {
+    path: "/auth/callback",
+    element: <AuthCallbackPage />,
   },
   {
     path: "/dashboard",

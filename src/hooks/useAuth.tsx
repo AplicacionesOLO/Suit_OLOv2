@@ -66,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     initSession();
 
-    const { data: subscription } = onAuthStateChange((newSession) => {
+    const subscription = onAuthStateChange((newSession) => {
       if (!mounted) return;
       setSession(newSession);
       setUser(newSession?.user || null);

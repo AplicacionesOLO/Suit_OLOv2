@@ -2,7 +2,7 @@ import { type ReactNode, useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 
-const PUBLIC_ROUTES = ['/login', '/forgot-password'];
+const PUBLIC_ROUTES = ['/login', '/forgot-password', '/auth/callback'];
 
 export default function AuthGuard({ children }: { children: ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
