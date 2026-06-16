@@ -27,10 +27,36 @@ export interface PlatformUserFull {
   client_name?: string;
 }
 
-export interface CreateUserInput {
+export interface UserInvitation {
+  id: string;
   email: string;
   tenant_id: string;
   role_id: string;
+  profile_id: string | null;
+  country_id: string | null;
+  warehouse_id: string | null;
+  client_id: string | null;
+  invited_by: string | null;
+  status: string;
+  token: string | null;
+  expires_at: string;
+  accepted_at: string | null;
+  created_at: string;
+  updated_at: string;
+  tenant_name?: string;
+  role_name?: string;
+  role_level?: number;
+  country_name?: string;
+  warehouse_name?: string;
+  client_name?: string;
+  invited_by_name?: string;
+}
+
+export interface CreateInvitationInput {
+  email: string;
+  tenant_id: string;
+  role_id: string;
+  profile_id?: string;
   country_id?: string;
   warehouse_id?: string;
   client_id?: string;
@@ -59,17 +85,17 @@ export async function fetchUsers(): Promise<{ users: PlatformUserFull[]; error: 
 
   const typed = users as PlatformUserFull[];
 
-  const tenantIds = [...new Set(typed.map((u) => u.tenant_id).filter(Boolean))];
-  const roleIds = [...new Set(typed.map((u) => u.role_id).filter(Boolean))];
-  const countryIds = [...new Set(typed.map((u) => u.country_id).filter(Boolean))];
-  const warehouseIds = [...new Set(typed.map((u) => u.warehouse_id).filter(Boolean))];
-  const clientIds = [...new Set(typed.map((u) => u.client_id).filter(Boolean))];
+  const tenantIds = [...new Set(typed.map((u) => u.tenant_id).filter(Boolean))] as string[];
+  const roleIds = [...new Set(typed.map((u) => u.role_id).filter(Boolean))] as string[];
+  const countryIds = [...new Set(typed.map((u) => u.country_id).filter(Boolean))] as string[];
+  const warehouseIds = [...new Set(typed.map((u) => u.warehouse_id).filter(Boolean))] as string[];
+  const clientIds = [...new Set(typed.map((u) => u.client_id).filter(Boolean))] as string[];
 
-  let tenants: Record<string, string> = {};
-  let roles: Record<string, { name: string; level: number }> = {};
-  let countries: Record<string, string> = {};
-  let warehouses: Record<string, string> = {};
-  let clients: Record<string, string> = {};
+  const tenants: Record<string, string> = {};
+  const roles: Record<string, { name: string; level: number }> = {};
+  const countries: Record<string, string> = {};
+  const warehouses: Record<string, string> = {};
+  const clients: Record<string, string> = {};
 
   if (tenantIds.length > 0) {
     const { data: t } = await supabase.from('tenants').select('id, name').in('id', tenantIds);
@@ -105,49 +131,113 @@ export async function fetchUsers(): Promise<{ users: PlatformUserFull[]; error: 
   return { users: enriched, error: null };
 }
 
-export async function createPlatformUser(input: CreateUserInput): Promise<{ user: PlatformUserFull | null; error: string | null }> {
-  const { data: roleLevel } = await supabase.rpc('get_user_role_level');
-  if (!roleLevel || roleLevel < 80) return { user: null, error: 'No tienes permisos para crear usuarios' };
-
-  const { data: user, error } = await supabase
-    .from('platform_users')
-    .insert({
-      email: input.email,
-      tenant_id: input.tenant_id,
-      role_id: input.role_id,
-      country_id: input.country_id || null,
-      warehouse_id: input.warehouse_id || null,
-      client_id: input.client_id || null,
-      first_name: input.first_name || null,
-      last_name: input.last_name || null,
-      status: 'pending',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
+export async function fetchInvitations(): Promise<{ invitations: UserInvitation[]; error: string | null }> {
+  const { data, error } = await supabase
+    .from('user_invitations')
     .select('*')
-    .single();
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false });
 
-  if (error) return { user: null, error: error.message };
+  if (error) return { invitations: [], error: error.message };
+
+  const typed = data as UserInvitation[];
+
+  const tenantIds = [...new Set(typed.map((i) => i.tenant_id))];
+  const roleIds = [...new Set(typed.map((i) => i.role_id))];
+  const countryIds = [...new Set(typed.map((i) => i.country_id).filter(Boolean))] as string[];
+  const warehouseIds = [...new Set(typed.map((i) => i.warehouse_id).filter(Boolean))] as string[];
+  const clientIds = [...new Set(typed.map((i) => i.client_id).filter(Boolean))] as string[];
+  const inviterIds = [...new Set(typed.map((i) => i.invited_by).filter(Boolean))] as string[];
+
+  const tenants: Record<string, string> = {};
+  const roles: Record<string, { name: string; level: number }> = {};
+  const countries: Record<string, string> = {};
+  const warehouses: Record<string, string> = {};
+  const clients: Record<string, string> = {};
+  const inviters: Record<string, string> = {};
+
+  if (tenantIds.length > 0) {
+    const { data: t } = await supabase.from('tenants').select('id, name').in('id', tenantIds);
+    if (t) t.forEach((r) => { tenants[r.id] = r.name; });
+  }
+  if (roleIds.length > 0) {
+    const { data: r } = await supabase.from('roles').select('id, name, level').in('id', roleIds);
+    if (r) r.forEach((rl) => { roles[rl.id] = { name: rl.name, level: rl.level }; });
+  }
+  if (countryIds.length > 0) {
+    const { data: c } = await supabase.from('countries').select('id, name').in('id', countryIds);
+    if (c) c.forEach((ct) => { countries[ct.id] = ct.name; });
+  }
+  if (warehouseIds.length > 0) {
+    const { data: w } = await supabase.from('warehouses').select('id, name').in('id', warehouseIds);
+    if (w) w.forEach((wh) => { warehouses[wh.id] = wh.name; });
+  }
+  if (clientIds.length > 0) {
+    const { data: cl } = await supabase.from('clients').select('id, name').in('id', clientIds);
+    if (cl) cl.forEach((c) => { clients[c.id] = c.name; });
+  }
+  if (inviterIds.length > 0) {
+    const { data: inv } = await supabase.from('platform_users').select('id, first_name, last_name, email').in('id', inviterIds);
+    if (inv) inv.forEach((i) => { inviters[i.id] = i.first_name ? `${i.first_name} ${i.last_name || ''}` : (i.email || 'Sistema'); });
+  }
+
+  const enriched = typed.map((i) => ({
+    ...i,
+    tenant_name: tenants[i.tenant_id] || '—',
+    role_name: roles[i.role_id]?.name || '—',
+    role_level: roles[i.role_id]?.level || 0,
+    country_name: i.country_id ? countries[i.country_id] : undefined,
+    warehouse_name: i.warehouse_id ? warehouses[i.warehouse_id] : undefined,
+    client_name: i.client_id ? clients[i.client_id] : undefined,
+    invited_by_name: i.invited_by ? inviters[i.invited_by] : undefined,
+  }));
+
+  return { invitations: enriched, error: null };
+}
+
+export async function createUserInvitation(input: CreateInvitationInput): Promise<{ invitation: UserInvitation | null; error: string | null }> {
+  const { data, error } = await supabase.rpc('create_user_invitation', {
+    p_email: input.email.trim().toLowerCase(),
+    p_tenant_id: input.tenant_id,
+    p_role_id: input.role_id,
+    p_profile_id: input.profile_id || null,
+    p_country_id: input.country_id || null,
+    p_warehouse_id: input.warehouse_id || null,
+    p_client_id: input.client_id || null,
+    p_first_name: input.first_name || null,
+    p_last_name: input.last_name || null,
+  });
+
+  if (error) return { invitation: null, error: error.message };
+
+  if (data?.error) return { invitation: null, error: data.error };
+
+  return { invitation: data as UserInvitation, error: null };
+}
+
+export async function revokeInvitation(invitationId: string): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from('user_invitations')
+    .update({ status: 'revoked', updated_at: new Date().toISOString() })
+    .eq('id', invitationId);
+
+  if (error) return { error: error.message };
 
   try {
     await supabase.from('audit_logs').insert({
-      tenant_id: input.tenant_id,
+      tenant_id: null,
       user_id: null,
-      action: 'USER_CREATED',
-      entity_type: 'platform_users',
-      entity_id: user.id,
-      details: { email: input.email, role_id: input.role_id },
+      action: 'USER_INVITATION_REVOKED',
+      entity_type: 'user_invitations',
+      entity_id: invitationId,
       severity: 'medium',
     });
   } catch { /* non-critical */ }
 
-  return { user: user as PlatformUserFull, error: null };
+  return { error: null };
 }
 
 export async function updatePlatformUser(userId: string, input: UpdateUserInput): Promise<{ error: string | null }> {
-  const { data: roleLevel } = await supabase.rpc('get_user_role_level');
-  if (!roleLevel || roleLevel < 80) return { error: 'No tienes permisos para editar usuarios' };
-
   const updateData: Record<string, unknown> = {};
   if (input.role_id !== undefined) updateData.role_id = input.role_id;
   if (input.country_id !== undefined) updateData.country_id = input.country_id;
@@ -168,7 +258,7 @@ export async function updatePlatformUser(userId: string, input: UpdateUserInput)
 
   try {
     await supabase.from('audit_logs').insert({
-      tenant_id: (await supabase.from('platform_users').select('tenant_id').eq('id', userId).maybeSingle()).data?.tenant_id || null,
+      tenant_id: null,
       user_id: null,
       action: 'USER_UPDATED',
       entity_type: 'platform_users',
@@ -182,9 +272,6 @@ export async function updatePlatformUser(userId: string, input: UpdateUserInput)
 }
 
 export async function deletePlatformUser(userId: string): Promise<{ error: string | null }> {
-  const { data: roleLevel } = await supabase.rpc('get_user_role_level');
-  if (!roleLevel || roleLevel < 80) return { error: 'No tienes permisos para eliminar usuarios' };
-
   const { data: currentUser } = await supabase.auth.getUser();
   const { data: targetUser } = await supabase.from('platform_users').select('auth_user_id, tenant_id, email').eq('id', userId).maybeSingle();
 

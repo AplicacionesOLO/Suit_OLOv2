@@ -1,17 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   fetchUsers,
-  createPlatformUser,
+  fetchInvitations,
+  createUserInvitation,
+  revokeInvitation,
   updatePlatformUser,
   deletePlatformUser,
   type PlatformUserFull,
-  type CreateUserInput,
+  type UserInvitation,
+  type CreateInvitationInput,
   type UpdateUserInput,
 } from '@/services/auth/usersService';
 import { supabase } from '@/services/supabase/client';
 
 interface UseUsersReturn {
   users: PlatformUserFull[];
+  invitations: UserInvitation[];
   tenants: { id: string; name: string }[];
   roles: { id: string; name: string; level: number }[];
   countries: { id: string; name: string; tenant_id: string }[];
@@ -19,7 +23,8 @@ interface UseUsersReturn {
   clients: { id: string; name: string; warehouse_id: string }[];
   loading: boolean;
   error: string | null;
-  addUser: (input: CreateUserInput) => Promise<{ error: string | null }>;
+  sendInvitation: (input: CreateInvitationInput) => Promise<{ error: string | null }>;
+  cancelInvitation: (invitationId: string) => Promise<{ error: string | null }>;
   editUser: (userId: string, input: UpdateUserInput) => Promise<{ error: string | null }>;
   removeUser: (userId: string) => Promise<{ error: string | null }>;
   refresh: () => void;
@@ -27,6 +32,7 @@ interface UseUsersReturn {
 
 export function useUsers(): UseUsersReturn {
   const [users, setUsers] = useState<PlatformUserFull[]>([]);
+  const [invitations, setInvitations] = useState<UserInvitation[]>([]);
   const [tenants, setTenants] = useState<{ id: string; name: string }[]>([]);
   const [roles, setRoles] = useState<{ id: string; name: string; level: number }[]>([]);
   const [countries, setCountries] = useState<{ id: string; name: string; tenant_id: string }[]>([]);
@@ -40,8 +46,9 @@ export function useUsers(): UseUsersReturn {
     setError(null);
 
     try {
-      const [usersResult, tenantsResult, rolesResult, countriesResult, warehousesResult, clientsResult] = await Promise.all([
+      const [usersResult, invitationsResult, tenantsResult, rolesResult, countriesResult, warehousesResult, clientsResult] = await Promise.all([
         fetchUsers(),
+        fetchInvitations(),
         supabase.from('tenants').select('id, name').order('name'),
         supabase.from('roles').select('id, name, level').order('level'),
         supabase.from('countries').select('id, name, tenant_id').order('name'),
@@ -51,6 +58,9 @@ export function useUsers(): UseUsersReturn {
 
       if (usersResult.error) { setError(usersResult.error); }
       else { setUsers(usersResult.users); }
+
+      if (invitationsResult.error) { /* non-blocking */ }
+      else { setInvitations(invitationsResult.invitations); }
 
       if (tenantsResult.data) setTenants(tenantsResult.data);
       if (rolesResult.data) setRoles(rolesResult.data);
@@ -66,8 +76,14 @@ export function useUsers(): UseUsersReturn {
 
   useEffect(() => { load(); }, [load]);
 
-  const addUser = useCallback(async (input: CreateUserInput) => {
-    const result = await createPlatformUser(input);
+  const sendInvitation = useCallback(async (input: CreateInvitationInput) => {
+    const result = await createUserInvitation(input);
+    if (!result.error) await load();
+    return result;
+  }, [load]);
+
+  const cancelInvitation = useCallback(async (invitationId: string) => {
+    const result = await revokeInvitation(invitationId);
     if (!result.error) await load();
     return result;
   }, [load]);
@@ -85,9 +101,9 @@ export function useUsers(): UseUsersReturn {
   }, [load]);
 
   return {
-    users, tenants, roles, countries, warehouses, clients,
+    users, invitations, tenants, roles, countries, warehouses, clients,
     loading, error,
-    addUser, editUser, removeUser,
+    sendInvitation, cancelInvitation, editUser, removeUser,
     refresh: load,
   };
 }

@@ -11,6 +11,7 @@ interface NavItem {
 interface NavGroup {
   title: string;
   items: NavItem[];
+  superAdminOnly?: boolean;
 }
 
 const navGroups: NavGroup[] = [
@@ -20,6 +21,13 @@ const navGroups: NavGroup[] = [
       { label: 'Dashboard', path: '/dashboard', icon: 'ri-dashboard-line' },
       { label: 'Catalogo', path: '/catalog', icon: 'ri-store-2-line' },
     ],
+  },
+  {
+    title: 'Plataforma',
+    items: [
+      { label: 'Tenants', path: '/tenants', icon: 'ri-building-4-line' },
+    ],
+    superAdminOnly: true,
   },
   {
     title: 'Administracion',
@@ -75,6 +83,10 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
     Object.fromEntries(navGroups.map((g) => [g.title, true]))
   );
 
+  const isSuperAdmin = platformUser?.role_level === 100;
+
+  const visibleGroups = navGroups.filter((g) => !g.superAdminOnly || isSuperAdmin);
+
   const toggleGroup = (title: string) => {
     setExpandedGroups((prev) => ({ ...prev, [title]: !prev[title] }));
   };
@@ -111,7 +123,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto overflow-x-hidden py-4 px-2 space-y-1">
-        {navGroups.map((group) => (
+        {visibleGroups.map((group) => (
           <div key={group.title}>
             {!collapsed && (
               <button

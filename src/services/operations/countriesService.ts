@@ -7,7 +7,12 @@ export interface Country {
   code: string;
   iso_code: string;
   currency?: string;
+  currency_name?: string;
   timezone?: string;
+  language?: string;
+  phone_prefix?: string;
+  continent?: string;
+  flag_url?: string;
   status: string;
   created_at: string;
   updated_at: string;
@@ -72,7 +77,12 @@ export async function createCountry(data: {
   iso_code: string;
   tenant_id: string;
   currency?: string;
+  currency_name?: string;
   timezone?: string;
+  language?: string;
+  phone_prefix?: string;
+  continent?: string;
+  flag_url?: string;
 }): Promise<{ data: Country | null; error: string | null }> {
   try {
     const existing = await supabase
@@ -94,7 +104,12 @@ export async function createCountry(data: {
         iso_code: data.iso_code,
         tenant_id: data.tenant_id,
         currency: data.currency || null,
+        currency_name: data.currency_name || null,
         timezone: data.timezone || null,
+        language: data.language || null,
+        phone_prefix: data.phone_prefix || null,
+        continent: data.continent || null,
+        flag_url: data.flag_url || null,
         status: 'active',
       })
       .select()
@@ -109,7 +124,7 @@ export async function createCountry(data: {
 
 export async function updateCountry(
   id: string,
-  data: { name?: string; code?: string; iso_code?: string; tenant_id?: string; currency?: string; timezone?: string }
+  data: { name?: string; code?: string; iso_code?: string; tenant_id?: string; currency?: string; currency_name?: string; timezone?: string; language?: string; phone_prefix?: string; continent?: string; flag_url?: string; status?: string }
 ): Promise<{ error: string | null }> {
   try {
     const { error } = await supabase

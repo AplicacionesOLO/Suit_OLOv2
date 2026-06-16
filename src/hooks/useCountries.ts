@@ -14,8 +14,8 @@ interface UseCountriesReturn {
   loading: boolean;
   error: string | null;
   refresh: () => void;
-  addCountry: (data: { name: string; code: string; iso_code: string; tenant_id: string }) => Promise<{ error: string | null }>;
-  editCountry: (id: string, data: { name?: string; code?: string; iso_code?: string; tenant_id?: string }) => Promise<{ error: string | null }>;
+  addCountry: (data: { name: string; code: string; iso_code: string; tenant_id: string; currency?: string; currency_name?: string; timezone?: string; language?: string; phone_prefix?: string; continent?: string; flag_url?: string }) => Promise<{ error: string | null }>;
+  editCountry: (id: string, data: { name?: string; code?: string; iso_code?: string; tenant_id?: string; currency?: string; currency_name?: string; timezone?: string; language?: string; phone_prefix?: string; continent?: string; flag_url?: string }) => Promise<{ error: string | null }>;
   toggleStatus: (id: string, currentStatus: string) => Promise<{ error: string | null }>;
 }
 
@@ -41,13 +41,13 @@ export function useCountries(): UseCountriesReturn {
 
   useEffect(() => { load(); }, [load]);
 
-  const addCountry = useCallback(async (data: { name: string; code: string; iso_code: string; tenant_id: string }) => {
+  const addCountry = useCallback(async (data: { name: string; code: string; iso_code: string; tenant_id: string; currency?: string; currency_name?: string; timezone?: string; language?: string; phone_prefix?: string; continent?: string; flag_url?: string }) => {
     const result = await createCountry(data);
     if (!result.error) await load();
     return result;
   }, [load]);
 
-  const editCountry = useCallback(async (id: string, data: { name?: string; code?: string; iso_code?: string; tenant_id?: string }) => {
+  const editCountry = useCallback(async (id: string, data: { name?: string; code?: string; iso_code?: string; tenant_id?: string; currency?: string; currency_name?: string; timezone?: string; language?: string; phone_prefix?: string; continent?: string; flag_url?: string }) => {
     const result = await updateCountry(id, data);
     if (!result.error) await load();
     return result;

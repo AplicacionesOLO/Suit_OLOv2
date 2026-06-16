@@ -1,35 +1,36 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { fetchWorldCountries, searchCountries, mapCountryToForm, type WorldCountry, type CountryFormData } from '@/services/external/countriesApiService';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { fetchCatalog, searchCatalog, mapCatalogToForm, type CatalogCountry, type CountryFormData } from '@/services/catalog/countryCatalogService';
 
 interface UseWorldCountriesReturn {
-  allCountries: WorldCountry[];
-  searchResults: WorldCountry[];
+  allCountries: CatalogCountry[];
+  searchResults: CatalogCountry[];
   selectedCountry: CountryFormData | null;
   loading: boolean;
   error: string | null;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
-  selectCountry: (country: WorldCountry) => void;
+  selectCountry: (country: CatalogCountry) => void;
   clearSelection: () => void;
   retry: () => void;
 }
 
 export function useWorldCountries(): UseWorldCountriesReturn {
-  const [allCountries, setAllCountries] = useState<WorldCountry[]>([]);
+  const [allCountries, setAllCountries] = useState<CatalogCountry[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCountry, setSelectedCountry] = useState<CountryFormData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [debouncedQuery, setDebouncedQuery] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchWorldCountries();
+      const data = await fetchCatalog();
       setAllCountries(data);
     } catch (err: any) {
-      setError(err.message || 'Error al cargar paises');
+      setError(err.message || 'Error al cargar el catalogo de paises');
     } finally {
       setLoading(false);
     }
@@ -42,37 +43,29 @@ export function useWorldCountries(): UseWorldCountriesReturn {
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      if (searchQuery.trim() && allCountries.length > 0) {
-        const results = searchCountries(searchQuery, allCountries);
-        setSearchResultsState(results);
-      }
-    }, 200);
+      setDebouncedQuery(searchQuery);
+    }, 150);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [searchQuery, allCountries]);
+  }, [searchQuery]);
 
-  const [searchResults, setSearchResultsState] = useState<WorldCountry[]>([]);
-
-  useEffect(() => {
-    if (!searchQuery.trim() && allCountries.length > 0) {
-      setSearchResultsState(allCountries.slice(0, 20));
+  const searchResults = useMemo(() => {
+    if (!debouncedQuery.trim() && allCountries.length > 0) {
+      return allCountries.slice(0, 20);
     }
-  }, [searchQuery, allCountries]);
+    return searchCatalog(debouncedQuery, allCountries);
+  }, [debouncedQuery, allCountries]);
 
-  const selectCountry = useCallback((country: WorldCountry) => {
-    setSelectedCountry(mapCountryToForm(country));
+  const selectCountry = useCallback((country: CatalogCountry) => {
+    setSelectedCountry(mapCatalogToForm(country));
     setSearchQuery(country.name);
-    setSearchResultsState([]);
   }, []);
 
   const clearSelection = useCallback(() => {
     setSelectedCountry(null);
     setSearchQuery('');
-    if (allCountries.length > 0) {
-      setSearchResultsState(allCountries.slice(0, 20));
-    }
-  }, [allCountries]);
+  }, []);
 
   const retry = useCallback(() => {
     load();

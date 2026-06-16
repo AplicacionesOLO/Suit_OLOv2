@@ -15,7 +15,7 @@ export interface LoginResult {
 export interface PlatformUser {
   id: string;
   auth_user_id: string;
-  tenant_id: string;
+  tenant_id: string | null;
   country_id: string | null;
   warehouse_id: string | null;
   client_id: string | null;
@@ -30,6 +30,10 @@ export interface PlatformUser {
   avatar_url: string | null;
   tenant_context_override: string | null;
   country_context_override: string | null;
+  tenant_name?: string | null;
+  role_name?: string | null;
+  country_name?: string | null;
+  profile_name?: string | null;
 }
 
 const TENANT_ID = '00000000-0000-0000-0000-000000000001';
@@ -123,8 +127,26 @@ export async function getPlatformUser(authUserId: string): Promise<PlatformUser 
   const pu = data as PlatformUser;
 
   if (pu.role_id) {
-    const { data: role } = await supabase.from('roles').select('level').eq('id', pu.role_id).maybeSingle();
-    pu.role_level = role?.level ?? null;
+    const { data: role } = await supabase.from('roles').select('level, name').eq('id', pu.role_id).maybeSingle();
+    if (role) {
+      pu.role_level = role.level;
+      pu.role_name = role.name;
+    }
+  }
+
+  if (pu.tenant_id) {
+    const { data: tenant } = await supabase.from('tenants').select('name').eq('id', pu.tenant_id).maybeSingle();
+    if (tenant) pu.tenant_name = tenant.name;
+  }
+
+  if (pu.country_id) {
+    const { data: country } = await supabase.from('countries').select('name').eq('id', pu.country_id).maybeSingle();
+    if (country) pu.country_name = country.name;
+  }
+
+  if (pu.profile_id) {
+    const { data: profile } = await supabase.from('profiles').select('name').eq('id', pu.profile_id).maybeSingle();
+    if (profile) pu.profile_name = profile.name;
   }
 
   return pu;

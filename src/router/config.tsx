@@ -24,6 +24,8 @@ import CountriesPage from "../pages/countries/page";
 import WarehousesPage from "../pages/warehouses/page";
 import ClientsPage from "../pages/clients/page";
 import UsersPage from "../pages/users/page";
+import TenantsPage from "../pages/tenants/page";
+import TenantDetailPage from "../pages/tenants/detail";
 import RlsTestPage from "../pages/rls-test/page";
 import { ModulesPage } from "../pages/placeholders/page";
 
@@ -127,6 +129,14 @@ const routes: RouteObject[] = [
   {
     path: "/users",
     element: <UsersPage />,
+  },
+  {
+    path: "/tenants",
+    element: <TenantsPage />,
+  },
+  {
+    path: "/tenants/:id",
+    element: <TenantDetailPage />,
   },
   {
     path: "/rls-test",
