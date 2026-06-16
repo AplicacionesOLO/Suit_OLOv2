@@ -1,9 +1,11 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/feature/AppLayout';
 import { useProfiles } from '@/hooks/useProfiles';
 import { useRoles } from '@/hooks/useRoles';
 
 export default function ProfilesPage() {
+  const navigate = useNavigate();
   const { profiles, loading, addProfile, editProfile, duplicateProfile } = useProfiles();
   const { roles } = useRoles();
   const [searchQuery, setSearchQuery] = useState('');
@@ -78,17 +80,18 @@ export default function ProfilesPage() {
             <h1 className="text-xl font-bold text-foreground-100">Perfiles</h1>
             <p className="text-sm text-foreground-500 mt-1">Configura perfiles con permisos granulares. Cada perfil hereda de un rol y puede personalizar sus accesos.</p>
           </div>
-          <button onClick={openCreate} className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-sm font-medium whitespace-nowrap">
+          <button onClick={openCreate} className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary-500 text-background-50 dark:text-foreground-950 hover:bg-primary-600 transition-colors text-sm font-medium whitespace-nowrap">
             <span className="w-4 h-4 flex items-center justify-center"><i className="ri-add-line text-base"></i></span>
             Nuevo perfil
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
           {[
             { label: 'Total perfiles', value: profiles.length, icon: 'ri-user-settings-line', bg: 'bg-primary-500/10', text: 'text-primary-400' },
             { label: 'Por defecto', value: profiles.filter((p) => p.is_default).length, icon: 'ri-check-double-line', bg: 'bg-accent-500/10', text: 'text-accent-400' },
             { label: 'Usuarios asignados', value: profiles.reduce((s, p) => s + p.user_count, 0), icon: 'ri-team-line', bg: 'bg-emerald-500/10', text: 'text-emerald-400' },
+            { label: 'Permisos totales', value: profiles.reduce((s, p) => s + (p.permissions_count || 0), 0), icon: 'ri-key-2-line', bg: 'bg-violet-500/10', text: 'text-violet-400' },
           ].map((stat) => (
             <div key={stat.label} className="glass-panel rounded-xl p-4">
               <div className="flex items-center gap-3">
@@ -124,6 +127,7 @@ export default function ProfilesPage() {
                   <th className="text-left px-5 py-3 text-xs font-medium text-foreground-500 uppercase tracking-wider">Codigo</th>
                   <th className="text-left px-5 py-3 text-xs font-medium text-foreground-500 uppercase tracking-wider">Rol base</th>
                   <th className="text-left px-5 py-3 text-xs font-medium text-foreground-500 uppercase tracking-wider">Usuarios</th>
+                  <th className="text-left px-5 py-3 text-xs font-medium text-foreground-500 uppercase tracking-wider">Permisos</th>
                   <th className="text-left px-5 py-3 text-xs font-medium text-foreground-500 uppercase tracking-wider">Default</th>
                   <th className="text-left px-5 py-3 text-xs font-medium text-foreground-500 uppercase tracking-wider">Creado</th>
                   <th className="text-right px-5 py-3 text-xs font-medium text-foreground-500 uppercase tracking-wider">Acciones</th>
@@ -148,6 +152,19 @@ export default function ProfilesPage() {
                       ) : <span className="text-xs text-foreground-600">—</span>}
                     </td>
                     <td className="px-5 py-3.5"><span className="text-sm font-medium text-foreground-300">{profile.user_count}</span></td>
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-sm font-medium ${profile.permissions_count > 0 ? 'text-violet-400' : 'text-foreground-400'}`}>{profile.permissions_count || 0}</span>
+                        <button
+                          onClick={() => navigate(`/permissions?profile=${profile.id}`)}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-2xs font-medium bg-violet-500/10 text-violet-400 border border-violet-500/20 hover:bg-violet-500/20 transition-all whitespace-nowrap"
+                          title="Editar matriz de permisos"
+                        >
+                          <span className="w-3 h-3 flex items-center justify-center"><i className="ri-edit-line text-2xs"></i></span>
+                          Matriz
+                        </button>
+                      </div>
+                    </td>
                     <td className="px-5 py-3.5">
                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-medium ${profile.is_default ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-secondary-500/10 text-secondary-400 border border-secondary-500/15'}`}>
                         {profile.is_default ? 'Default' : 'Custom'}
@@ -222,7 +239,7 @@ export default function ProfilesPage() {
 
             <div className="flex items-center justify-end gap-3 mt-6">
               <button onClick={() => setShowModal(false)} className="h-9 px-4 rounded-lg border border-secondary-500/20 text-sm text-foreground-400 hover:text-foreground-200 hover:border-secondary-500/40 transition-all whitespace-nowrap">Cancelar</button>
-              <button onClick={handleSave} disabled={saving} className="h-9 px-4 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-sm font-medium whitespace-nowrap disabled:opacity-50">
+              <button onClick={handleSave} disabled={saving} className="h-9 px-4 rounded-lg bg-primary-500 text-background-50 dark:text-foreground-950 hover:bg-primary-600 transition-colors text-sm font-medium whitespace-nowrap disabled:opacity-50">
                 {saving ? 'Guardando...' : editing ? 'Guardar cambios' : 'Crear perfil'}
               </button>
             </div>

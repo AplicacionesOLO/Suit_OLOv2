@@ -1,5 +1,13 @@
-import { useState, useEffect, useCallback } from 'react';
-import { fetchUserAccesses, fetchMyAccesses, grantAccess, updateAccessStatus, type AccessWithDetails } from '@/services/security/accessService';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import {
+  fetchUserAccesses,
+  fetchMyAccesses,
+  createUserAccess,
+  revokeUserAccess,
+  reactivateUserAccess,
+  type AccessWithDetails,
+  type CreateAccessPayload,
+} from '@/services/security/accessService';
 
 export function useApplicationAccess() {
   const [accesses, setAccesses] = useState<AccessWithDetails[]>([]);
@@ -12,7 +20,7 @@ export function useApplicationAccess() {
     setError(null);
     try {
       const result = await fetchUserAccesses();
-      if (result.error) throw result.error;
+      if (result.error) throw new Error(result.error);
       setAccesses(result.data);
     } catch (err) {
       setError((err as Error).message);
@@ -28,7 +36,7 @@ export function useApplicationAccess() {
     setError(null);
     try {
       const result = await fetchMyAccesses(userId);
-      if (result.error) throw result.error;
+      if (result.error) throw new Error(result.error);
       setMyAccesses(result.data);
     } catch (err) {
       setError((err as Error).message);
@@ -37,41 +45,37 @@ export function useApplicationAccess() {
     }
   }, []);
 
-  const assignAccess = useCallback(async (userId: string, applicationId: string, instanceId?: string) => {
-    const result = await grantAccess({
-      user_id: userId,
-      application_id: applicationId,
-      instance_id: instanceId || null,
-    });
-    if (result.error) return { error: result.error.message };
+  const createAccess = useCallback(async (payload: CreateAccessPayload) => {
+    const result = await createUserAccess(payload);
+    if (result.error) return { error: result.error };
     await loadAll();
     return { error: null };
   }, [loadAll]);
 
   const revokeAccess = useCallback(async (id: string) => {
-    const result = await updateAccessStatus(id, 'revoked');
-    if (result.error) return { error: result.error.message };
+    const result = await revokeUserAccess(id);
+    if (result.error) return { error: result.error };
     await loadAll();
     return { error: null };
   }, [loadAll]);
 
-  const approveAccess = useCallback(async (id: string) => {
-    const result = await updateAccessStatus(id, 'active');
-    if (result.error) return { error: result.error.message };
+  const reactivateAccess = useCallback(async (id: string) => {
+    const result = await reactivateUserAccess(id);
+    if (result.error) return { error: result.error };
     await loadAll();
     return { error: null };
   }, [loadAll]);
 
-  const denyAccess = useCallback(async (id: string) => {
-    const result = await updateAccessStatus(id, 'denied');
-    if (result.error) return { error: result.error.message };
-    await loadAll();
-    return { error: null };
-  }, [loadAll]);
+  const stats = useMemo(() => ({
+    assigned: accesses.filter((a) => a.access_status === 'assigned').length,
+    pending: accesses.filter((a) => a.access_status === 'pending').length,
+    revoked: accesses.filter((a) => a.access_status === 'revoked').length,
+    total: accesses.length,
+  }), [accesses]);
 
   return {
-    accesses, myAccesses, loading, error,
+    accesses, myAccesses, loading, error, stats,
     reload: loadAll, loadMyAccesses,
-    assignAccess, revokeAccess, approveAccess, denyAccess,
+    createAccess, revokeAccess, reactivateAccess,
   };
 }

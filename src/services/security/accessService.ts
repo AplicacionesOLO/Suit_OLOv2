@@ -1,6 +1,16 @@
 import { supabase } from '@/services/supabase/client';
 
-const TENANT_ID = '00000000-0000-0000-0000-000000000001';
+async function getEffectiveTenantId(): Promise<string | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data: pu } = await supabase
+    .from('platform_users')
+    .select('tenant_id, tenant_context_override')
+    .eq('auth_user_id', user.id)
+    .maybeSingle();
+  if (!pu) return null;
+  return pu.tenant_context_override || pu.tenant_id;
+}
 
 export interface UserAppAccess {
   id: string;
@@ -9,9 +19,11 @@ export interface UserAppAccess {
   application_id: string;
   instance_id: string | null;
   access_status: string;
+  role_id: string | null;
   granted_by: string | null;
   granted_at: string | null;
   revoked_at: string | null;
+  expires_at: string | null;
   created_at: string;
 }
 
@@ -26,12 +38,47 @@ export interface AccessWithDetails extends UserAppAccess {
   role_name?: string;
 }
 
-export async function fetchUserAccesses(): Promise<{ data: AccessWithDetails[]; error: Error | null }> {
+export interface CreateAccessPayload {
+  user_id: string;
+  application_id: string;
+  instance_id?: string | null;
+  access_status?: string;
+  role_id?: string | null;
+  expires_at?: string | null;
+}
+
+export interface PlatformUserBrief {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  role_id: string;
+  status: string;
+}
+
+export async function fetchPlatformUsers(): Promise<{ data: PlatformUserBrief[]; error: string | null }> {
   try {
+    const { data, error } = await supabase
+      .from('platform_users')
+      .select('id, first_name, last_name, email, role_id, status')
+      .eq('status', 'active')
+      .order('first_name', { ascending: true });
+    if (error) throw error;
+    return { data: (data || []) as PlatformUserBrief[], error: null };
+  } catch (err: any) {
+    return { data: [], error: err.message || 'Error al cargar usuarios' };
+  }
+}
+
+export async function fetchUserAccesses(): Promise<{ data: AccessWithDetails[]; error: string | null }> {
+  try {
+    const tenantId = await getEffectiveTenantId();
+    if (!tenantId) return { data: [], error: 'No se pudo determinar el tenant' };
+
     const { data, error } = await supabase
       .from('user_application_access')
       .select('*')
-      .eq('tenant_id', TENANT_ID)
+      .eq('tenant_id', tenantId)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -60,9 +107,11 @@ export async function fetchUserAccesses(): Promise<{ data: AccessWithDetails[]; 
     const instMap: Record<string, string> = {};
     (instancesRes.data || []).forEach((i) => { instMap[i.id] = i.instance_name; });
 
-    const roleIds = [...new Set(Object.values(userMap).map((u) => u.role_id).filter(Boolean))] as string[];
-    const { data: rolesData } = roleIds.length > 0
-      ? await supabase.from('roles').select('id, name').in('id', roleIds)
+    const roleIdsFromAccess = [...new Set(data.map((a) => a.role_id).filter(Boolean))] as string[];
+    const roleIdsFromUsers = [...new Set(Object.values(userMap).map((u) => u.role_id).filter(Boolean))] as string[];
+    const allRoleIds = [...new Set([...roleIdsFromAccess, ...roleIdsFromUsers])];
+    const { data: rolesData } = allRoleIds.length > 0
+      ? await supabase.from('roles').select('id, name').in('id', allRoleIds)
       : { data: [] };
     const roleMap: Record<string, string> = {};
     (rolesData || []).forEach((r) => { roleMap[r.id] = r.name; });
@@ -80,22 +129,26 @@ export async function fetchUserAccesses(): Promise<{ data: AccessWithDetails[]; 
           application_icon: app?.icon,
           application_color: app?.color,
           instance_name: a.instance_id ? instMap[a.instance_id] : undefined,
-          role_name: user?.role_id ? roleMap[user.role_id] : undefined,
+          role_name: a.role_id ? roleMap[a.role_id] : user?.role_id ? roleMap[user.role_id] : undefined,
         };
       }),
       error: null,
     };
-  } catch (err) {
-    return { data: [], error: err as Error };
+  } catch (err: any) {
+    return { data: [], error: err.message || 'Error al cargar asignaciones' };
   }
 }
 
-export async function fetchMyAccesses(userId: string): Promise<{ data: AccessWithDetails[]; error: Error | null }> {
+export async function fetchMyAccesses(userId: string): Promise<{ data: AccessWithDetails[]; error: string | null }> {
   try {
+    const tenantId = await getEffectiveTenantId();
+    if (!tenantId) return { data: [], error: 'No se pudo determinar el tenant' };
+
+    // userId here is platform_user.id
     const { data, error } = await supabase
       .from('user_application_access')
       .select('*')
-      .eq('tenant_id', TENANT_ID)
+      .eq('tenant_id', tenantId)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
@@ -110,39 +163,85 @@ export async function fetchMyAccesses(userId: string): Promise<{ data: AccessWit
       instanceIds.length > 0 ? supabase.from('application_instances').select('*').in('id', instanceIds) : Promise.resolve({ data: [] }),
     ]);
 
-    const appMap: Record<string, Record<string, unknown>> = {};
+    const appMap: Record<string, any> = {};
     (appsRes.data || []).forEach((a) => { appMap[a.id] = a; });
 
-    const instMap: Record<string, Record<string, unknown>> = {};
+    const instMap: Record<string, any> = {};
     (instancesRes.data || []).forEach((i) => { instMap[i.id] = i; });
 
     return {
       data: data.map((a) => ({
         ...a,
-        application_name: (appMap[a.application_id] as { name?: string })?.name,
-        application_code: (appMap[a.application_id] as { code?: string })?.code,
-        application_icon: (appMap[a.application_id] as { icon?: string })?.icon,
-        application_color: (appMap[a.application_id] as { color?: string })?.color,
-        instance_name: a.instance_id ? (instMap[a.instance_id] as { instance_name?: string })?.instance_name : undefined,
+        application_name: appMap[a.application_id]?.name,
+        application_code: appMap[a.application_id]?.code,
+        application_icon: appMap[a.application_id]?.icon,
+        application_color: appMap[a.application_id]?.color,
+        instance_name: a.instance_id ? instMap[a.instance_id]?.instance_name : undefined,
       })),
       error: null,
     };
-  } catch (err) {
-    return { data: [], error: err as Error };
+  } catch (err: any) {
+    return { data: [], error: err.message || 'Error al cargar mis accesos' };
   }
 }
 
-export async function grantAccess(access: Partial<UserAppAccess>): Promise<{ data: UserAppAccess | null; error: Error | null }> {
+export async function createUserAccess(payload: CreateAccessPayload): Promise<{ data: UserAppAccess | null; error: string | null }> {
   try {
+    const tenantId = await getEffectiveTenantId();
+    if (!tenantId) return { data: null, error: 'No se pudo determinar el tenant' };
+
+    const { data: { user } } = await supabase.auth.getUser();
+    let grantedBy: string | null = null;
+    if (user) {
+      const { data: pu } = await supabase.from('platform_users').select('id').eq('auth_user_id', user.id).maybeSingle();
+      grantedBy = pu?.id || null;
+    }
+
+    // Check for existing active assignment duplicate
+    const { data: existing } = await supabase
+      .from('user_application_access')
+      .select('id, access_status')
+      .eq('tenant_id', tenantId)
+      .eq('user_id', payload.user_id)
+      .eq('application_id', payload.application_id)
+      .eq('instance_id', payload.instance_id || null)
+      .maybeSingle();
+
+    if (existing) {
+      if (existing.access_status === 'assigned') {
+        return { data: null, error: 'Ya existe una asignacion activa para este usuario, aplicacion e instancia' };
+      }
+      if (existing.access_status === 'revoked') {
+        // Reactivate it
+        const { data: reactivated, error: reactError } = await supabase
+          .from('user_application_access')
+          .update({
+            access_status: 'assigned',
+            revoked_at: null,
+            role_id: payload.role_id || null,
+            expires_at: payload.expires_at || null,
+            granted_by: grantedBy,
+            granted_at: new Date().toISOString(),
+          })
+          .eq('id', existing.id)
+          .select()
+          .single();
+        if (reactError) throw reactError;
+        return { data: reactivated as UserAppAccess, error: null };
+      }
+    }
+
     const { data, error } = await supabase
       .from('user_application_access')
       .insert({
-        tenant_id: TENANT_ID,
-        user_id: access.user_id,
-        application_id: access.application_id,
-        instance_id: access.instance_id || null,
-        access_status: 'active',
-        granted_by: access.granted_by || null,
+        tenant_id: tenantId,
+        user_id: payload.user_id,
+        application_id: payload.application_id,
+        instance_id: payload.instance_id || null,
+        access_status: payload.access_status || 'assigned',
+        role_id: payload.role_id || null,
+        expires_at: payload.expires_at || null,
+        granted_by: grantedBy,
         granted_at: new Date().toISOString(),
       })
       .select()
@@ -150,19 +249,33 @@ export async function grantAccess(access: Partial<UserAppAccess>): Promise<{ dat
 
     if (error) throw error;
     return { data: data as UserAppAccess, error: null };
-  } catch (err) {
-    return { data: null, error: err as Error };
+  } catch (err: any) {
+    return { data: null, error: err.message || 'Error al crear asignacion' };
   }
 }
 
-export async function updateAccessStatus(id: string, status: string): Promise<{ error: Error | null }> {
+export async function revokeUserAccess(id: string): Promise<{ error: string | null }> {
   try {
-    const updates: Record<string, unknown> = { access_status: status };
-    if (status === 'revoked') updates.revoked_at = new Date().toISOString();
-    const { error } = await supabase.from('user_application_access').update(updates).eq('id', id);
+    const { error } = await supabase
+      .from('user_application_access')
+      .update({ access_status: 'revoked', revoked_at: new Date().toISOString() })
+      .eq('id', id);
     if (error) throw error;
     return { error: null };
-  } catch (err) {
-    return { error: err as Error };
+  } catch (err: any) {
+    return { error: err.message || 'Error al revocar acceso' };
+  }
+}
+
+export async function reactivateUserAccess(id: string): Promise<{ error: string | null }> {
+  try {
+    const { error } = await supabase
+      .from('user_application_access')
+      .update({ access_status: 'assigned', revoked_at: null, granted_at: new Date().toISOString() })
+      .eq('id', id);
+    if (error) throw error;
+    return { error: null };
+  } catch (err: any) {
+    return { error: err.message || 'Error al reactivar acceso' };
   }
 }

@@ -1,6 +1,16 @@
 import { supabase } from '@/services/supabase/client';
 
-const TENANT_ID = '00000000-0000-0000-0000-000000000001';
+async function getEffectiveTenantId(): Promise<string | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data: pu } = await supabase
+    .from('platform_users')
+    .select('tenant_id, tenant_context_override')
+    .eq('auth_user_id', user.id)
+    .maybeSingle();
+  if (!pu) return null;
+  return pu.tenant_context_override || pu.tenant_id;
+}
 
 export interface Profile {
   id: string;
@@ -17,14 +27,18 @@ export interface Profile {
 export interface ProfileWithDetails extends Profile {
   role_name?: string;
   user_count: number;
+  permissions_count: number;
 }
 
 export async function fetchProfiles(): Promise<{ data: Profile[]; error: Error | null }> {
   try {
+    const tenantId = await getEffectiveTenantId();
+    if (!tenantId) return { data: [], error: new Error('No se pudo determinar el tenant') };
+
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
-      .eq('tenant_id', TENANT_ID)
+      .eq('tenant_id', tenantId)
       .order('name', { ascending: true });
 
     if (error) throw error;
@@ -36,10 +50,13 @@ export async function fetchProfiles(): Promise<{ data: Profile[]; error: Error |
 
 export async function fetchProfilesWithDetails(): Promise<{ data: ProfileWithDetails[]; error: Error | null }> {
   try {
+    const tenantId = await getEffectiveTenantId();
+    if (!tenantId) return { data: [], error: new Error('No se pudo determinar el tenant') };
+
     const { data: profiles, error: profErr } = await supabase
       .from('profiles')
       .select('*')
-      .eq('tenant_id', TENANT_ID)
+      .eq('tenant_id', tenantId)
       .order('name', { ascending: true });
 
     if (profErr) throw profErr;
@@ -55,11 +72,15 @@ export async function fetchProfilesWithDetails(): Promise<{ data: ProfileWithDet
     const userCounts: Record<string, number> = {};
     (users || []).forEach((u) => { userCounts[u.profile_id] = (userCounts[u.profile_id] || 0) + 1; });
 
-    const result: ProfileWithDetails[] = profiles.map((p) => ({
-      ...p,
-      role_name: p.role_id ? roleMap[p.role_id] : undefined,
-      user_count: userCounts[p.id] || 0,
-    }));
+    const result: ProfileWithDetails[] = profiles.map((p) => {
+      const perms = (p.permissions as { granted?: string[] })?.granted || [];
+      return {
+        ...p,
+        role_name: p.role_id ? roleMap[p.role_id] : undefined,
+        user_count: userCounts[p.id] || 0,
+        permissions_count: perms.length,
+      };
+    });
 
     return { data: result, error: null };
   } catch (err) {
@@ -69,10 +90,13 @@ export async function fetchProfilesWithDetails(): Promise<{ data: ProfileWithDet
 
 export async function createProfile(profile: Partial<Profile>): Promise<{ data: Profile | null; error: Error | null }> {
   try {
+    const tenantId = await getEffectiveTenantId();
+    if (!tenantId) return { data: null, error: new Error('No se pudo determinar el tenant') };
+
     const { data, error } = await supabase
       .from('profiles')
       .insert({
-        tenant_id: TENANT_ID,
+        tenant_id: tenantId,
         role_id: profile.role_id || null,
         name: profile.name,
         code: profile.code,

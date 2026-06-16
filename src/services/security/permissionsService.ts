@@ -1,6 +1,16 @@
 import { supabase } from '@/services/supabase/client';
 
-const TENANT_ID = '00000000-0000-0000-0000-000000000001';
+async function getEffectiveTenantId(): Promise<string | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data: pu } = await supabase
+    .from('platform_users')
+    .select('tenant_id, tenant_context_override')
+    .eq('auth_user_id', user.id)
+    .maybeSingle();
+  if (!pu) return null;
+  return pu.tenant_context_override || pu.tenant_id;
+}
 
 export interface Permission {
   id: string;
@@ -36,10 +46,14 @@ export interface ActionNode {
 
 export async function fetchAllPermissions(): Promise<{ data: Permission[]; error: Error | null }> {
   try {
+    const tenantId = await getEffectiveTenantId();
+    if (!tenantId) return { data: [], error: new Error('No se pudo determinar el tenant') };
+
     const { data, error } = await supabase
       .from('permissions')
       .select('*')
-      .eq('tenant_id', TENANT_ID)
+      .eq('tenant_id', tenantId)
+      .is('deleted_at', null)
       .order('application', { ascending: true })
       .order('module', { ascending: true })
       .order('feature', { ascending: true });
@@ -78,6 +92,22 @@ export async function saveProfilePermissions(profileId: string, grantedIds: stri
     return { error: null };
   } catch (err) {
     return { error: err as Error };
+  }
+}
+
+export async function fetchProfilePermissionsCount(profileId: string): Promise<{ count: number; error: Error | null }> {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('permissions')
+      .eq('id', profileId)
+      .single();
+
+    if (error) throw error;
+    const perms = (data?.permissions as { granted?: string[] })?.granted || [];
+    return { count: perms.length, error: null };
+  } catch (err) {
+    return { count: 0, error: err as Error };
   }
 }
 

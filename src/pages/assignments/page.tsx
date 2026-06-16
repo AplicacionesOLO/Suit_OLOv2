@@ -1,11 +1,22 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/feature/AppLayout';
-import { fetchUserAccesses, updateAccessStatus, type AccessWithDetails } from '@/services/security/accessService';
+import {
+  fetchUserAccesses,
+  fetchPlatformUsers,
+  createUserAccess,
+  revokeUserAccess,
+  reactivateUserAccess,
+  type AccessWithDetails,
+  type PlatformUserBrief,
+} from '@/services/security/accessService';
+import { fetchApplications, fetchInstances, type Application, type AppInstance } from '@/services/applications/applicationsService';
+import { supabase } from '@/services/supabase/client';
 
 const statusCfg: Record<string, { label: string; dot: string; bg: string; text: string }> = {
-  active: { label: 'Asignada', dot: 'bg-emerald-400', bg: 'bg-emerald-500/10', text: 'text-emerald-400' },
+  assigned: { label: 'Asignada', dot: 'bg-emerald-400', bg: 'bg-emerald-500/10', text: 'text-emerald-400' },
   pending: { label: 'Pendiente', dot: 'bg-amber-400', bg: 'bg-amber-500/10', text: 'text-amber-400' },
   revoked: { label: 'Revocada', dot: 'bg-red-400', bg: 'bg-red-500/10', text: 'text-red-400' },
+  expired: { label: 'Expirada', dot: 'bg-slate-400', bg: 'bg-slate-500/10', text: 'text-slate-400' },
 };
 
 export default function AssignmentsPage() {
@@ -16,35 +27,117 @@ export default function AssignmentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
+  // Modal state
+  const [showModal, setShowModal] = useState(false);
+  const [users, setUsers] = useState<PlatformUserBrief[]>([]);
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [instances, setInstances] = useState<AppInstance[]>([]);
+  const [roles, setRoles] = useState<{ id: string; name: string }[]>([]);
+  const [formData, setFormData] = useState({
+    user_id: '',
+    application_id: '',
+    instance_id: '',
+    access_status: 'assigned',
+    role_id: '',
+    expires_at: '',
+  });
+  const [formError, setFormError] = useState('');
+  const [formSaving, setFormSaving] = useState(false);
+  const [formSuccess, setFormSuccess] = useState('');
+
   const loadData = useCallback(async () => {
     setLoading(true);
-    const result = await fetchUserAccesses();
-    if (result.error) {
-      setError(result.error.message);
-    } else {
+    setError(null);
+    try {
+      const result = await fetchUserAccesses();
+      if (result.error) { setError(result.error); return; }
       setAccesses(result.data);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  const openCreateModal = async () => {
+    setFormData({ user_id: '', application_id: '', instance_id: '', access_status: 'assigned', role_id: '', expires_at: '' });
+    setFormError('');
+    setFormSuccess('');
+    setFormSaving(false);
+
+    try {
+      const [usersRes, appsRes, instancesRes] = await Promise.all([
+        fetchPlatformUsers(),
+        fetchApplications(),
+        fetchInstances(),
+      ]);
+      setUsers(usersRes.data.filter((u) => u.status === 'active'));
+      setApplications(appsRes.data.filter((a) => a.deleted_at === null && a.status === 'active'));
+      setInstances(instancesRes.data.filter((i) => i.deleted_at === null && i.status === 'active'));
+
+      const { data: rolesData } = await supabase.from('roles').select('id, name').order('name');
+      setRoles(rolesData || []);
+    } catch {
+      // silent
+    }
+
+    setShowModal(true);
+  };
+
+  const filteredInstances = useMemo(() => {
+    if (!formData.application_id) return [];
+    return instances.filter((i) => i.application_id === formData.application_id);
+  }, [instances, formData.application_id]);
+
   const handleRevoke = async (id: string) => {
     setActionLoading(id);
-    const result = await updateAccessStatus(id, 'revoked');
+    const result = await revokeUserAccess(id);
     if (!result.error) {
-      setAccesses((prev) => prev.map((a) => a.id === id ? { ...a, access_status: 'revoked' } : a));
+      setAccesses((prev) => prev.map((a) => a.id === id ? { ...a, access_status: 'revoked', revoked_at: new Date().toISOString() } : a));
     }
     setActionLoading(null);
   };
 
-  const handleApprove = async (id: string) => {
+  const handleReactivate = async (id: string) => {
     setActionLoading(id);
-    const result = await updateAccessStatus(id, 'active');
+    const result = await reactivateUserAccess(id);
     if (!result.error) {
-      setAccesses((prev) => prev.map((a) => a.id === id ? { ...a, access_status: 'active' } : a));
+      setAccesses((prev) => prev.map((a) => a.id === id ? { ...a, access_status: 'assigned', revoked_at: null } : a));
     }
     setActionLoading(null);
+  };
+
+  const handleSubmit = async () => {
+    if (!formData.user_id) { setFormError('Selecciona un usuario'); return; }
+    if (!formData.application_id) { setFormError('Selecciona una aplicacion'); return; }
+    setFormError('');
+    setFormSaving(true);
+
+    const result = await createUserAccess({
+      user_id: formData.user_id,
+      application_id: formData.application_id,
+      instance_id: formData.instance_id || null,
+      access_status: formData.access_status,
+      role_id: formData.role_id || null,
+      expires_at: formData.expires_at || null,
+    });
+
+    setFormSaving(false);
+
+    if (result.error) {
+      setFormError(result.error);
+      return;
+    }
+
+    setFormSuccess('Asignacion creada correctamente');
+    await loadData();
+
+    setTimeout(() => {
+      setShowModal(false);
+      setFormSuccess('');
+    }, 1200);
   };
 
   const filtered = useMemo(() => {
@@ -62,7 +155,7 @@ export default function AssignmentsPage() {
   }, [searchQuery, filterStatus, accesses]);
 
   const stats = useMemo(() => ({
-    assigned: accesses.filter((a) => a.access_status === 'active').length,
+    assigned: accesses.filter((a) => a.access_status === 'assigned').length,
     pending: accesses.filter((a) => a.access_status === 'pending').length,
     revoked: accesses.filter((a) => a.access_status === 'revoked').length,
     total: accesses.length,
@@ -87,12 +180,18 @@ export default function AssignmentsPage() {
             <h1 className="text-xl font-bold text-foreground-100">Asignacion de Aplicaciones</h1>
             <p className="text-sm text-foreground-500 mt-1">Administra que aplicaciones estan autorizadas para cada usuario.</p>
           </div>
-          {error && (
-            <button onClick={loadData} className="flex items-center gap-2 h-9 px-4 rounded-lg border border-secondary-500/20 text-sm text-foreground-400 hover:text-foreground-200 transition-all whitespace-nowrap">
-              <span className="w-4 h-4 flex items-center justify-center"><i className="ri-refresh-line text-sm"></i></span>
-              Reintentar
+          <div className="flex items-center gap-2">
+            {error && (
+              <button onClick={loadData} className="flex items-center gap-2 h-9 px-4 rounded-lg border border-secondary-500/20 text-sm text-foreground-400 hover:text-foreground-200 transition-all whitespace-nowrap">
+                <span className="w-4 h-4 flex items-center justify-center"><i className="ri-refresh-line text-sm"></i></span>
+                Reintentar
+              </button>
+            )}
+            <button onClick={openCreateModal} className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary-500 text-background-50 dark:text-foreground-950 hover:bg-primary-600 transition-colors text-sm font-medium whitespace-nowrap">
+              <span className="w-4 h-4 flex items-center justify-center"><i className="ri-add-line text-base"></i></span>
+              Nueva asignacion
             </button>
-          )}
+          </div>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -119,7 +218,7 @@ export default function AssignmentsPage() {
             </div>
             <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="h-9 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-300 outline-none focus:border-primary-500/40">
               <option value="">Todos los estados</option>
-              <option value="active">Asignada</option>
+              <option value="assigned">Asignada</option>
               <option value="pending">Pendiente</option>
               <option value="revoked">Revocada</option>
             </select>
@@ -143,12 +242,14 @@ export default function AssignmentsPage() {
                     <th className="text-left px-5 py-3 text-xs font-medium text-foreground-500 uppercase tracking-wider">Rol</th>
                     <th className="text-left px-5 py-3 text-xs font-medium text-foreground-500 uppercase tracking-wider">Instancia</th>
                     <th className="text-left px-5 py-3 text-xs font-medium text-foreground-500 uppercase tracking-wider">Estado</th>
+                    <th className="text-left px-5 py-3 text-xs font-medium text-foreground-500 uppercase tracking-wider">Fecha</th>
                     <th className="text-right px-5 py-3 text-xs font-medium text-foreground-500 uppercase tracking-wider">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.map((a) => {
-                    const st = statusCfg[a.access_status] || statusCfg.active;
+                    const st = statusCfg[a.access_status] || statusCfg.assigned;
+                    const dateLabel = a.access_status === 'revoked' ? a.revoked_at : a.granted_at;
                     return (
                       <tr key={a.id} className="border-b border-secondary-500/5 hover:bg-background-100/50 transition-colors">
                         <td className="px-5 py-3.5">
@@ -160,7 +261,7 @@ export default function AssignmentsPage() {
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-2">
                             {a.application_icon && (
-                              <span className={`w-6 h-6 rounded-md flex items-center justify-center`}>
+                              <span className="w-6 h-6 rounded-md flex items-center justify-center">
                                 <i className={`${a.application_icon} text-sm`}></i>
                               </span>
                             )}
@@ -171,7 +272,7 @@ export default function AssignmentsPage() {
                           </div>
                         </td>
                         <td className="px-5 py-3.5">
-                          <span className="px-2 py-0.5 rounded text-2xs font-medium bg-primary-500/10 text-primary-400 border border-primary-500/15">{a.role_name || 'Usuario'}</span>
+                          <span className="px-2 py-0.5 rounded text-2xs font-medium bg-primary-500/10 text-primary-400 border border-primary-500/15">{a.role_name || 'Sin rol'}</span>
                         </td>
                         <td className="px-5 py-3.5">
                           <span className="text-sm text-foreground-400">{a.instance_name || '—'}</span>
@@ -183,18 +284,11 @@ export default function AssignmentsPage() {
                           </span>
                         </td>
                         <td className="px-5 py-3.5">
+                          <span className="text-xs text-foreground-500">{dateLabel ? new Date(dateLabel).toLocaleDateString() : '—'}</span>
+                        </td>
+                        <td className="px-5 py-3.5">
                           <div className="flex items-center justify-end gap-1">
-                            {a.access_status === 'pending' && (
-                              <button
-                                onClick={() => handleApprove(a.id)}
-                                disabled={actionLoading === a.id}
-                                className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all"
-                                title="Aprobar"
-                              >
-                                <span className="w-4 h-4 flex items-center justify-center"><i className="ri-check-line text-sm"></i></span>
-                              </button>
-                            )}
-                            {a.access_status === 'active' && (
+                            {a.access_status === 'assigned' && (
                               <button
                                 onClick={() => handleRevoke(a.id)}
                                 disabled={actionLoading === a.id}
@@ -202,6 +296,16 @@ export default function AssignmentsPage() {
                                 title="Revocar"
                               >
                                 <span className="w-4 h-4 flex items-center justify-center"><i className="ri-close-circle-line text-sm"></i></span>
+                              </button>
+                            )}
+                            {a.access_status === 'revoked' && (
+                              <button
+                                onClick={() => handleReactivate(a.id)}
+                                disabled={actionLoading === a.id}
+                                className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all"
+                                title="Reactivar"
+                              >
+                                <span className="w-4 h-4 flex items-center justify-center"><i className="ri-refresh-line text-sm"></i></span>
                               </button>
                             )}
                           </div>
@@ -219,6 +323,131 @@ export default function AssignmentsPage() {
           </div>
         </div>
       </div>
+
+      {/* Create/Edit Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowModal(false)} />
+          <div className="relative glass-panel-strong rounded-2xl w-full max-w-lg p-6 animate-scale-in">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-semibold text-foreground-200">Nueva Asignacion</h2>
+              <button onClick={() => setShowModal(false)} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-foreground-200 hover:bg-background-200/50 transition-all">
+                <span className="w-4 h-4 flex items-center justify-center"><i className="ri-close-line text-lg"></i></span>
+              </button>
+            </div>
+
+            {formError && (
+              <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm mb-4">
+                <span className="w-4 h-4 flex items-center justify-center"><i className="ri-error-warning-line"></i></span>
+                {formError}
+              </div>
+            )}
+
+            {formSuccess && (
+              <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm mb-4">
+                <span className="w-4 h-4 flex items-center justify-center"><i className="ri-check-line"></i></span>
+                {formSuccess}
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-foreground-400 mb-1.5">Usuario *</label>
+                <select
+                  value={formData.user_id}
+                  onChange={(e) => setFormData({ ...formData, user_id: e.target.value })}
+                  className="w-full h-10 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-300 outline-none focus:border-primary-500/40"
+                >
+                  <option value="">Seleccionar usuario...</option>
+                  {users.map((u) => (
+                    <option key={u.id} value={u.id}>{[u.first_name, u.last_name].filter(Boolean).join(' ') || '—'} ({u.email || 'sin email'})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-foreground-400 mb-1.5">Aplicacion *</label>
+                <select
+                  value={formData.application_id}
+                  onChange={(e) => setFormData({ ...formData, application_id: e.target.value, instance_id: '' })}
+                  className="w-full h-10 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-300 outline-none focus:border-primary-500/40"
+                >
+                  <option value="">Seleccionar aplicacion...</option>
+                  {applications.map((app) => (
+                    <option key={app.id} value={app.id}>{app.name} ({app.code})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-foreground-400 mb-1.5">Instancia</label>
+                <select
+                  value={formData.instance_id}
+                  onChange={(e) => setFormData({ ...formData, instance_id: e.target.value })}
+                  className="w-full h-10 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-300 outline-none focus:border-primary-500/40"
+                  disabled={!formData.application_id}
+                >
+                  <option value="">Sin instancia (acceso general)</option>
+                  {filteredInstances.map((inst) => (
+                    <option key={inst.id} value={inst.id}>{inst.instance_name}</option>
+                  ))}
+                </select>
+                {formData.application_id && filteredInstances.length === 0 && (
+                  <p className="text-2xs text-foreground-600 mt-1">No hay instancias activas para esta aplicacion.</p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-foreground-400 mb-1.5">Estado inicial</label>
+                  <select
+                    value={formData.access_status}
+                    onChange={(e) => setFormData({ ...formData, access_status: e.target.value })}
+                    className="w-full h-10 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-300 outline-none focus:border-primary-500/40"
+                  >
+                    <option value="assigned">Asignada</option>
+                    <option value="pending">Pendiente</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-foreground-400 mb-1.5">Rol</label>
+                  <select
+                    value={formData.role_id}
+                    onChange={(e) => setFormData({ ...formData, role_id: e.target.value })}
+                    className="w-full h-10 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-300 outline-none focus:border-primary-500/40"
+                  >
+                    <option value="">Sin rol especifico</option>
+                    {roles.map((r) => (
+                      <option key={r.id} value={r.id}>{r.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-foreground-400 mb-1.5">Fecha de expiracion (opcional)</label>
+                <input
+                  type="date"
+                  value={formData.expires_at}
+                  onChange={(e) => setFormData({ ...formData, expires_at: e.target.value })}
+                  className="w-full h-10 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-300 outline-none focus:border-primary-500/40"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 mt-6">
+              <button onClick={() => setShowModal(false)} className="h-9 px-4 rounded-lg border border-secondary-500/20 text-sm text-foreground-400 hover:text-foreground-200 hover:border-secondary-500/40 transition-all whitespace-nowrap">Cancelar</button>
+              <button
+                onClick={handleSubmit}
+                disabled={formSaving}
+                className="h-9 px-4 rounded-lg bg-primary-500 text-background-50 dark:text-foreground-950 hover:bg-primary-600 transition-colors text-sm font-medium whitespace-nowrap disabled:opacity-50"
+              >
+                {formSaving ? 'Creando...' : 'Crear asignacion'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppLayout>
   );
 }

@@ -125,7 +125,7 @@ function mapSupaAppToAppItem(app: SupaApplication, catMap: Map<string, SupaCateg
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { platformUser } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -152,13 +152,13 @@ export default function DashboardPage() {
       ]);
 
       // Also load user accesses if logged in
-      if (user) {
+      if (platformUser) {
         try {
-          const accessResult = await fetchMyAccesses(user.id);
+          const accessResult = await fetchMyAccesses(platformUser.id);
           if (accessResult.data.length > 0) {
             const activeAppIds = new Set(
               accessResult.data
-                .filter((a) => a.access_status === 'active')
+                .filter((a) => a.access_status === 'assigned')
                 .map((a) => a.application_id)
             );
             setUserAccessAppIds(activeAppIds);
@@ -243,7 +243,7 @@ export default function DashboardPage() {
     } finally {
       setDataLoading(false);
     }
-  }, []);
+  }, [platformUser]);
 
   useEffect(() => {
     loadData();

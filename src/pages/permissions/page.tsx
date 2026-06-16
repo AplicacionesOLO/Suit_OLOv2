@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import AppLayout from '@/components/feature/AppLayout';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useProfiles } from '@/hooks/useProfiles';
@@ -25,7 +26,8 @@ export default function PermissionsPage() {
   const { roles } = useRoles();
   const { tree, grantedIds, loading, saving, error, loadAll, loadForProfile, togglePermission, toggleAllFeature, toggleAllModule, toggleAllApplication, save, stats } = usePermissions();
 
-  const [selectedProfileId, setSelectedProfileId] = useState('');
+  const [searchParams] = useSearchParams();
+  const [selectedProfileId, setSelectedProfileId] = useState(searchParams.get('profile') || '');
   const [selectedAppFilter, setSelectedAppFilter] = useState('');
   const [expandedApps, setExpandedApps] = useState<Set<string>>(new Set());
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());

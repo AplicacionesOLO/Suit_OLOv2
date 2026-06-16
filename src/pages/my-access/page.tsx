@@ -4,11 +4,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { useApplicationAccess } from '@/hooks/useApplicationAccess';
 
 const statusConfig: Record<string, { label: string; bg: string; text: string; border: string }> = {
-  active: { label: 'Activo', bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20' },
+  assigned: { label: 'Activo', bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20' },
   pending: { label: 'Pendiente', bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20' },
   revoked: { label: 'Revocado', bg: 'bg-red-500/10', text: 'text-red-400', border: 'border-red-500/20' },
   expired: { label: 'Expirado', bg: 'bg-slate-500/10', text: 'text-slate-400', border: 'border-slate-500/20' },
-  denied: { label: 'Denegado', bg: 'bg-red-500/10', text: 'text-red-400', border: 'border-red-500/20' },
 };
 
 const colorMap: Record<string, { bg: string; text: string; border: string }> = {
@@ -40,7 +39,7 @@ export default function MyAccessPage() {
     return (a.application_name || '').toLowerCase().includes(q) || (a.application_code || '').toLowerCase().includes(q);
   });
 
-  const activeAccesses = myAccesses.filter((a) => a.access_status === 'active');
+  const activeAccesses = myAccesses.filter((a) => a.access_status === 'assigned');
   const pendingAccesses = myAccesses.filter((a) => a.access_status === 'pending');
 
   if (loading) {
