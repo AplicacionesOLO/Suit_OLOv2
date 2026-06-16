@@ -41,11 +41,15 @@ export default function MyAccessPage() {
     const instanceId = acc.instance_id;
     const instanceUrl = acc.instance_url || acc.application_base_url;
 
+    console.log('[MyAccess] handleOpenApp — acc.id:', acc.id, '| app:', acc.application_name, '| instanceId:', instanceId, '| openMode:', openMode, '| instanceUrl:', instanceUrl);
+
     if (openMode === 'embedded' && instanceId) {
       // Navigate to workspace for embedded apps
+      console.log('[MyAccess] Navigating to workspace:', `/workspace/${instanceId}`);
       navigate(`/workspace/${instanceId}`);
     } else if (instanceUrl) {
       // Open in new tab for external apps
+      console.log('[MyAccess] Opening in new tab:', instanceUrl);
       window.open(instanceUrl, '_blank', 'noopener,noreferrer');
       logAuditEvent({
         action: 'USER_OPENED_EXTERNAL_APPLICATION',
@@ -61,6 +65,7 @@ export default function MyAccessPage() {
       });
     } else {
       // Fallback: try workspace if instance exists
+      console.warn('[MyAccess] No instanceUrl and openMode is not embedded — fallback to workspace');
       if (instanceId) {
         navigate(`/workspace/${instanceId}`);
       }

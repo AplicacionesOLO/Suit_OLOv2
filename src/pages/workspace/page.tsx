@@ -58,14 +58,19 @@ export default function WorkspacePage() {
       return;
     }
 
+    console.log('[WorkspacePage] Received instanceId from URL:', instanceId);
+
     let cancelled = false;
 
     async function validate() {
       setStatus('validating');
+      console.log('[WorkspacePage] Starting canAccessInstance check...');
 
       // Step 1: Check access
       const accessResult = await canAccessInstance(instanceId!);
       if (cancelled) return;
+
+      console.log('[WorkspacePage] canAccessInstance result:', accessResult.allowed ? 'ALLOWED' : 'DENIED', '| error:', accessResult.error || 'none');
 
       if (!accessResult.allowed) {
         if (accessResult.error?.includes('no encontrada')) {
@@ -90,8 +95,11 @@ export default function WorkspacePage() {
       }
 
       // Step 2: Fetch instance details
+      console.log('[WorkspacePage] Fetching instance details via fetchInstanceById...');
       const instResult = await fetchInstanceById(instanceId!);
       if (cancelled) return;
+
+      console.log('[WorkspacePage] fetchInstanceById result:', instResult.data ? 'FOUND' : 'NOT FOUND', '| error:', instResult.error || 'none');
 
       if (!instResult.data) {
         setStatus('not_found');

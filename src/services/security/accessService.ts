@@ -290,17 +290,24 @@ export async function reactivateUserAccess(id: string): Promise<{ error: string 
 export async function canAccessInstance(instanceId: string): Promise<{ allowed: boolean; access: AccessWithDetails | null; error: string | null }> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { allowed: false, access: null, error: 'No autenticado' };
+    if (!user) {
+      console.warn('[canAccessInstance] No authenticated user');
+      return { allowed: false, access: null, error: 'No autenticado' };
+    }
 
     const { data: pu } = await supabase
       .from('platform_users')
-      .select('id, tenant_id, tenant_context_override')
+      .select('id, tenant_id, tenant_context_override, role_id')
       .eq('auth_user_id', user.id)
       .maybeSingle();
 
-    if (!pu) return { allowed: false, access: null, error: 'Usuario no encontrado' };
+    if (!pu) {
+      console.warn('[canAccessInstance] No platform_user found for auth_user_id:', user.id);
+      return { allowed: false, access: null, error: 'Usuario no encontrado en platform_users' };
+    }
 
     const effectiveTenantId = pu.tenant_context_override || pu.tenant_id;
+    console.log('[canAccessInstance] User:', pu.id, '| tenant:', effectiveTenantId, '| role_id:', pu.role_id, '| instanceId:', instanceId);
 
     // Check instance exists and is active
     const { data: instance, error: instError } = await supabase
@@ -310,8 +317,22 @@ export async function canAccessInstance(instanceId: string): Promise<{ allowed: 
       .eq('deleted_at', null)
       .maybeSingle();
 
-    if (instError || !instance) return { allowed: false, access: null, error: 'Instancia no encontrada' };
-    if (instance.status !== 'active') return { allowed: false, access: null, error: 'Instancia no activa' };
+    if (instError) {
+      console.error('[canAccessInstance] Supabase error on instance query:', instError);
+      return { allowed: false, access: null, error: `Error de base de datos: ${instError.message || 'desconocido'}` };
+    }
+
+    if (!instance) {
+      console.warn('[canAccessInstance] Instance NOT FOUND for id:', instanceId, '| RLS may have filtered it');
+      return { allowed: false, access: null, error: 'Instancia no encontrada' };
+    }
+
+    console.log('[canAccessInstance] Instance found:', instance.instance_name, '| status:', instance.status, '| app_id:', instance.application_id);
+
+    if (instance.status !== 'active') {
+      console.warn('[canAccessInstance] Instance is not active:', instance.status);
+      return { allowed: false, access: null, error: 'Instancia no activa' };
+    }
 
     // Check user has active access
     const { data: access, error: accessError } = await supabase
@@ -323,7 +344,16 @@ export async function canAccessInstance(instanceId: string): Promise<{ allowed: 
       .eq('access_status', 'assigned')
       .maybeSingle();
 
-    if (accessError || !access) return { allowed: false, access: null, error: 'No tienes acceso a esta instancia' };
+    if (accessError) {
+      console.error('[canAccessInstance] Supabase error on access query:', accessError);
+    }
+
+    if (!access) {
+      console.warn('[canAccessInstance] No active access found for user:', pu.id, 'app:', instance.application_id);
+      return { allowed: false, access: null, error: 'No tienes acceso a esta instancia' };
+    }
+
+    console.log('[canAccessInstance] Access found:', access.id, '| status:', access.access_status);
 
     // Check instance belongs to user's tenant (or super admin bypass)
     if (instance.tenant_id !== effectiveTenantId) {
@@ -333,11 +363,17 @@ export async function canAccessInstance(instanceId: string): Promise<{ allowed: 
         .eq('id', pu.role_id || '')
         .maybeSingle();
       const isSA = (roleData?.level || 0) >= 100;
-      if (!isSA) return { allowed: false, access: null, error: 'La instancia no pertenece a tu tenant' };
+      console.log('[canAccessInstance] Tenant mismatch — instance:', instance.tenant_id, '| user:', effectiveTenantId, '| isSA:', isSA);
+      if (!isSA) {
+        return { allowed: false, access: null, error: 'La instancia no pertenece a tu tenant' };
+      }
+      console.log('[canAccessInstance] Super admin bypass enabled — allowing cross-tenant access');
     }
 
+    console.log('[canAccessInstance] ACCESS GRANTED for instance:', instance.instance_name);
     return { allowed: true, access: access as AccessWithDetails, error: null };
   } catch (err: any) {
+    console.error('[canAccessInstance] Unexpected error:', err);
     return { allowed: false, access: null, error: err.message || 'Error al validar acceso' };
   }
 }

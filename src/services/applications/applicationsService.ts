@@ -166,27 +166,51 @@ export async function fetchInstances(): Promise<{ data: AppInstance[]; error: st
 
 export async function fetchInstanceById(instanceId: string): Promise<{ data: (AppInstance & { application_name?: string; application_icon?: string; application_color?: string; tenant_name?: string }) | null; error: string | null }> {
   try {
-    const { data, error } = await supabase
+    // Step 1: Fetch instance without inner joins (inner joins + RLS can fail silently in PostgREST)
+    const { data: instance, error: instError } = await supabase
       .from('application_instances')
-      .select('*, applications!inner(name, icon, color), tenants!inner(name)')
+      .select('*')
       .eq('id', instanceId)
       .eq('deleted_at', null)
       .maybeSingle();
 
-    if (error) throw error;
-    if (!data) return { data: null, error: 'Instancia no encontrada' };
+    if (instError) {
+      console.error('[fetchInstanceById] Supabase error on instance query:', instError);
+      throw instError;
+    }
+    if (!instance) {
+      console.warn('[fetchInstanceById] Instance not found for id:', instanceId);
+      return { data: null, error: 'Instancia no encontrada' };
+    }
+
+    // Step 2: Fetch application name (separate query, no inner join)
+    const { data: app } = await supabase
+      .from('applications')
+      .select('name, icon, color')
+      .eq('id', instance.application_id)
+      .maybeSingle();
+
+    // Step 3: Fetch tenant name (separate query, no inner join)
+    const { data: tenant } = await supabase
+      .from('tenants')
+      .select('name')
+      .eq('id', instance.tenant_id)
+      .maybeSingle();
+
+    console.log('[fetchInstanceById] SUCCESS — instance:', instance.instance_name, '| app:', app?.name || 'N/A', '| tenant:', tenant?.name || 'N/A');
 
     return {
       data: {
-        ...data,
-        application_name: (data as any).applications?.name,
-        application_icon: (data as any).applications?.icon,
-        application_color: (data as any).applications?.color,
-        tenant_name: (data as any).tenants?.name,
+        ...instance,
+        application_name: app?.name,
+        application_icon: app?.icon,
+        application_color: app?.color,
+        tenant_name: tenant?.name,
       } as any,
       error: null,
     };
   } catch (err: any) {
+    console.error('[fetchInstanceById] Unexpected error:', err);
     return { data: null, error: err.message || 'Error al cargar instancia' };
   }
 }
