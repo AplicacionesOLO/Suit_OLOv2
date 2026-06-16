@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/feature/AppLayout';
+import { useSuitePermissions } from '@/hooks/useSuitePermissions';
 import {
   fetchUserAccesses,
   fetchPlatformUsers,
@@ -34,6 +35,7 @@ export default function AssignmentsPage() {
   const [users, setUsers] = useState<PlatformUserBrief[]>([]);
   const [tenants, setTenants] = useState<{ id: string; name: string }[]>([]);
   const [roles, setRoles] = useState<{ id: string; name: string }[]>([]);
+  const { can } = useSuitePermissions();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -312,13 +314,15 @@ export default function AssignmentsPage() {
                         </td>
                         <td className="px-5 py-3.5">
                           <div className="flex items-center justify-end">
-                            <button
-                              onClick={() => openUserDetail(user)}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary-500/10 text-primary-400 border border-primary-500/20 hover:bg-primary-500/20 transition-all text-xs font-medium whitespace-nowrap"
-                            >
-                              <span className="w-3.5 h-3.5 flex items-center justify-center"><i className="ri-link-m"></i></span>
-                              Asignar apps
-                            </button>
+                            {can('assignments', 'create') && (
+                              <button
+                                onClick={() => openUserDetail(user)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary-500/10 text-primary-400 border border-primary-500/20 hover:bg-primary-500/20 transition-all text-xs font-medium whitespace-nowrap"
+                              >
+                                <span className="w-3.5 h-3.5 flex items-center justify-center"><i className="ri-link-m"></i></span>
+                                Asignar apps
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -487,7 +491,7 @@ export default function AssignmentsPage() {
                             </div>
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
-                            {acc.access_status === 'assigned' && (
+                            {acc.access_status === 'assigned' && can('assignments', 'revoke') && (
                               <button
                                 onClick={() => handleRevoke(acc.id)}
                                 disabled={actionLoading === acc.id}
@@ -497,7 +501,7 @@ export default function AssignmentsPage() {
                                 <span className="w-4 h-4 flex items-center justify-center"><i className="ri-close-circle-line text-sm"></i></span>
                               </button>
                             )}
-                            {acc.access_status === 'revoked' && (
+                            {acc.access_status === 'revoked' && can('assignments', 'revoke') && (
                               <button
                                 onClick={() => handleReactivate(acc.id)}
                                 disabled={actionLoading === acc.id}

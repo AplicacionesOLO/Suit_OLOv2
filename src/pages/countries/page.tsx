@@ -2,11 +2,13 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import AppLayout from '@/components/feature/AppLayout';
 import { useCountries } from '@/hooks/useCountries';
 import { useWorldCountries } from '@/hooks/useWorldCountries';
+import { useSuitePermissions } from '@/hooks/useSuitePermissions';
 import type { CountryWithCounts } from '@/services/operations/countriesService';
 
 export default function CountriesPage() {
   const { countries, tenants, loading, error: pageError, addCountry, editCountry, toggleStatus, refresh } = useCountries();
   const world = useWorldCountries();
+  const { can } = useSuitePermissions();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterTenant, setFilterTenant] = useState('');
@@ -143,10 +145,12 @@ export default function CountriesPage() {
             <h1 className="text-xl font-bold text-foreground-100">Paises</h1>
             <p className="text-sm text-foreground-500 mt-1">Administra los paises de cada tenant desde el Catalogo Maestro ISO. Cada pais agrupa almacenes, clientes y usuarios.</p>
           </div>
-          <button onClick={openCreate} className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-sm font-medium whitespace-nowrap">
-            <span className="w-4 h-4 flex items-center justify-center"><i className="ri-add-line text-base"></i></span>
-            Nuevo pais
-          </button>
+          {can('countries', 'create') && (
+            <button onClick={openCreate} className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-sm font-medium whitespace-nowrap">
+              <span className="w-4 h-4 flex items-center justify-center"><i className="ri-add-line text-base"></i></span>
+              Nuevo pais
+            </button>
+          )}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -243,12 +247,14 @@ export default function CountriesPage() {
                     <td className="px-5 py-3.5 text-center"><span className="text-sm font-medium text-foreground-300">{country.client_count}</span></td>
                     <td className="px-5 py-3.5"><span className="text-xs text-foreground-500">{new Date(country.created_at).toLocaleDateString()}</span></td>
                     <td className="px-5 py-3.5">
-                      <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => openEdit(country)} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-foreground-200 hover:bg-background-200/50 transition-all" title="Editar"><span className="w-4 h-4 flex items-center justify-center"><i className="ri-edit-line text-sm"></i></span></button>
-                        <button onClick={() => setConfirmToggle(country)} className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${country.status === 'active' ? 'text-foreground-500 hover:text-amber-400 hover:bg-amber-500/10' : 'text-foreground-500 hover:text-emerald-400 hover:bg-emerald-500/10'}`} title={country.status === 'active' ? 'Desactivar' : 'Activar'}>
-                          <span className="w-4 h-4 flex items-center justify-center"><i className={`${country.status === 'active' ? 'ri-toggle-line' : 'ri-toggle-fill'} text-sm`}></i></span>
-                        </button>
-                      </div>
+                        {can('countries', 'update') && (
+                          <button onClick={() => openEdit(country)} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-foreground-200 hover:bg-background-200/50 transition-all" title="Editar"><span className="w-4 h-4 flex items-center justify-center"><i className="ri-edit-line text-sm"></i></span></button>
+                        )}
+                        {can('countries', 'update') && (
+                          <button onClick={() => setConfirmToggle(country)} className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${country.status === 'active' ? 'text-foreground-500 hover:text-amber-400 hover:bg-amber-500/10' : 'text-foreground-500 hover:text-emerald-400 hover:bg-emerald-500/10'}`} title={country.status === 'active' ? 'Desactivar' : 'Activar'}>
+                            <span className="w-4 h-4 flex items-center justify-center"><i className={`${country.status === 'active' ? 'ri-toggle-line' : 'ri-toggle-fill'} text-sm`}></i></span>
+                          </button>
+                        )}
                     </td>
                   </tr>
                 ))}

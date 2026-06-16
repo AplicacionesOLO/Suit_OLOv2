@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/feature/AppLayout';
 import { fetchCategories, type AppCategory as SupaCategory } from '@/services/applications/applicationsService';
+import { useSuitePermissions } from '@/hooks/useSuitePermissions';
 
 interface AppCategory {
   id: string;
@@ -53,6 +54,7 @@ export default function CategoriesPage() {
   const [editingCategory, setEditingCategory] = useState<AppCategory | null>(null);
   const [catList, setCatList] = useState<AppCategory[]>([]);
   const [loading, setLoading] = useState(true);
+  const { can } = useSuitePermissions();
 
   const loadData = useCallback(async () => {
     try {
@@ -110,15 +112,17 @@ export default function CategoriesPage() {
             <h1 className="text-xl font-bold text-foreground-100">Categorías de Aplicaciones</h1>
             <p className="text-sm text-foreground-500 mt-1">Organiza tus aplicaciones empresariales por categoría funcional.</p>
           </div>
-          <button
-            onClick={openCreate}
-            className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-sm font-medium whitespace-nowrap"
-          >
-            <span className="w-4 h-4 flex items-center justify-center">
-              <i className="ri-add-line text-base"></i>
-            </span>
-            Nueva categoría
-          </button>
+          {can('categories', 'create') && (
+            <button
+              onClick={openCreate}
+              className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-sm font-medium whitespace-nowrap"
+            >
+              <span className="w-4 h-4 flex items-center justify-center">
+                <i className="ri-add-line text-base"></i>
+              </span>
+              Nueva categoría
+            </button>
+          )}
         </div>
 
         <div className="glass-panel rounded-2xl overflow-hidden">
@@ -175,24 +179,28 @@ export default function CategoriesPage() {
                     </td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => openEdit(cat)}
-                          className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-foreground-200 hover:bg-background-200/50 transition-all"
-                          title="Editar"
-                        >
-                          <span className="w-4 h-4 flex items-center justify-center">
-                            <i className="ri-edit-line text-sm"></i>
-                          </span>
-                        </button>
-                        <button
-                          onClick={() => handleDelete(cat.id)}
-                          className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-red-400 hover:bg-red-500/10 transition-all"
-                          title="Eliminar"
-                        >
-                          <span className="w-4 h-4 flex items-center justify-center">
-                            <i className="ri-delete-bin-line text-sm"></i>
-                          </span>
-                        </button>
+                        {can('categories', 'update') && (
+                          <button
+                            onClick={() => openEdit(cat)}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-foreground-200 hover:bg-background-200/50 transition-all"
+                            title="Editar"
+                          >
+                            <span className="w-4 h-4 flex items-center justify-center">
+                              <i className="ri-edit-line text-sm"></i>
+                            </span>
+                          </button>
+                        )}
+                        {can('categories', 'delete') && (
+                          <button
+                            onClick={() => handleDelete(cat.id)}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                            title="Eliminar"
+                          >
+                            <span className="w-4 h-4 flex items-center justify-center">
+                              <i className="ri-delete-bin-line text-sm"></i>
+                            </span>
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

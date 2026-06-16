@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/feature/AppLayout';
 import { useTenants } from '@/hooks/useTenants';
+import { useSuitePermissions } from '@/hooks/useSuitePermissions';
 import type { TenantWithCounts, CreateTenantInput, UpdateTenantInput, TenantSettings } from '@/services/operations/tenantsService';
 
 type FilterStatus = '' | 'active' | 'suspended' | 'deleted';
@@ -31,6 +32,7 @@ const emptySettings: TenantSettings = {
 export default function TenantsPage() {
   const navigate = useNavigate();
   const { tenants, loading, error, addTenant, editTenant, suspendTenant, activateTenant, softDeleteTenant, refresh } = useTenants();
+  const { can } = useSuitePermissions();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('');
@@ -194,10 +196,12 @@ export default function TenantsPage() {
             <p className="text-sm text-foreground-500 mt-1">Administra las empresas del sistema. Cada tenant agrupa paises, almacenes, clientes, usuarios y aplicaciones.</p>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={openCreate} className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-sm font-medium whitespace-nowrap">
-              <span className="w-4 h-4 flex items-center justify-center"><i className="ri-add-line text-base"></i></span>
-              Crear tenant
-            </button>
+            {can('tenants', 'create') && (
+              <button onClick={openCreate} className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-sm font-medium whitespace-nowrap">
+                <span className="w-4 h-4 flex items-center justify-center"><i className="ri-add-line text-base"></i></span>
+                Crear tenant
+              </button>
+            )}
           </div>
         </div>
 
@@ -233,9 +237,11 @@ export default function TenantsPage() {
             <p className="text-sm text-foreground-500 max-w-md mx-auto mb-6">
               Crea tu primer empresa tenant para empezar a administrar paises, almacenes, clientes y usuarios.
             </p>
-            <button onClick={openCreate} className="h-9 px-5 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-sm font-medium whitespace-nowrap">
-              Crear tenant
-            </button>
+            {can('tenants', 'create') && (
+              <button onClick={openCreate} className="h-9 px-5 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-sm font-medium whitespace-nowrap">
+                Crear tenant
+              </button>
+            )}
           </div>
         ) : (
           /* Table */
@@ -303,20 +309,22 @@ export default function TenantsPage() {
                             <button onClick={() => navigate(`/tenants/${t.id}`)} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-foreground-200 hover:bg-background-200/50 transition-all" title="Ver detalles">
                               <span className="w-4 h-4 flex items-center justify-center"><i className="ri-eye-line text-sm"></i></span>
                             </button>
-                            <button onClick={() => openEdit(t)} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-foreground-200 hover:bg-background-200/50 transition-all" title="Editar">
-                              <span className="w-4 h-4 flex items-center justify-center"><i className="ri-edit-line text-sm"></i></span>
-                            </button>
-                            {t.status === 'active' && (
+                            {can('tenants', 'update') && (
+                              <button onClick={() => openEdit(t)} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-foreground-200 hover:bg-background-200/50 transition-all" title="Editar">
+                                <span className="w-4 h-4 flex items-center justify-center"><i className="ri-edit-line text-sm"></i></span>
+                              </button>
+                            )}
+                            {t.status === 'active' && can('tenants', 'update') && (
                               <button onClick={() => setSuspendTarget(t)} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-amber-400 hover:bg-amber-500/10 transition-all" title="Suspender">
                                 <span className="w-4 h-4 flex items-center justify-center"><i className="ri-pause-circle-line text-sm"></i></span>
                               </button>
                             )}
-                            {t.status === 'suspended' && (
+                            {t.status === 'suspended' && can('tenants', 'update') && (
                               <button onClick={() => activateTenant(t.id)} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all" title="Activar">
                                 <span className="w-4 h-4 flex items-center justify-center"><i className="ri-play-circle-line text-sm"></i></span>
                               </button>
                             )}
-                            {t.status !== 'deleted' && (
+                            {t.status !== 'deleted' && can('tenants', 'delete') && (
                               <button onClick={() => setDeleteTarget(t)} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-red-400 hover:bg-red-500/10 transition-all" title="Archivar">
                                 <span className="w-4 h-4 flex items-center justify-center"><i className="ri-archive-line text-sm"></i></span>
                               </button>

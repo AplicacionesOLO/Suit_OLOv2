@@ -24,7 +24,7 @@ function getColors(c: string) { return colorMap[c] || colorMap.emerald; }
 
 export default function MyAccessPage() {
   const { platformUser, user } = useAuth();
-  const { myAccesses, loading, loadMyAccesses } = useApplicationAccess();
+  const { myAccesses, myLoading, loadMyAccesses } = useApplicationAccess();
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
@@ -42,14 +42,17 @@ export default function MyAccessPage() {
   const activeAccesses = myAccesses.filter((a) => a.access_status === 'assigned');
   const pendingAccesses = myAccesses.filter((a) => a.access_status === 'pending');
 
-  if (loading) {
+  if (myLoading) {
     return (
       <AppLayout>
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 w-48 bg-background-100 rounded-lg" />
+        <div className="animate-fade-in space-y-6">
+          <div>
+            <h1 className="text-xl font-bold text-foreground-100">Mis Accesos</h1>
+            <p className="text-sm text-foreground-500 mt-1">Cargando tus aplicaciones asignadas...</p>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="glass-panel rounded-2xl p-5 h-40 bg-background-100/50" />
+              <div key={i} className="glass-panel rounded-2xl p-5 h-40 animate-pulse bg-background-100/50" />
             ))}
           </div>
         </div>

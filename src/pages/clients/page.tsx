@@ -1,10 +1,12 @@
 import { useState, useMemo } from 'react';
 import AppLayout from '@/components/feature/AppLayout';
 import { useClients } from '@/hooks/useClients';
+import { useSuitePermissions } from '@/hooks/useSuitePermissions';
 import type { ClientWithDetails } from '@/services/operations/clientsService';
 
 export default function ClientsPage() {
   const { clients, warehouses, loading, addClient, editClient, toggleStatus } = useClients();
+  const { can } = useSuitePermissions();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterWarehouse, setFilterWarehouse] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -88,10 +90,12 @@ export default function ClientsPage() {
             <h1 className="text-xl font-bold text-foreground-100">Clientes</h1>
             <p className="text-sm text-foreground-500 mt-1">Administra los clientes por almacen. Cada cliente agrupa usuarios y aplicaciones asignadas.</p>
           </div>
-          <button onClick={openCreate} className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-sm font-medium whitespace-nowrap">
-            <span className="w-4 h-4 flex items-center justify-center"><i className="ri-add-line text-base"></i></span>
-            Nuevo cliente
-          </button>
+          {can('clients', 'create') && (
+            <button onClick={openCreate} className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-sm font-medium whitespace-nowrap">
+              <span className="w-4 h-4 flex items-center justify-center"><i className="ri-add-line text-base"></i></span>
+              Nuevo cliente
+            </button>
+          )}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -178,10 +182,14 @@ export default function ClientsPage() {
                     <td className="px-5 py-3.5"><span className="text-xs text-foreground-500">{new Date(c.created_at).toLocaleDateString()}</span></td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => openEdit(c)} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-foreground-200 hover:bg-background-200/50 transition-all" title="Editar"><span className="w-4 h-4 flex items-center justify-center"><i className="ri-edit-line text-sm"></i></span></button>
-                        <button onClick={() => setConfirmToggle(c)} className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${c.status === 'active' ? 'text-foreground-500 hover:text-amber-400 hover:bg-amber-500/10' : 'text-foreground-500 hover:text-emerald-400 hover:bg-emerald-500/10'}`} title={c.status === 'active' ? 'Desactivar' : 'Activar'}>
-                          <span className="w-4 h-4 flex items-center justify-center"><i className={`${c.status === 'active' ? 'ri-toggle-line' : 'ri-toggle-fill'} text-sm`}></i></span>
-                        </button>
+                        {can('clients', 'update') && (
+                          <button onClick={() => openEdit(c)} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-foreground-200 hover:bg-background-200/50 transition-all" title="Editar"><span className="w-4 h-4 flex items-center justify-center"><i className="ri-edit-line text-sm"></i></span></button>
+                        )}
+                        {can('clients', 'update') && (
+                          <button onClick={() => setConfirmToggle(c)} className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${c.status === 'active' ? 'text-foreground-500 hover:text-amber-400 hover:bg-amber-500/10' : 'text-foreground-500 hover:text-emerald-400 hover:bg-emerald-500/10'}`} title={c.status === 'active' ? 'Desactivar' : 'Activar'}>
+                            <span className="w-4 h-4 flex items-center justify-center"><i className={`${c.status === 'active' ? 'ri-toggle-line' : 'ri-toggle-fill'} text-sm`}></i></span>
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

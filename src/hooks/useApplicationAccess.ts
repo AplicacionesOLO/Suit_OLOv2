@@ -13,6 +13,7 @@ export function useApplicationAccess() {
   const [accesses, setAccesses] = useState<AccessWithDetails[]>([]);
   const [myAccesses, setMyAccesses] = useState<AccessWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
+  const [myLoading, setMyLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const loadAll = useCallback(async () => {
@@ -32,7 +33,7 @@ export function useApplicationAccess() {
   useEffect(() => { loadAll(); }, [loadAll]);
 
   const loadMyAccesses = useCallback(async (userId: string) => {
-    setLoading(true);
+    setMyLoading(true);
     setError(null);
     try {
       const result = await fetchMyAccesses(userId);
@@ -41,7 +42,7 @@ export function useApplicationAccess() {
     } catch (err) {
       setError((err as Error).message);
     } finally {
-      setLoading(false);
+      setMyLoading(false);
     }
   }, []);
 
@@ -66,6 +67,20 @@ export function useApplicationAccess() {
     return { error: null };
   }, [loadAll]);
 
+  const approveAccess = useCallback(async (id: string) => {
+    const result = await reactivateUserAccess(id);
+    if (result.error) return { error: result.error };
+    await loadAll();
+    return { error: null };
+  }, [loadAll]);
+
+  const denyAccess = useCallback(async (id: string) => {
+    const result = await revokeUserAccess(id);
+    if (result.error) return { error: result.error };
+    await loadAll();
+    return { error: null };
+  }, [loadAll]);
+
   const stats = useMemo(() => ({
     assigned: accesses.filter((a) => a.access_status === 'assigned').length,
     pending: accesses.filter((a) => a.access_status === 'pending').length,
@@ -74,8 +89,9 @@ export function useApplicationAccess() {
   }), [accesses]);
 
   return {
-    accesses, myAccesses, loading, error, stats,
+    accesses, myAccesses, loading, myLoading, error, stats,
     reload: loadAll, loadMyAccesses,
     createAccess, revokeAccess, reactivateAccess,
+    approveAccess, denyAccess,
   };
 }

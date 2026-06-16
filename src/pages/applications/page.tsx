@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import AppLayout from '@/components/feature/AppLayout';
+import { useSuitePermissions } from '@/hooks/useSuitePermissions';
 import {
   fetchApplications,
   fetchCategories,
@@ -129,6 +130,7 @@ export default function ApplicationsPage() {
   const [loading, setLoading] = useState(true);
   const [showDeleted, setShowDeleted] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const { can } = useSuitePermissions();
   const selectedAppId = searchParams.get('app');
 
   const showToast = useCallback((message: string, type: 'success' | 'error') => {
@@ -291,13 +293,15 @@ export default function ApplicationsPage() {
             <h1 className="text-xl font-bold text-foreground-100">Aplicaciones</h1>
             <p className="text-sm text-foreground-500 mt-1">Gestiona el catálogo de aplicaciones de la plataforma Suite OLO.</p>
           </div>
-          <button
-            onClick={openCreateModal}
-            className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-sm font-medium whitespace-nowrap cursor-pointer"
-          >
-            <span className="w-4 h-4 flex items-center justify-center"><i className="ri-add-line text-base"></i></span>
-            Nueva aplicación
-          </button>
+          {can('applications', 'create') && (
+            <button
+              onClick={openCreateModal}
+              className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-sm font-medium whitespace-nowrap cursor-pointer"
+            >
+              <span className="w-4 h-4 flex items-center justify-center"><i className="ri-add-line text-base"></i></span>
+              Nueva aplicación
+            </button>
+          )}
         </div>
 
         <div className="glass-panel rounded-2xl overflow-hidden">
@@ -364,12 +368,18 @@ export default function ApplicationsPage() {
                         <div className="flex items-center justify-end gap-1">
                           {!isDeleted && (
                             <>
-                              <button onClick={() => openEditModal(app)} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-foreground-200 hover:bg-background-200/50 transition-all cursor-pointer" title="Editar"><span className="w-4 h-4 flex items-center justify-center"><i className="ri-edit-line text-sm"></i></span></button>
-                              <button onClick={() => handleToggleStatus(app)} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-amber-400 hover:bg-amber-500/10 transition-all cursor-pointer" title={app.status === 'active' ? 'Desactivar' : 'Activar'}><span className="w-4 h-4 flex items-center justify-center"><i className={app.status === 'active' ? 'ri-pause-circle-line' : 'ri-play-circle-line text-sm'}></i></span></button>
-                              <button onClick={() => handleDelete(app)} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer" title="Eliminar"><span className="w-4 h-4 flex items-center justify-center"><i className="ri-delete-bin-line text-sm"></i></span></button>
+                              {can('applications', 'update') && (
+                                <button onClick={() => openEditModal(app)} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-foreground-200 hover:bg-background-200/50 transition-all cursor-pointer" title="Editar"><span className="w-4 h-4 flex items-center justify-center"><i className="ri-edit-line text-sm"></i></span></button>
+                              )}
+                              {can('applications', 'update') && (
+                                <button onClick={() => handleToggleStatus(app)} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-amber-400 hover:bg-amber-500/10 transition-all cursor-pointer" title={app.status === 'active' ? 'Desactivar' : 'Activar'}><span className="w-4 h-4 flex items-center justify-center"><i className={app.status === 'active' ? 'ri-pause-circle-line' : 'ri-play-circle-line text-sm'}></i></span></button>
+                              )}
+                              {can('applications', 'delete') && (
+                                <button onClick={() => handleDelete(app)} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer" title="Eliminar"><span className="w-4 h-4 flex items-center justify-center"><i className="ri-delete-bin-line text-sm"></i></span></button>
+                              )}
                             </>
                           )}
-                          {isDeleted && (
+                          {isDeleted && can('applications', 'delete') && (
                             <button onClick={() => handleDelete(app)} className="flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-2xs font-medium text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 transition-all cursor-pointer whitespace-nowrap">
                               <span className="w-3.5 h-3.5 flex items-center justify-center"><i className="ri-refresh-line text-xs"></i></span> Restaurar
                             </button>

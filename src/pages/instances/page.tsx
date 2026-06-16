@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/feature/AppLayout';
 import { fetchInstances, fetchTenants, type AppInstance as SupaInstance } from '@/services/applications/applicationsService';
+import { useSuitePermissions } from '@/hooks/useSuitePermissions';
 
 interface AppInstance {
   id: string;
@@ -34,6 +35,7 @@ export default function InstancesPage() {
   const [instanceList, setInstanceList] = useState<AppInstance[]>([]);
   const [tenantList, setTenantList] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const { can } = useSuitePermissions();
 
   const loadData = useCallback(async () => {
     try {
@@ -84,9 +86,11 @@ export default function InstancesPage() {
             <h1 className="text-xl font-bold text-foreground-100">Instancias de Aplicación</h1>
             <p className="text-sm text-foreground-500 mt-1">Gestiona las instancias de aplicaciones por tenant, con SSO y dominios.</p>
           </div>
-          <button onClick={() => setShowModal(true)} className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-sm font-medium whitespace-nowrap">
-            <span className="w-4 h-4 flex items-center justify-center"><i className="ri-add-line text-base"></i></span> Nueva instancia
-          </button>
+          {can('instances', 'create') && (
+            <button onClick={() => setShowModal(true)} className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-sm font-medium whitespace-nowrap">
+              <span className="w-4 h-4 flex items-center justify-center"><i className="ri-add-line text-base"></i></span> Nueva instancia
+            </button>
+          )}
         </div>
 
         <div className="glass-panel rounded-2xl overflow-hidden">
@@ -133,9 +137,13 @@ export default function InstancesPage() {
                       <td className="px-5 py-3.5"><span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-2xs font-medium ${st.bg} ${st.text}`}><span className={`w-1.5 h-1.5 rounded-full ${st.dot}`}></span>{st.label}</span></td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center justify-end gap-1">
-                          <button className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-foreground-200 hover:bg-background-200/50 transition-all" title="Editar"><span className="w-4 h-4 flex items-center justify-center"><i className="ri-edit-line text-sm"></i></span></button>
+                          {can('instances', 'update') && (
+                            <button className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-foreground-200 hover:bg-background-200/50 transition-all" title="Editar"><span className="w-4 h-4 flex items-center justify-center"><i className="ri-edit-line text-sm"></i></span></button>
+                          )}
                           <button className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-primary-400 hover:bg-primary-500/10 transition-all" title="Abrir"><span className="w-4 h-4 flex items-center justify-center"><i className="ri-external-link-line text-sm"></i></span></button>
-                          <button className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-red-400 hover:bg-red-500/10 transition-all" title="Eliminar"><span className="w-4 h-4 flex items-center justify-center"><i className="ri-delete-bin-line text-sm"></i></span></button>
+                          {can('instances', 'delete') && (
+                            <button className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-red-400 hover:bg-red-500/10 transition-all" title="Eliminar"><span className="w-4 h-4 flex items-center justify-center"><i className="ri-delete-bin-line text-sm"></i></span></button>
+                          )}
                         </div>
                       </td>
                     </tr>

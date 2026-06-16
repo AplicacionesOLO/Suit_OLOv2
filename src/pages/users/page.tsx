@@ -1,12 +1,14 @@
 import { useState, useMemo, useCallback } from 'react';
 import AppLayout from '@/components/feature/AppLayout';
 import { useUsers } from '@/hooks/useUsers';
+import { useSuitePermissions } from '@/hooks/useSuitePermissions';
 import type { PlatformUserFull, UpdateUserInput, CreateInvitationInput } from '@/services/auth/usersService';
 
 type Tab = 'active' | 'invitations';
 
 export default function UsersPage() {
   const { users, invitations, tenants, roles, countries, warehouses, clients, loading, error, sendInvitation, cancelInvitation, editUser, removeUser, refresh } = useUsers();
+  const { can } = useSuitePermissions();
   const [activeTab, setActiveTab] = useState<Tab>('active');
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -216,10 +218,12 @@ export default function UsersPage() {
             <h1 className="text-xl font-bold text-foreground-100">Usuarios</h1>
             <p className="text-sm text-foreground-500 mt-1">Gestiona usuarios activos e invitaciones pendientes.</p>
           </div>
-          <button onClick={openInvite} className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-sm font-medium whitespace-nowrap">
-            <span className="w-4 h-4 flex items-center justify-center"><i className="ri-user-add-line text-base"></i></span>
-            Enviar invitacion
-          </button>
+          {can('users', 'create') && (
+            <button onClick={openInvite} className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-sm font-medium whitespace-nowrap">
+              <span className="w-4 h-4 flex items-center justify-center"><i className="ri-user-add-line text-base"></i></span>
+              Enviar invitacion
+            </button>
+          )}
         </div>
 
         {error && (
@@ -358,12 +362,16 @@ export default function UsersPage() {
                       </td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => openEdit(user)} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-foreground-200 hover:bg-background-200/50 transition-all" title="Editar">
-                            <span className="w-4 h-4 flex items-center justify-center"><i className="ri-edit-line text-sm"></i></span>
-                          </button>
-                          <button onClick={() => setConfirmDelete(user)} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-red-400 hover:bg-red-500/10 transition-all" title="Eliminar">
-                            <span className="w-4 h-4 flex items-center justify-center"><i className="ri-delete-bin-line text-sm"></i></span>
-                          </button>
+                          {can('users', 'update') && (
+                            <button onClick={() => openEdit(user)} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-foreground-200 hover:bg-background-200/50 transition-all" title="Editar">
+                              <span className="w-4 h-4 flex items-center justify-center"><i className="ri-edit-line text-sm"></i></span>
+                            </button>
+                          )}
+                          {can('users', 'delete') && (
+                            <button onClick={() => setConfirmDelete(user)} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-red-400 hover:bg-red-500/10 transition-all" title="Eliminar">
+                              <span className="w-4 h-4 flex items-center justify-center"><i className="ri-delete-bin-line text-sm"></i></span>
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -431,9 +439,11 @@ export default function UsersPage() {
                       </td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => setConfirmRevoke(inv.id)} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-red-400 hover:bg-red-500/10 transition-all" title="Revocar invitacion">
-                            <span className="w-4 h-4 flex items-center justify-center"><i className="ri-close-circle-line text-sm"></i></span>
-                          </button>
+                          {can('users', 'revoke') && (
+                            <button onClick={() => setConfirmRevoke(inv.id)} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-red-400 hover:bg-red-500/10 transition-all" title="Revocar invitacion">
+                              <span className="w-4 h-4 flex items-center justify-center"><i className="ri-close-circle-line text-sm"></i></span>
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

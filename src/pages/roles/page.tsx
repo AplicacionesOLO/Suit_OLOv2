@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import AppLayout from '@/components/feature/AppLayout';
 import { useRoles } from '@/hooks/useRoles';
-import { SUITE_MODULES, ALL_ACTIONS } from '@/hooks/useSuitePermissions';
+import { SUITE_MODULES, ALL_ACTIONS, useSuitePermissions } from '@/hooks/useSuitePermissions';
 import { useAuth } from '@/hooks/useAuth';
 import type { RolePermissions } from '@/services/security/rolesService';
 
@@ -47,6 +47,7 @@ function initPermissions(): RolePermissions {
 export default function RolesPage() {
   const { roles, loading, addRole, editRole } = useRoles();
   const { platformUser } = useAuth();
+  const { can } = useSuitePermissions();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterLevel, setFilterLevel] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -183,7 +184,7 @@ export default function RolesPage() {
             <h1 className="text-xl font-bold text-foreground-100">Roles y Permisos</h1>
             <p className="text-sm text-foreground-500 mt-1">Gestiona los roles del sistema. Cada rol define su nivel jerárquico, visibilidad de menús y acciones permitidas.</p>
           </div>
-          {isSuperAdmin && (
+          {isSuperAdmin && can('roles', 'create') && (
             <button onClick={openCreate} className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-sm font-medium whitespace-nowrap">
               <span className="w-4 h-4 flex items-center justify-center"><i className="ri-add-line text-base"></i></span>
               Nuevo rol
@@ -274,10 +275,12 @@ export default function RolesPage() {
                       <td className="px-5 py-3.5"><span className="text-xs text-foreground-500">{new Date(role.created_at).toLocaleDateString()}</span></td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => openEdit(role)} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-foreground-200 hover:bg-background-200/50 transition-all" title="Editar rol y permisos">
-                            <span className="w-4 h-4 flex items-center justify-center"><i className="ri-edit-line text-sm"></i></span>
-                          </button>
-                          {!role.is_system && (
+                          {can('roles', 'update') && (
+                            <button onClick={() => openEdit(role)} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-foreground-200 hover:bg-background-200/50 transition-all" title="Editar rol y permisos">
+                              <span className="w-4 h-4 flex items-center justify-center"><i className="ri-edit-line text-sm"></i></span>
+                            </button>
+                          )}
+                          {!role.is_system && can('roles', 'delete') && (
                             <button onClick={() => setConfirmDelete(role.id)} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-red-400 hover:bg-red-500/10 transition-all" title="Eliminar">
                               <span className="w-4 h-4 flex items-center justify-center"><i className="ri-delete-bin-line text-sm"></i></span>
                             </button>

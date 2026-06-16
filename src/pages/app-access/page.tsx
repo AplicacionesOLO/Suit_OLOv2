@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import AppLayout from '@/components/feature/AppLayout';
 import { useApplicationAccess } from '@/hooks/useApplicationAccess';
 import { useRoles } from '@/hooks/useRoles';
+import { useSuitePermissions } from '@/hooks/useSuitePermissions';
 
 const statusConfig: Record<string, { label: string; bg: string; text: string; border: string }> = {
   active: { label: 'Activo', bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20' },
@@ -26,6 +27,7 @@ function getColors(c: string) { return colorMap[c] || colorMap.emerald; }
 export default function AppAccessPage() {
   const { accesses, loading, assignAccess, revokeAccess, approveAccess, denyAccess } = useApplicationAccess();
   const { roles } = useRoles();
+  const { can } = useSuitePermissions();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterRole, setFilterRole] = useState('');
@@ -74,10 +76,12 @@ export default function AppAccessPage() {
             <h1 className="text-xl font-bold text-foreground-100">Aplicaciones Asignadas</h1>
             <p className="text-sm text-foreground-500 mt-1">Gestiona qué usuarios pueden acceder a cada aplicación e instancia. Aprueba, revoca o deniega solicitudes.</p>
           </div>
-          <button onClick={() => setShowAssignModal(true)} className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-sm font-medium whitespace-nowrap">
-            <span className="w-4 h-4 flex items-center justify-center"><i className="ri-add-line text-base"></i></span>
-            Asignar acceso
-          </button>
+          {can('app-access', 'create') && (
+            <button onClick={() => setShowAssignModal(true)} className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-sm font-medium whitespace-nowrap">
+              <span className="w-4 h-4 flex items-center justify-center"><i className="ri-add-line text-base"></i></span>
+              Asignar acceso
+            </button>
+          )}
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -177,13 +181,13 @@ export default function AppAccessPage() {
                         <td className="px-5 py-3.5"><span className="text-xs text-foreground-500">{acc.granted_at ? new Date(acc.granted_at).toLocaleDateString() : '—'}</span></td>
                         <td className="px-5 py-3.5">
                           <div className="flex items-center justify-end gap-1">
-                            {acc.access_status === 'pending' && (
+                            {acc.access_status === 'pending' && can('app-access', 'create') && (
                               <>
                                 <button onClick={() => setActionConfirm({ id: acc.id, action: 'approve' })} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all" title="Aprobar"><span className="w-4 h-4 flex items-center justify-center"><i className="ri-check-line text-sm"></i></span></button>
                                 <button onClick={() => setActionConfirm({ id: acc.id, action: 'deny' })} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-red-400 hover:bg-red-500/10 transition-all" title="Denegar"><span className="w-4 h-4 flex items-center justify-center"><i className="ri-close-line text-sm"></i></span></button>
                               </>
                             )}
-                            {acc.access_status === 'active' && (
+                            {acc.access_status === 'active' && can('app-access', 'revoke') && (
                               <button onClick={() => setActionConfirm({ id: acc.id, action: 'revoke' })} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-red-400 hover:bg-red-500/10 transition-all" title="Revocar"><span className="w-4 h-4 flex items-center justify-center"><i className="ri-close-circle-line text-sm"></i></span></button>
                             )}
                           </div>

@@ -1,5 +1,6 @@
 import type { RouteObject } from "react-router-dom";
 import NotFound from "../pages/NotFound";
+import AccessDeniedPage from "../pages/AccessDenied";
 import LoginPage from "../pages/login/page";
 import ForgotPasswordPage from "../pages/forgot-password/page";
 import AuthCallbackPage from "../pages/auth-callback/page";
@@ -26,6 +27,11 @@ import TenantsPage from "../pages/tenants/page";
 import TenantDetailPage from "../pages/tenants/detail";
 import RlsTestPage from "../pages/rls-test/page";
 import { ModulesPage } from "../pages/placeholders/page";
+import RouteGuard from "../components/feature/RouteGuard";
+
+function Guarded({ children }: { children: React.ReactNode }) {
+  return <RouteGuard>{children}</RouteGuard>;
+}
 
 const routes: RouteObject[] = [
   {
@@ -45,96 +51,100 @@ const routes: RouteObject[] = [
     element: <AuthCallbackPage />,
   },
   {
+    path: "/access-denied",
+    element: <AccessDeniedPage />,
+  },
+  {
     path: "/dashboard",
-    element: <DashboardPage />,
+    element: <Guarded><DashboardPage /></Guarded>,
   },
   {
     path: "/categories",
-    element: <CategoriesPage />,
+    element: <Guarded><CategoriesPage /></Guarded>,
   },
   {
     path: "/applications",
-    element: <ApplicationsPage />,
+    element: <Guarded><ApplicationsPage /></Guarded>,
   },
   {
     path: "/instances",
-    element: <InstancesPage />,
+    element: <Guarded><InstancesPage /></Guarded>,
   },
   {
     path: "/catalog",
-    element: <CatalogPage />,
+    element: <Guarded><CatalogPage /></Guarded>,
   },
   {
     path: "/assignments",
-    element: <AssignmentsPage />,
+    element: <Guarded><AssignmentsPage /></Guarded>,
   },
   {
     path: "/integration",
-    element: <IntegrationPage />,
+    element: <Guarded><IntegrationPage /></Guarded>,
   },
   {
     path: "/roles",
-    element: <RolesPage />,
+    element: <Guarded><RolesPage /></Guarded>,
   },
   {
     path: "/app-access",
-    element: <AppAccessPage />,
+    element: <Guarded><AppAccessPage /></Guarded>,
   },
   {
     path: "/my-access",
-    element: <MyAccessPage />,
+    element: <Guarded><MyAccessPage /></Guarded>,
   },
   {
     path: "/audit",
-    element: <AuditPage />,
+    element: <Guarded><AuditPage /></Guarded>,
   },
   {
     path: "/security-settings",
-    element: <SecuritySettingsPage />,
+    element: <Guarded><SecuritySettingsPage /></Guarded>,
   },
   {
     path: "/profile",
-    element: <ProfilePageComponent />,
+    element: <Guarded><ProfilePageComponent /></Guarded>,
   },
   {
     path: "/sessions",
-    element: <SessionsPage />,
+    element: <Guarded><SessionsPage /></Guarded>,
   },
   {
     path: "/security-alerts",
-    element: <SecurityAlertsPage />,
+    element: <Guarded><SecurityAlertsPage /></Guarded>,
   },
   {
     path: "/countries",
-    element: <CountriesPage />,
+    element: <Guarded><CountriesPage /></Guarded>,
   },
   {
     path: "/warehouses",
-    element: <WarehousesPage />,
+    element: <Guarded><WarehousesPage /></Guarded>,
   },
   {
     path: "/clients",
-    element: <ClientsPage />,
+    element: <Guarded><ClientsPage /></Guarded>,
   },
   {
     path: "/users",
-    element: <UsersPage />,
+    element: <Guarded><UsersPage /></Guarded>,
   },
   {
     path: "/tenants",
-    element: <TenantsPage />,
+    element: <Guarded><TenantsPage /></Guarded>,
   },
   {
     path: "/tenants/:id",
-    element: <TenantDetailPage />,
+    element: <Guarded><TenantDetailPage /></Guarded>,
   },
   {
     path: "/rls-test",
-    element: <RlsTestPage />,
+    element: <Guarded><RlsTestPage /></Guarded>,
   },
   {
     path: "/modules",
-    element: <ModulesPage />,
+    element: <Guarded><ModulesPage /></Guarded>,
   },
   {
     path: "*",
