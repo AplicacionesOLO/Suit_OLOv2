@@ -112,7 +112,7 @@ export default function ProfilePage() {
 
             <div className="space-y-3">
               {[
-                { label: 'Rol', value: platformUser?.role_name || 'Super Admin', icon: 'ri-shield-user-line' },
+                { label: 'Rol', value: platformUser?.role_name || '', icon: 'ri-shield-user-line' },
                 { label: 'Perfil', value: platformUser?.profile_name || 'Administrador', icon: 'ri-user-settings-line' },
                 { label: 'Tenant', value: platformUser?.tenant_name || 'Costa Rica', icon: 'ri-building-line' },
                 { label: 'Pais', value: platformUser?.country_name || 'Costa Rica', icon: 'ri-map-pin-line' },

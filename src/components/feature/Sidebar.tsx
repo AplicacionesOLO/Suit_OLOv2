@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 
 interface NavItem {
   label: string;
@@ -69,6 +70,7 @@ interface SidebarProps {
 export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, platformUser } = useAuth();
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
     Object.fromEntries(navGroups.map((g) => [g.title, true]))
   );
@@ -168,12 +170,17 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
           title={collapsed ? 'Perfil' : undefined}
         >
           <div className="w-7 h-7 rounded-full bg-accent-500/20 border border-accent-500/25 flex items-center justify-center shrink-0">
-            <span className="text-accent-400 text-xs font-semibold">SA</span>
+            <span className="text-accent-400 text-xs font-semibold">
+              {platformUser?.first_name?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}
+              {platformUser?.last_name?.[0] || ''}
+            </span>
           </div>
           {!collapsed && (
             <div className="flex-1 min-w-0 text-left">
-              <div className="text-xs font-medium text-foreground-300 truncate">Super Admin</div>
-              <div className="text-2xs text-foreground-600 truncate">admin@suiteolo.io</div>
+              <div className="text-xs font-medium text-foreground-300 truncate">
+                {platformUser?.first_name ? `${platformUser.first_name} ${platformUser.last_name || ''}` : user?.email?.split('@')[0] || 'Usuario'}
+              </div>
+              <div className="text-2xs text-foreground-600 truncate">{user?.email || ''}</div>
             </div>
           )}
         </button>

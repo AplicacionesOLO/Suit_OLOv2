@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTenantContext } from '@/hooks/useTenantContext';
+import { useAuth } from '@/hooks/useAuth';
 
 interface TopbarProps {
   sidebarCollapsed: boolean;
@@ -9,6 +10,7 @@ interface TopbarProps {
 export default function Topbar({ sidebarCollapsed }: TopbarProps) {
   const navigate = useNavigate();
   const tenantCtx = useTenantContext();
+  const { user, platformUser, logout } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -222,7 +224,10 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
             className="flex items-center gap-2 h-9 px-2 rounded-lg hover:bg-background-200/50 transition-all"
           >
             <div className="w-7 h-7 rounded-full bg-accent-500/20 border border-accent-500/25 flex items-center justify-center">
-              <span className="text-accent-400 text-xs font-semibold">SA</span>
+              <span className="text-accent-400 text-xs font-semibold">
+                {platformUser?.first_name?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}
+                {platformUser?.last_name?.[0] || ''}
+              </span>
             </div>
             <span className="w-3.5 h-3.5 flex items-center justify-center text-foreground-500">
               <i className="ri-arrow-down-s-line text-xs"></i>
@@ -232,8 +237,10 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
           {showUserMenu && (
             <div className="absolute right-0 top-full mt-2 w-56 glass-panel-strong rounded-xl animate-scale-in overflow-hidden z-50">
               <div className="px-4 py-3 border-b border-secondary-500/10">
-                <p className="text-sm font-medium text-foreground-200">Super Admin</p>
-                <p className="text-xs text-foreground-500 mt-0.5">admin@suiteolo.io</p>
+                <p className="text-sm font-medium text-foreground-200">
+                  {platformUser?.first_name ? `${platformUser.first_name} ${platformUser.last_name || ''}` : user?.email?.split('@')[0] || 'Usuario'}
+                </p>
+                <p className="text-xs text-foreground-500 mt-0.5">{user?.email || ''}</p>
               </div>
               <div className="py-1">
                 <button
@@ -257,7 +264,7 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
               </div>
               <div className="border-t border-secondary-500/10 py-1">
                 <button
-                  onClick={() => navigate('/login')}
+                  onClick={async () => { setShowUserMenu(false); await logout(); }}
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/5 transition-colors"
                 >
                   <span className="w-4 h-4 flex items-center justify-center">
