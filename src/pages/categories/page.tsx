@@ -1,7 +1,20 @@
 import { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/feature/AppLayout';
-import { categories as mockCategories, type AppCategory } from '@/mocks/categories';
 import { fetchCategories, type AppCategory as SupaCategory } from '@/services/applications/applicationsService';
+
+interface AppCategory {
+  id: string;
+  name: string;
+  code: string;
+  description: string;
+  icon: string;
+  color: string;
+  bgColor: string;
+  textColor: string;
+  borderColor: string;
+  isActive: boolean;
+  appCount: number;
+}
 
 function getColorStyles(color: string) {
   const map: Record<string, { bgColor: string; textColor: string; borderColor: string }> = {
@@ -38,7 +51,7 @@ export default function CategoriesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState<AppCategory | null>(null);
-  const [catList, setCatList] = useState<AppCategory[]>(mockCategories);
+  const [catList, setCatList] = useState<AppCategory[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(async () => {
@@ -48,7 +61,7 @@ export default function CategoriesPage() {
         setCatList(result.data.map(mapSupaCat));
       }
     } catch {
-      // fallback to mock
+      // silently handle errors
     } finally {
       setLoading(false);
     }

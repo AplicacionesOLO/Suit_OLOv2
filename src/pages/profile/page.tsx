@@ -40,41 +40,6 @@ export default function ProfilePage() {
     }
   };
 
-  const recentActivity = [
-    { action: 'Inicio de sesion', time: 'Hace 10 min', icon: 'ri-login-box-line', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-    { action: 'Acceso a WMS', time: 'Hace 25 min', icon: 'ri-archive-line', color: 'text-primary-400', bg: 'bg-primary-500/10' },
-    { action: 'Acceso a BI', time: 'Hace 1 hora', icon: 'ri-bar-chart-2-line', color: 'text-accent-400', bg: 'bg-accent-500/10' },
-    { action: 'Cambio de permisos', time: 'Hace 12 horas', icon: 'ri-key-2-line', color: 'text-amber-400', bg: 'bg-amber-500/10' },
-    { action: 'Exportacion de auditoria', time: 'Ayer', icon: 'ri-download-line', color: 'text-secondary-400', bg: 'bg-secondary-500/10' },
-  ];
-
-  const myApps = [
-    { name: 'WMS', icon: 'ri-archive-line', color: 'emerald', role: 'Operador' },
-    { name: 'TMS', icon: 'ri-truck-line', color: 'cyan', role: 'Operador' },
-    { name: 'CRM', icon: 'ri-user-heart-line', color: 'violet', role: 'Consulta' },
-    { name: 'BI', icon: 'ri-bar-chart-2-line', color: 'amber', role: 'Visualizador' },
-    { name: 'PORTAL', icon: 'ri-global-line', color: 'indigo', role: 'Usuario' },
-    { name: 'HELPDESK', icon: 'ri-customer-service-2-line', color: 'rose', role: 'Soporte' },
-  ];
-
-  const myPermissions = [
-    { app: 'WMS', perms: 'Ver, Crear, Editar' },
-    { app: 'TMS', perms: 'Ver, Crear, Editar, Exportar' },
-    { app: 'CRM', perms: 'Ver, Exportar' },
-    { app: 'BI', perms: 'Ver, Exportar' },
-    { app: 'PORTAL', perms: 'Ver' },
-    { app: 'HELPDESK', perms: 'Ver, Crear, Editar' },
-  ];
-
-  const colorMap: Record<string, { bg: string; text: string; border: string }> = {
-    emerald: { bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20' },
-    cyan: { bg: 'bg-cyan-500/10', text: 'text-cyan-400', border: 'border-cyan-500/20' },
-    violet: { bg: 'bg-violet-500/10', text: 'text-violet-400', border: 'border-violet-500/20' },
-    amber: { bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20' },
-    indigo: { bg: 'bg-indigo-500/10', text: 'text-indigo-400', border: 'border-indigo-500/20' },
-    rose: { bg: 'bg-rose-500/10', text: 'text-rose-400', border: 'border-rose-500/20' },
-  };
-
   return (
     <AppLayout>
       <div className="animate-fade-in space-y-6">
@@ -114,8 +79,8 @@ export default function ProfilePage() {
               {[
                 { label: 'Rol', value: platformUser?.role_name || '', icon: 'ri-shield-user-line' },
                 { label: 'Perfil', value: platformUser?.profile_name || 'Administrador', icon: 'ri-user-settings-line' },
-                { label: 'Tenant', value: platformUser?.tenant_name || 'Costa Rica', icon: 'ri-building-line' },
-                { label: 'Pais', value: platformUser?.country_name || 'Costa Rica', icon: 'ri-map-pin-line' },
+                { label: 'Tenant', value: platformUser?.tenant_name || '—', icon: 'ri-building-line' },
+                { label: 'Pais', value: platformUser?.country_name || '—', icon: 'ri-map-pin-line' },
                 { label: 'Ultimo acceso', value: platformUser?.last_login ? new Date(platformUser.last_login).toLocaleDateString('es') : 'Hoy', icon: 'ri-calendar-check-line' },
               ].map((row) => (
                 <div key={row.label} className="flex items-center gap-3">
@@ -153,57 +118,33 @@ export default function ProfilePage() {
             {/* My apps */}
             <div className="glass-panel rounded-2xl p-5">
               <h2 className="text-sm font-semibold text-foreground-200 mb-4">Mis aplicaciones autorizadas</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {myApps.map((app) => {
-                  const cm = colorMap[app.color] || colorMap.emerald;
-                  return (
-                    <div key={app.name} className="flex items-center gap-3 p-3 rounded-xl border border-secondary-500/10 bg-background-100 hover:border-secondary-500/25 transition-all cursor-pointer">
-                      <div className={`w-9 h-9 rounded-lg ${cm.bg} border ${cm.border} flex items-center justify-center shrink-0`}>
-                        <i className={`${app.icon} ${cm.text} text-base`}></i>
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-foreground-300">{app.name}</p>
-                        <p className="text-2xs text-foreground-600">{app.role}</p>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="py-8 text-center">
+                <span className="w-10 h-10 rounded-lg bg-secondary-500/10 border border-secondary-500/20 flex items-center justify-center mx-auto mb-2">
+                  <i className="ri-apps-2-line text-foreground-500 text-lg"></i>
+                </span>
+                <p className="text-sm text-foreground-500">Sin datos disponibles</p>
               </div>
             </div>
 
             {/* My permissions */}
             <div className="glass-panel rounded-2xl p-5">
               <h2 className="text-sm font-semibold text-foreground-200 mb-4">Mis permisos principales</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {myPermissions.map((perm) => (
-                  <div key={perm.app} className="flex items-start gap-3 p-3 rounded-xl border border-secondary-500/10 bg-background-100">
-                    <span className="w-8 h-8 rounded-lg bg-primary-500/10 flex items-center justify-center shrink-0 mt-0.5">
-                      <i className="ri-key-2-line text-primary-400 text-sm"></i>
-                    </span>
-                    <div>
-                      <p className="text-sm font-medium text-foreground-300">{perm.app}</p>
-                      <p className="text-xs text-foreground-500 mt-0.5">{perm.perms}</p>
-                    </div>
-                  </div>
-                ))}
+              <div className="py-8 text-center">
+                <span className="w-10 h-10 rounded-lg bg-secondary-500/10 border border-secondary-500/20 flex items-center justify-center mx-auto mb-2">
+                  <i className="ri-key-2-line text-foreground-500 text-lg"></i>
+                </span>
+                <p className="text-sm text-foreground-500">Sin datos disponibles</p>
               </div>
             </div>
 
             {/* Recent activity */}
             <div className="glass-panel rounded-2xl p-5">
               <h2 className="text-sm font-semibold text-foreground-200 mb-4">Actividad reciente</h2>
-              <div className="space-y-3">
-                {recentActivity.map((act) => (
-                  <div key={act.action + act.time} className="flex items-center justify-between py-2 border-b border-secondary-500/5 last:border-0">
-                    <div className="flex items-center gap-3">
-                      <span className={`w-8 h-8 rounded-lg ${act.bg} flex items-center justify-center`}>
-                        <i className={`${act.icon} ${act.color} text-sm`}></i>
-                      </span>
-                      <span className="text-sm text-foreground-300">{act.action}</span>
-                    </div>
-                    <span className="text-xs text-foreground-600">{act.time}</span>
-                  </div>
-                ))}
+              <div className="py-8 text-center">
+                <span className="w-10 h-10 rounded-lg bg-secondary-500/10 border border-secondary-500/20 flex items-center justify-center mx-auto mb-2">
+                  <i className="ri-history-line text-foreground-500 text-lg"></i>
+                </span>
+                <p className="text-sm text-foreground-500">Sin datos disponibles</p>
               </div>
             </div>
           </div>

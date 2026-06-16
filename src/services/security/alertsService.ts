@@ -1,3 +1,5 @@
+import { supabase } from '@/services/supabase/client';
+
 export interface SecurityAlert {
   id: string;
   type: string;
@@ -12,25 +14,71 @@ export interface SecurityAlert {
   tenant_id?: string;
 }
 
-const mockAlerts: SecurityAlert[] = [
-  { id: 'a1', type: 'login_failed', title: 'Multiple intentos fallidos', description: '5 intentos de login fallidos desde IP 45.33.32.156 para usuario admin@suiteolo.io', severity: 'critical', status: 'open', created_at: new Date(Date.now() - 900000).toISOString(), ip_address: '45.33.32.156', user: 'admin@suiteolo.io' },
-  { id: 'a2', type: 'access_denied', title: 'Acceso denegado fuera de tenant', description: 'Usuario de Costa Rica intento acceder a WMS en tenant Panama', severity: 'critical', status: 'investigating', created_at: new Date(Date.now() - 600000).toISOString(), user: 'usuario@suiteolo.io', application: 'WMS' },
-  { id: 'a3', type: 'permission_change', title: 'Cambio masivo de permisos', description: 'Perfil Administrador Operativo modificado: se agregaron acciones Aprobar y Auditar a WMS', severity: 'high', status: 'open', created_at: new Date(Date.now() - 43200000).toISOString(), user: 'admin@suiteolo.io', application: 'WMS' },
-  { id: 'a4', type: 'new_ip', title: 'Acceso desde IP no reconocida', description: 'Usuario admin@suiteolo.io accedio desde IP 201.55.33.10 no registrada en rangos permitidos', severity: 'medium', status: 'investigating', created_at: new Date(Date.now() - 3600000).toISOString(), ip_address: '201.55.33.10', user: 'admin@suiteolo.io' },
-  { id: 'a5', type: 'outside_tenant', title: 'Intento de acceso cross-tenant', description: 'Se detecto un intento de acceso a recursos de Panama desde una sesion de Costa Rica', severity: 'critical', status: 'open', created_at: new Date(Date.now() - 600000).toISOString(), user: 'usuario@suiteolo.io' },
-  { id: 'a6', type: 'app_down', title: 'Aplicacion degradada', description: 'App Gateway reporta estado degradado. Latencia superior al umbral configurado.', severity: 'high', status: 'investigating', created_at: new Date(Date.now() - 7200000).toISOString(), application: 'App Gateway' },
-  { id: 'a7', type: 'risky_session', title: 'Sesion de alto riesgo detectada', description: 'Sesion desde IP 45.33.32.156 usando python-requests clasificada como riesgo critico', severity: 'critical', status: 'open', created_at: new Date(Date.now() - 300000).toISOString(), ip_address: '45.33.32.156' },
-  { id: 'a8', type: 'login_failed', title: 'Cuenta bloqueada por intentos', description: 'Cuenta en tenant Mexico bloqueada tras 6 intentos fallidos desde IP 187.45.23.99', severity: 'high', status: 'open', created_at: new Date(Date.now() - 1800000).toISOString(), ip_address: '187.45.23.99', user: 'unknown@mexico.com' },
-  { id: 'a9', type: 'permission_change', title: 'Rol de sistema modificado', description: 'Nivel jerarquico de Super Admin cambiado de 90 a 100', severity: 'high', status: 'resolved', created_at: new Date(Date.now() - 259200000).toISOString(), user: 'admin@suiteolo.io' },
-  { id: 'a10', type: 'access_denied', title: 'Acceso revocado por terminacion', description: 'Acceso a HR revocado para ex-empleado@suiteolo.io por terminacion de contrato', severity: 'medium', status: 'resolved', created_at: new Date(Date.now() - 28800000).toISOString(), user: 'ex-empleado@suiteolo.io', application: 'HR' },
-  { id: 'a11', type: 'new_ip', title: 'Acceso desde nueva ubicacion', description: 'Usuario analista@suiteolo.io accedio desde IP 201.55.33.10 (primera vez)', severity: 'low', status: 'resolved', created_at: new Date(Date.now() - 7200000).toISOString(), ip_address: '201.55.33.10', user: 'analista@suiteolo.io' },
-  { id: 'a12', type: 'risky_session', title: 'Sesion desde Panama revocada', description: 'Sesion de admin@panama.com revocada manualmente por posible compromiso', severity: 'high', status: 'resolved', created_at: new Date(Date.now() - 51840000).toISOString(), user: 'admin@panama.com' },
-];
+function deriveAlertType(action: string): string {
+  if (action === 'LOGIN_FAILED') return 'login_failed';
+  if (action === 'ACCESS_DENIED') return 'access_denied';
+  if (action === 'PERMISSION_CHANGED') return 'permission_change';
+  if (action === 'ACCESS_REVOKED') return 'access_denied';
+  if (action === 'SESSION_REVOKED') return 'risky_session';
+  return 'general';
+}
+
+function deriveTitle(action: string, details: Record<string, unknown> | null): string {
+  if (action === 'LOGIN_FAILED') return 'Intento de inicio de sesion fallido';
+  if (action === 'ACCESS_DENIED') return 'Acceso denegado';
+  if (action === 'PERMISSION_CHANGED') return 'Cambio de permisos';
+  if (action === 'ACCESS_REVOKED') return 'Acceso revocado';
+  if (action === 'SESSION_REVOKED') return 'Sesion revocada';
+  if (action === 'SECURITY_SETTING_CHANGED') return 'Configuracion de seguridad modificada';
+  const detailStr = details ? JSON.stringify(details) : '';
+  if (detailStr.includes('email')) return 'Actividad de autenticacion';
+  return action.replace(/_/g, ' ');
+}
 
 export async function fetchAlerts(): Promise<{ data: SecurityAlert[]; error: string | null }> {
-  return { data: mockAlerts, error: null };
+  try {
+    const { data, error } = await supabase
+      .from('audit_logs')
+      .select('*')
+      .neq('severity', 'info')
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (error) throw error;
+
+    const alerts: SecurityAlert[] = (data || []).map((log) => ({
+      id: log.id,
+      type: deriveAlertType(log.action),
+      title: deriveTitle(log.action, log.details),
+      description: typeof log.details === 'object' && log.details !== null
+        ? JSON.stringify(log.details)
+        : 'Evento de seguridad registrado',
+      severity: log.severity || 'medium',
+      status: 'open',
+      created_at: log.created_at,
+      ip_address: log.ip_address || undefined,
+      user: typeof log.details === 'object' && log.details !== null
+        ? (log.details as Record<string, unknown>).email as string || undefined
+        : undefined,
+      tenant_id: log.tenant_id,
+    }));
+
+    return { data: alerts, error: null };
+  } catch (err) {
+    return { data: [], error: err instanceof Error ? err.message : 'Error al cargar alertas' };
+  }
 }
 
 export async function resolveAlert(alertId: string): Promise<{ error: string | null }> {
-  return { error: null };
+  try {
+    const { error } = await supabase
+      .from('audit_logs')
+      .update({ severity: 'resolved' })
+      .eq('id', alertId);
+
+    if (error) throw error;
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Error al resolver alerta' };
+  }
 }

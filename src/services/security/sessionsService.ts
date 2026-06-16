@@ -1,3 +1,5 @@
+import { supabase } from '@/services/supabase/client';
+
 export interface ActiveSession {
   id: string;
   user_name: string;
@@ -12,27 +14,63 @@ export interface ActiveSession {
   risk: string;
 }
 
-const mockSessions: ActiveSession[] = [
-  { id: 's1', user_name: 'Super Admin', email: 'admin@suiteolo.io', role: 'Super Admin', ip_address: '186.32.45.12', country: 'Costa Rica', device: 'MacBook Pro', browser: 'Chrome 125', last_activity: new Date(Date.now() - 120000).toISOString(), status: 'active', risk: 'low' },
-  { id: 's2', user_name: 'Operador CR', email: 'operador@suiteolo.io', role: 'User', ip_address: '186.32.45.55', country: 'Costa Rica', device: 'Windows 11', browser: 'Chrome 125', last_activity: new Date(Date.now() - 900000).toISOString(), status: 'active', risk: 'low' },
-  { id: 's3', user_name: 'Tenant Admin PA', email: 'tenant_admin@panama.com', role: 'Tenant Admin', ip_address: '190.140.50.30', country: 'Panama', device: 'Dell XPS', browser: 'Chrome 124', last_activity: new Date(Date.now() - 1800000).toISOString(), status: 'active', risk: 'low' },
-  { id: 's4', user_name: 'Admin MX', email: 'admin@mexico.com', role: 'Tenant Admin', ip_address: '187.45.23.10', country: 'Mexico', device: 'Surface Pro', browser: 'Edge 122', last_activity: new Date(Date.now() - 3600000).toISOString(), status: 'inactive', risk: 'medium' },
-  { id: 's5', user_name: 'Auditor CO', email: 'auditor@colombia.com', role: 'Auditor', ip_address: '181.55.12.44', country: 'Colombia', device: 'ThinkPad', browser: 'Chrome 126', last_activity: new Date(Date.now() - 7200000).toISOString(), status: 'expired', risk: 'low' },
-  { id: 's6', user_name: 'DevOps CR', email: 'devops@suiteolo.io', role: 'User', ip_address: '186.32.45.99', country: 'Costa Rica', device: 'Mac Mini', browser: 'Chrome 125', last_activity: new Date(Date.now() - 600000).toISOString(), status: 'active', risk: 'low' },
-  { id: 's7', user_name: 'Supervisor MX', email: 'supervisor@mexico.com', role: 'Country Admin', ip_address: '187.45.23.35', country: 'Mexico', device: 'HP EliteBook', browser: 'Chrome 125', last_activity: new Date(Date.now() - 5400000).toISOString(), status: 'active', risk: 'low' },
-  { id: 's8', user_name: 'Unknown Source', email: 'unknown@vpn.com', role: 'N/A', ip_address: '45.33.32.156', country: 'Unknown', device: 'Virtual Machine', browser: 'python-requests', last_activity: new Date(Date.now() - 300000).toISOString(), status: 'active', risk: 'critical' },
-  { id: 's9', user_name: 'Admin PA', email: 'admin@panama.com', role: 'Tenant Admin', ip_address: '190.140.50.22', country: 'Panama', device: 'iPad Pro', browser: 'Safari 17', last_activity: new Date(Date.now() - 14400000).toISOString(), status: 'revoked', risk: 'high' },
-  { id: 's10', user_name: 'Analista CR', email: 'analista@suiteolo.io', role: 'User', ip_address: '201.55.33.10', country: 'Costa Rica', device: 'MacBook Air', browser: 'Chrome 126', last_activity: new Date(Date.now() - 600000).toISOString(), status: 'active', risk: 'medium' },
-];
-
 export async function fetchSessions(): Promise<{ data: ActiveSession[]; error: string | null }> {
-  return { data: mockSessions, error: null };
+  try {
+    const { data, error } = await supabase
+      .from('audit_logs')
+      .select('*')
+      .eq('action', 'LOGIN')
+      .order('created_at', { ascending: false })
+      .limit(15);
+
+    if (error) throw error;
+
+    const sessions: ActiveSession[] = (data || []).map((log, idx) => ({
+      id: log.id,
+      user_name: typeof log.details === 'object' && log.details !== null
+        ? ((log.details as Record<string, unknown>).email as string)?.split('@')[0] || 'Usuario'
+        : 'Usuario',
+      email: typeof log.details === 'object' && log.details !== null
+        ? ((log.details as Record<string, unknown>).email as string) || ''
+        : '',
+      role: 'Usuario',
+      ip_address: log.ip_address || '—',
+      country: '—',
+      device: log.user_agent || '—',
+      browser: log.user_agent || '—',
+      last_activity: log.created_at,
+      status: idx === 0 ? 'active' : 'inactive',
+      risk: 'low',
+    }));
+
+    return { data: sessions, error: null };
+  } catch (err) {
+    return { data: [], error: err instanceof Error ? err.message : 'Error al cargar sesiones' };
+  }
 }
 
 export async function revokeSession(sessionId: string): Promise<{ error: string | null }> {
-  return { error: null };
+  try {
+    const { error } = await supabase
+      .from('audit_logs')
+      .update({ severity: 'revoked' })
+      .eq('id', sessionId);
+    if (error) throw error;
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Error al revocar sesion' };
+  }
 }
 
 export async function markSessionSuspicious(sessionId: string): Promise<{ error: string | null }> {
-  return { error: null };
+  try {
+    const { error } = await supabase
+      .from('audit_logs')
+      .update({ severity: 'high' })
+      .eq('id', sessionId);
+    if (error) throw error;
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Error al marcar sesion' };
+  }
 }

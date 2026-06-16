@@ -1,7 +1,38 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/feature/AppLayout';
-import { applications, type AppItem } from '@/mocks/applications';
-import { categories } from '@/mocks/categories';
+import { fetchCategories, fetchApplications, type Application as SupaApplication, type AppCategory as SupaCategory } from '@/services/applications/applicationsService';
+
+interface AppItem {
+  id: string;
+  name: string;
+  code: string;
+  description: string;
+  categoryId: string;
+  categoryName: string;
+  icon: string;
+  color: string;
+  bgColor: string;
+  textColor: string;
+  borderColor: string;
+  baseUrl: string;
+  status: 'active' | 'maintenance' | 'offline' | 'beta';
+  version: string;
+  tags: string[];
+}
+
+interface AppCategory {
+  id: string;
+  name: string;
+  code: string;
+  description: string;
+  icon: string;
+  color: string;
+  bgColor: string;
+  textColor: string;
+  borderColor: string;
+  isActive: boolean;
+  appCount: number;
+}
 
 const statusConfig: Record<string, { label: string; dot: string; bg: string; text: string }> = {
   active: { label: 'Activo', dot: 'bg-emerald-400', bg: 'bg-emerald-500/10', text: 'text-emerald-400' },
@@ -10,38 +41,131 @@ const statusConfig: Record<string, { label: string; dot: string; bg: string; tex
   beta: { label: 'Beta', dot: 'bg-violet-400', bg: 'bg-violet-500/10', text: 'text-violet-400' },
 };
 
+const colorMap: Record<string, { bgColor: string; textColor: string; borderColor: string }> = {
+  emerald: { bgColor: 'bg-emerald-500/10', textColor: 'text-emerald-400', borderColor: 'border-emerald-500/20' },
+  cyan: { bgColor: 'bg-cyan-500/10', textColor: 'text-cyan-400', borderColor: 'border-cyan-500/20' },
+  amber: { bgColor: 'bg-amber-500/10', textColor: 'text-amber-400', borderColor: 'border-amber-500/20' },
+  slate: { bgColor: 'bg-slate-500/10', textColor: 'text-slate-400', borderColor: 'border-slate-500/20' },
+  rose: { bgColor: 'bg-rose-500/10', textColor: 'text-rose-400', borderColor: 'border-rose-500/20' },
+  violet: { bgColor: 'bg-violet-500/10', textColor: 'text-violet-400', borderColor: 'border-violet-500/20' },
+  indigo: { bgColor: 'bg-indigo-500/10', textColor: 'text-indigo-400', borderColor: 'border-indigo-500/20' },
+  red: { bgColor: 'bg-red-500/10', textColor: 'text-red-400', borderColor: 'border-red-500/20' },
+};
+
+function getColors(c: string) { return colorMap[c] || colorMap.emerald; }
+
+function mapSupaApp(a: SupaApplication, catMap: Map<string, SupaCategory>): AppItem {
+  const cat = a.category_id ? catMap.get(a.category_id) : undefined;
+  const colors = getColors(a.color);
+  return {
+    id: a.id, name: a.name, code: a.code, description: a.description || '',
+    categoryId: a.category_id || '', categoryName: cat?.name || 'Sin categoria',
+    icon: a.icon, color: a.color, bgColor: colors.bgColor, textColor: colors.textColor, borderColor: colors.borderColor,
+    baseUrl: a.base_url || '', status: (a.status as AppItem['status']) || 'active',
+    version: a.version, tags: a.tags || [],
+  };
+}
+
 export default function CatalogPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [appList, setAppList] = useState<AppItem[]>([]);
+  const [appCategories, setAppCategories] = useState<AppCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredApps = applications.filter((a) => {
+  const loadData = useCallback(async () => {
+    try {
+      const [catResult, appResult] = await Promise.all([fetchCategories(), fetchApplications()]);
+      const catMap = new Map<SupaCategory['id'], SupaCategory>();
+      catResult.data.forEach((c) => catMap.set(c.id, c));
+
+      setAppCategories(catResult.data.map((c) => {
+        const colors = getColors(c.color);
+        return {
+          id: c.id, name: c.name, code: c.code, description: c.description || '',
+          icon: c.icon, color: c.color, bgColor: colors.bgColor, textColor: colors.textColor,
+          borderColor: colors.borderColor, isActive: c.is_active,
+          appCount: appResult.data.filter((a) => a.category_id === c.id).length,
+        };
+      }));
+
+      setAppList(appResult.data.map((a) => mapSupaApp(a, catMap)));
+
+      if (catResult.error) setError(catResult.error.message);
+      if (appResult.error) setError(appResult.error.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cargar catalogo');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  const filteredApps = useMemo(() => {
+    let result = appList;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      if (!a.name.toLowerCase().includes(q) && !a.description.toLowerCase().includes(q) && !a.tags.some((t) => t.toLowerCase().includes(q))) return false;
+      result = result.filter((a) =>
+        a.name.toLowerCase().includes(q) ||
+        a.description.toLowerCase().includes(q) ||
+        a.tags.some((t) => t.toLowerCase().includes(q))
+      );
     }
-    if (selectedCategory && a.categoryId !== selectedCategory) return false;
-    return true;
-  });
+    if (selectedCategory) result = result.filter((a) => a.categoryId === selectedCategory);
+    return result;
+  }, [searchQuery, selectedCategory, appList]);
 
-  const appsByCategory = categories
+  const appsByCategory = appCategories
     .filter((c) => !selectedCategory || c.id === selectedCategory)
-    .map((cat) => ({
-      category: cat,
-      apps: filteredApps.filter((a) => a.categoryId === cat.id),
-    }))
+    .map((cat) => ({ category: cat, apps: filteredApps.filter((a) => a.categoryId === cat.id) }))
     .filter((g) => g.apps.length > 0);
+
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 w-48 bg-background-100 rounded-lg" />
+          <div className="glass-panel rounded-2xl p-8 h-96 bg-background-100/50" />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (error && appList.length === 0) {
+    return (
+      <AppLayout>
+        <div className="animate-fade-in space-y-6">
+          <div>
+            <h1 className="text-xl font-bold text-foreground-100">Catalogo Empresarial</h1>
+            <p className="text-sm text-foreground-500 mt-1">Explora todas las aplicaciones disponibles en la plataforma Suite OLO.</p>
+          </div>
+          <div className="glass-panel rounded-2xl p-16 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-secondary-500/10 border border-secondary-500/20 flex items-center justify-center mx-auto mb-5">
+              <i className="ri-error-warning-line text-foreground-500 text-2xl"></i>
+            </div>
+            <h3 className="text-sm font-semibold text-foreground-300 mb-2">Error al cargar el catalogo</h3>
+            <p className="text-xs text-foreground-500 mb-4">{error}</p>
+            <button onClick={loadData} className="h-9 px-4 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-sm font-medium whitespace-nowrap">
+              Reintentar
+            </button>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
       <div className="animate-fade-in space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold text-foreground-100">Catálogo Empresarial</h1>
+            <h1 className="text-xl font-bold text-foreground-100">Catalogo Empresarial</h1>
             <p className="text-sm text-foreground-500 mt-1">Explora todas las aplicaciones disponibles en la plataforma Suite OLO.</p>
           </div>
         </div>
 
-        {/* Search + Category Filters */}
         <div className="glass-panel rounded-2xl p-5 space-y-4">
           <div className="relative">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground-500 w-5 h-5 flex items-center justify-center">
@@ -51,7 +175,7 @@ export default function CatalogPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar en el catálogo empresarial..."
+              placeholder="Buscar en el catalogo empresarial..."
               className="w-full h-11 bg-background-100 border border-secondary-500/20 rounded-xl pl-11 pr-11 text-sm text-foreground-300 placeholder:text-foreground-600 outline-none focus:border-primary-500/40 focus:ring-1 focus:ring-primary-500/15 transition-all"
             />
           </div>
@@ -60,9 +184,9 @@ export default function CatalogPage() {
               onClick={() => setSelectedCategory(null)}
               className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${selectedCategory === null ? 'bg-primary-500 text-foreground-50' : 'bg-secondary-500/10 text-foreground-500 hover:text-foreground-300 hover:bg-secondary-500/20'}`}
             >
-              Todo el catálogo
+              Todo el catalogo
             </button>
-            {categories.map((cat) => (
+            {appCategories.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id === selectedCategory ? null : cat.id)}
@@ -75,60 +199,59 @@ export default function CatalogPage() {
           </div>
         </div>
 
-        {/* Catalog by category */}
-        <div className="space-y-8">
-          {appsByCategory.map(({ category, apps }) => (
-            <section key={category.id}>
-              <div className="flex items-center gap-3 mb-4">
-                <div className={`w-8 h-8 rounded-lg ${category.bgColor} border ${category.borderColor} flex items-center justify-center`}>
-                  <i className={`${category.icon} ${category.textColor} text-base`}></i>
-                </div>
-                <div>
-                  <h2 className="text-sm font-semibold text-foreground-200">{category.name}</h2>
-                  <p className="text-2xs text-foreground-600">{apps.length} aplicaciones</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {apps.map((app) => {
-                  const status = statusConfig[app.status];
-                  return (
-                    <div key={app.id} className="glass-panel rounded-2xl p-5 hover:border-secondary-500/20 transition-all duration-200 cursor-pointer group animate-fade-in" data-product-shop>
-                      <div className="flex items-start justify-between mb-4">
-                        <div className={`w-12 h-12 rounded-2xl ${app.bgColor} border ${app.borderColor} flex items-center justify-center group-hover:scale-110 transition-transform duration-200`}>
-                          <i className={`${app.icon} ${app.textColor} text-xl`}></i>
-                        </div>
-                        <span className={`px-2 py-0.5 rounded-full text-2xs font-medium ${status.bg} ${status.text}`}>{status.label}</span>
-                      </div>
-                      <h3 className="text-sm font-semibold text-foreground-200 mb-1.5">{app.name}</h3>
-                      <p className="text-xs text-foreground-500 leading-relaxed line-clamp-2 mb-3">{app.description}</p>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          {app.tags.slice(0, 2).map((t) => (
-                            <span key={t} className="px-1.5 py-0.5 rounded text-2xs bg-secondary-500/10 text-secondary-400 border border-secondary-500/15">{t}</span>
-                          ))}
-                        </div>
-                        <span className="text-2xs text-foreground-600 font-mono">v{app.version}</span>
-                      </div>
-                      <div className="mt-4 pt-4 border-t border-secondary-500/10">
-                        <button className="w-full h-8 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-xs font-medium whitespace-nowrap">
-                          Solicitar acceso
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          ))}
-        </div>
-
-        {filteredApps.length === 0 && (
+        {filteredApps.length === 0 && !loading ? (
           <div className="glass-panel rounded-2xl p-16 text-center">
             <div className="w-16 h-16 rounded-2xl bg-secondary-500/10 border border-secondary-500/20 flex items-center justify-center mx-auto mb-5">
               <i className="ri-store-2-line text-foreground-500 text-2xl"></i>
             </div>
-            <h3 className="text-sm font-semibold text-foreground-300 mb-2">Sin aplicaciones</h3>
-            <p className="text-xs text-foreground-500">No hay aplicaciones en esta categoría actualmente.</p>
+            <h3 className="text-sm font-semibold text-foreground-300 mb-2">Sin datos disponibles</h3>
+            <p className="text-xs text-foreground-500">No hay aplicaciones en esta categoria actualmente.</p>
+          </div>
+        ) : (
+          <div className="space-y-8">
+            {appsByCategory.map(({ category, apps }) => (
+              <section key={category.id}>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className={`w-8 h-8 rounded-lg ${category.bgColor} border ${category.borderColor} flex items-center justify-center`}>
+                    <i className={`${category.icon} ${category.textColor} text-base`}></i>
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-semibold text-foreground-200">{category.name}</h2>
+                    <p className="text-2xs text-foreground-600">{apps.length} aplicaciones</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {apps.map((app) => {
+                    const status = statusConfig[app.status];
+                    return (
+                      <div key={app.id} className="glass-panel rounded-2xl p-5 hover:border-secondary-500/20 transition-all duration-200 cursor-pointer group animate-fade-in" data-product-shop>
+                        <div className="flex items-start justify-between mb-4">
+                          <div className={`w-12 h-12 rounded-2xl ${app.bgColor} border ${app.borderColor} flex items-center justify-center group-hover:scale-110 transition-transform duration-200`}>
+                            <i className={`${app.icon} ${app.textColor} text-xl`}></i>
+                          </div>
+                          <span className={`px-2 py-0.5 rounded-full text-2xs font-medium ${status.bg} ${status.text}`}>{status.label}</span>
+                        </div>
+                        <h3 className="text-sm font-semibold text-foreground-200 mb-1.5">{app.name}</h3>
+                        <p className="text-xs text-foreground-500 leading-relaxed line-clamp-2 mb-3">{app.description}</p>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {app.tags.slice(0, 2).map((t) => (
+                              <span key={t} className="px-1.5 py-0.5 rounded text-2xs bg-secondary-500/10 text-secondary-400 border border-secondary-500/15">{t}</span>
+                            ))}
+                          </div>
+                          <span className="text-2xs text-foreground-600 font-mono">v{app.version}</span>
+                        </div>
+                        <div className="mt-4 pt-4 border-t border-secondary-500/10">
+                          <button className="w-full h-8 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-xs font-medium whitespace-nowrap">
+                            Solicitar acceso
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
           </div>
         )}
       </div>

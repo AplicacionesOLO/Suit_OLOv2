@@ -1,7 +1,24 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/feature/AppLayout';
-import { instances as mockInstances, type AppInstance } from '@/mocks/instances';
 import { fetchInstances, fetchTenants, type AppInstance as SupaInstance } from '@/services/applications/applicationsService';
+
+interface AppInstance {
+  id: string;
+  tenantId: string;
+  tenantName: string;
+  applicationId: string;
+  applicationName: string;
+  instanceName: string;
+  url: string;
+  status: 'active' | 'inactive' | 'deploying';
+  openInOLO: boolean;
+  openInNewTab: boolean;
+  allowsIframe: boolean;
+  ssoEnabled: boolean;
+  jwtFederated: boolean;
+  allowedDomains: string[];
+  createdAt: string;
+}
 
 const statusConfig: Record<string, { label: string; dot: string; bg: string; text: string }> = {
   active: { label: 'Activa', dot: 'bg-emerald-400', bg: 'bg-emerald-500/10', text: 'text-emerald-400' },
@@ -14,8 +31,8 @@ export default function InstancesPage() {
   const [filterTenant, setFilterTenant] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [showModal, setShowModal] = useState(false);
-  const [instanceList, setInstanceList] = useState<AppInstance[]>(mockInstances);
-  const [tenantList, setTenantList] = useState<string[]>(['Costa Rica', 'Panamá', 'México', 'Colombia']);
+  const [instanceList, setInstanceList] = useState<AppInstance[]>([]);
+  const [tenantList, setTenantList] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(async () => {
@@ -25,20 +42,24 @@ export default function InstancesPage() {
         setTenantList(tenantResult.data.map((t) => t.name));
       }
       if (instResult.data.length > 0) {
-        const mapped = instResult.data.map((inst: SupaInstance): AppInstance => ({
-          id: inst.id, tenantId: inst.tenant_id, tenantName: inst.tenant_id === '00000000-0000-0000-0000-000000000001' ? 'Costa Rica' : inst.tenant_id === '00000000-0000-0000-0000-000000000002' ? 'Panamá' : inst.tenant_id === '00000000-0000-0000-0000-000000000003' ? 'México' : inst.tenant_id === '00000000-0000-0000-0000-000000000004' ? 'Colombia' : inst.tenant_id,
-          applicationId: inst.application_id, applicationName: inst.instance_name,
-          instanceName: inst.instance_name, url: inst.url || '',
-          status: (inst.status as AppInstance['status']) || 'active',
-          openInOLO: inst.open_in_olo, openInNewTab: inst.open_in_new_tab,
-          allowsIframe: inst.allows_iframe, ssoEnabled: inst.sso_enabled,
-          jwtFederated: inst.jwt_federated,
-          allowedDomains: inst.allowed_domains || [], createdAt: inst.created_at,
-        }));
+        const mapped = instResult.data.map((inst: SupaInstance): AppInstance => {
+          const tenantName = tenantResult.data.find((t) => t.id === inst.tenant_id)?.name || inst.tenant_id;
+          return {
+            id: inst.id, tenantId: inst.tenant_id, tenantName,
+            applicationId: inst.application_id, applicationName: inst.instance_name,
+            instanceName: inst.instance_name, url: inst.url || '',
+            status: (inst.status as AppInstance['status']) || 'active',
+            openInOLO: inst.open_in_olo, openInNewTab: inst.open_in_new_tab,
+            allowsIframe: inst.allows_iframe, ssoEnabled: inst.sso_enabled,
+            jwtFederated: inst.jwt_federated,
+            allowedDomains: inst.allowed_domains || [], createdAt: inst.created_at,
+          };
+        });
         setInstanceList(mapped);
       }
-    } catch { /* mock fallback */ }
-    finally { setLoading(false); }
+    } catch {
+      // silently handle errors
+    } finally { setLoading(false); }
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);

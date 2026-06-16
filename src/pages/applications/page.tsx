@@ -1,8 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import AppLayout from '@/components/feature/AppLayout';
-import { applications as mockApps, type AppItem } from '@/mocks/applications';
-import { categories as mockCategories } from '@/mocks/categories';
 import { fetchApplications, fetchCategories, type Application as SupaApplication, type AppCategory as SupaCategory } from '@/services/applications/applicationsService';
 
 const statusConfig: Record<string, { label: string; dot: string; badgeBg: string; badgeText: string }> = {
@@ -11,6 +9,43 @@ const statusConfig: Record<string, { label: string; dot: string; badgeBg: string
   offline: { label: 'Offline', dot: 'bg-red-400', badgeBg: 'bg-red-500/10', badgeText: 'text-red-400' },
   beta: { label: 'Beta', dot: 'bg-violet-400', badgeBg: 'bg-violet-500/10', badgeText: 'text-violet-400' },
 };
+
+interface AppItem {
+  id: string;
+  name: string;
+  code: string;
+  description: string;
+  categoryId: string;
+  categoryName: string;
+  icon: string;
+  color: string;
+  bgColor: string;
+  textColor: string;
+  borderColor: string;
+  baseUrl: string;
+  status: 'active' | 'maintenance' | 'offline' | 'beta';
+  version: string;
+  integrationType: 'internal' | 'external' | 'embedded' | 'sso' | 'api';
+  integrationLabel: string;
+  isFavorite: boolean;
+  lastUsed: string;
+  tags: string[];
+}
+
+interface AppCategory {
+  id: string;
+  name: string;
+  code: string;
+  description: string;
+  icon: string;
+  color: string;
+  bgColor: string;
+  textColor: string;
+  borderColor: string;
+  isActive: boolean;
+  appCount: number;
+}
+
 
 const colorMap: Record<string, { bgColor: string; textColor: string; borderColor: string }> = {
   emerald: { bgColor: 'bg-emerald-500/10', textColor: 'text-emerald-400', borderColor: 'border-emerald-500/20' },
@@ -45,8 +80,8 @@ export default function ApplicationsPage() {
   const [filterCat, setFilterCat] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [showModal, setShowModal] = useState(false);
-  const [appList, setAppList] = useState<AppItem[]>(mockApps);
-  const [appCategories, setAppCategories] = useState(mockCategories);
+  const [appList, setAppList] = useState<AppItem[]>([]);
+  const [appCategories, setAppCategories] = useState<AppCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const selectedAppId = searchParams.get('app');
 
@@ -63,8 +98,9 @@ export default function ApplicationsPage() {
         const catMap = new Map(catResult.data.map((c) => [c.id, c]));
         setAppList(appResult.data.map((a) => mapSupaApp(a, catMap)));
       }
-    } catch { /* mock fallback */ }
-    finally { setLoading(false); }
+    } catch {
+      // silently handle errors
+    } finally { setLoading(false); }
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);

@@ -3,11 +3,62 @@ import { useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/feature/AppLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/services/supabase/client';
-import { categories as mockCategories, type AppCategory } from '@/mocks/categories';
-import { applications as mockApplications, type AppItem } from '@/mocks/applications';
-import { instances as mockInstances } from '@/mocks/instances';
 import { fetchCategories, fetchApplications, fetchInstances, type AppCategory as SupaCategory, type Application as SupaApplication, type AppInstance as SupaInstance } from '@/services/applications/applicationsService';
 import { fetchMyAccesses } from '@/services/security/accessService';
+
+interface AppCategory {
+  id: string;
+  name: string;
+  code: string;
+  description: string;
+  icon: string;
+  color: string;
+  bgColor: string;
+  textColor: string;
+  borderColor: string;
+  isActive: boolean;
+  appCount: number;
+}
+
+interface AppItem {
+  id: string;
+  name: string;
+  code: string;
+  description: string;
+  categoryId: string;
+  categoryName: string;
+  icon: string;
+  color: string;
+  bgColor: string;
+  textColor: string;
+  borderColor: string;
+  baseUrl: string;
+  status: 'active' | 'maintenance' | 'offline' | 'beta';
+  version: string;
+  integrationType: 'internal' | 'external' | 'embedded' | 'sso' | 'api';
+  integrationLabel: string;
+  isFavorite: boolean;
+  lastUsed: string;
+  tags: string[];
+}
+
+interface AppInstance {
+  id: string;
+  tenantId: string;
+  tenantName: string;
+  applicationId: string;
+  applicationName: string;
+  instanceName: string;
+  url: string;
+  status: 'active' | 'inactive' | 'deploying';
+  openInOLO: boolean;
+  openInNewTab: boolean;
+  allowsIframe: boolean;
+  ssoEnabled: boolean;
+  jwtFederated: boolean;
+  allowedDomains: string[];
+  createdAt: string;
+}
 
 type ViewMode = 'grid' | 'list';
 
@@ -80,15 +131,13 @@ export default function DashboardPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [dataLoading, setDataLoading] = useState(true);
 
-  // Data state - starts with mocks, replaced by Supabase if available
-  const [appCategories, setAppCategories] = useState<AppCategory[]>(mockCategories);
-  const [appList, setAppList] = useState<AppItem[]>(mockApplications);
-  const [instanceList] = useState(mockInstances);
+  // Data state - starts empty, filled by Supabase
+  const [appCategories, setAppCategories] = useState<AppCategory[]>([]);
+  const [appList, setAppList] = useState<AppItem[]>([]);
+  const [instanceList, setInstanceList] = useState<AppInstance[]>([]);
   const [userAccessAppIds, setUserAccessAppIds] = useState<Set<string>>(new Set());
   const [accessChecked, setAccessChecked] = useState(false);
-  const [favorites, setFavorites] = useState<Set<string>>(
-    new Set(mockApplications.filter((a) => a.isFavorite).map((a) => a.id))
-  );
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
 
   // Operational summary
   const [opSummary, setOpSummary] = useState({ activeCountries: 0, activeWarehouses: 0, activeClients: 0 });
@@ -96,9 +145,10 @@ export default function DashboardPage() {
   // Load from Supabase
   const loadData = useCallback(async () => {
     try {
-      const [catResult, appResult] = await Promise.all([
+      const [catResult, appResult, instResult] = await Promise.all([
         fetchCategories(),
         fetchApplications(),
+        fetchInstances(),
       ]);
 
       // Also load user accesses if logged in
@@ -135,11 +185,32 @@ export default function DashboardPage() {
         // Non-blocking
       }
 
+      if (instResult.data.length > 0) {
+        const mappedInstances: AppInstance[] = instResult.data.map((inst: SupaInstance) => ({
+          id: inst.id,
+          tenantId: inst.tenant_id,
+          tenantName: inst.tenant_id,
+          applicationId: inst.application_id,
+          applicationName: inst.instance_name,
+          instanceName: inst.instance_name,
+          url: inst.url || '',
+          status: (inst.status as AppInstance['status']) || 'active',
+          openInOLO: inst.open_in_olo,
+          openInNewTab: inst.open_in_new_tab,
+          allowsIframe: inst.allows_iframe,
+          ssoEnabled: inst.sso_enabled,
+          jwtFederated: inst.jwt_federated,
+          allowedDomains: inst.allowed_domains || [],
+          createdAt: inst.created_at,
+        }));
+        setInstanceList(mappedInstances);
+      }
+
       if (catResult.data.length > 0) {
         const catMap = new Map<SupaCategory['id'], SupaCategory>();
         catResult.data.forEach((c) => catMap.set(c.id, c));
 
-        // Map categories to mock format
+        // Map categories to display format
         const mappedCats: AppCategory[] = catResult.data.map((c) => {
           const colors = getColorStyles(c.color);
           return {
@@ -168,7 +239,7 @@ export default function DashboardPage() {
         setAccessChecked(true);
       }
     } catch {
-      // Fallback to mock data silently
+      // silently handle errors
     } finally {
       setDataLoading(false);
     }
@@ -226,7 +297,7 @@ export default function DashboardPage() {
     .sort((a, b) => new Date(b.lastUsed).getTime() - new Date(a.lastUsed).getTime())
     .slice(0, 6);
 
-  const activeInstances = instanceList.filter((i) => i.tenantName === 'Costa Rica');
+  const activeInstances = instanceList.filter((i) => i.status === 'active');
   const activeAppsCount = accessibleApps.filter((a) => a.status === 'active').length;
 
   const AppCard = ({ app }: { app: AppItem }) => {
@@ -630,7 +701,7 @@ export default function DashboardPage() {
 
                 <div className="mt-5 pt-4 border-t border-secondary-500/10">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-xs font-medium text-foreground-400">Instancias · Costa Rica</h3>
+                    <h3 className="text-xs font-medium text-foreground-400">Instancias activas</h3>
                     <button
                       onClick={() => navigate('/instances')}
                       className="text-2xs text-primary-400 hover:text-primary-300 transition-colors font-medium"
