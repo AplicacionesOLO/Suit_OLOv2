@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTenantContext } from '@/hooks/useTenantContext';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/hooks/useTheme';
 import { supabase } from '@/services/supabase/client';
 
 interface TopbarProps {
@@ -31,6 +32,7 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
   const navigate = useNavigate();
   const tenantCtx = useTenantContext();
   const { user, platformUser, logout } = useAuth();
+  const { theme, setTheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -342,6 +344,29 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
                   <span className="w-4 h-4 flex items-center justify-center"><i className="ri-shield-keyhole-line"></i></span>
                   Seguridad
                 </button>
+              </div>
+              <div className="border-t border-secondary-500/10 pt-1 pb-1">
+                <p className="px-4 py-1.5 text-2xs font-semibold text-foreground-600 uppercase tracking-wider">Tema</p>
+                {([{ key: 'light', icon: 'ri-sun-line', label: 'Claro' }, { key: 'dark', icon: 'ri-moon-line', label: 'Oscuro' }, { key: 'system', icon: 'ri-computer-line', label: 'Sistema' }] as const).map(({ key, icon, label }) => {
+                  const isActive = theme === key;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => { setTheme(key); }}
+                      className={`w-full flex items-center gap-3 px-4 py-2 text-sm transition-colors ${
+                        isActive
+                          ? 'text-primary-400 bg-primary-500/5 font-medium'
+                          : 'text-foreground-500 hover:text-foreground-200 hover:bg-background-200/50'
+                      }`}
+                    >
+                      <span className="w-4 h-4 flex items-center justify-center"><i className={icon}></i></span>
+                      {label}
+                      {isActive && (
+                        <span className="ml-auto w-4 h-4 flex items-center justify-center"><i className="ri-check-line text-xs"></i></span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
               <div className="border-t border-secondary-500/10 py-1">
                 <button onClick={async () => { setShowUserMenu(false); await logout(); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/5 transition-colors">

@@ -287,7 +287,7 @@ export default function LoginPage() {
                 <div className="w-full border-t border-secondary-500/15"></div>
               </div>
               <div className="relative flex justify-center">
-                <span className="px-3 text-xs text-foreground-600 bg-background-100">
+                <span className="px-3 text-xs text-foreground-600">
                   o continuar con
                 </span>
               </div>

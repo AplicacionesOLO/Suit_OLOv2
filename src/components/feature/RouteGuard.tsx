@@ -3,7 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useSuitePermissions } from '@/hooks/useSuitePermissions';
 
-const ALWAYS_ACCESSIBLE = ['/dashboard', '/my-access', '/profile', '/workspace'];
+const ALWAYS_ACCESSIBLE = ['/my-access', '/profile', '/workspace'];
+
+const ADMIN_ROUTES = [
+  '/dashboard', '/tenants', '/countries', '/warehouses', '/clients',
+  '/users', '/applications', '/instances', '/assignments', '/roles', '/permissions',
+];
 
 const ROUTE_MODULE_MAP: Record<string, string> = {
   '/tenants': 'tenants',
@@ -32,11 +37,12 @@ interface RouteGuardProps {
 }
 
 export default function RouteGuard({ children }: RouteGuardProps) {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, platformUser } = useAuth();
   const { can, isSuperAdmin } = useSuitePermissions();
   const navigate = useNavigate();
 
   const pathname = window.location.pathname;
+  const roleLevel = platformUser?.role_level ?? 0;
 
   useEffect(() => {
     if (loading || !isAuthenticated) return;
@@ -46,6 +52,13 @@ export default function RouteGuard({ children }: RouteGuardProps) {
 
     // Super admin bypass
     if (isSuperAdmin) return;
+
+    // End users (role_level < 50) cannot access any admin routes
+    const isAdminRoute = ADMIN_ROUTES.some((r) => pathname.startsWith(r));
+    if (roleLevel < 50 && isAdminRoute) {
+      navigate('/my-access', { replace: true });
+      return;
+    }
 
     // Check dynamic tenant detail route
     if (pathname.startsWith('/tenants/')) {
@@ -61,7 +74,7 @@ export default function RouteGuard({ children }: RouteGuardProps) {
     if (module && !can(module, 'view')) {
       navigate(`/access-denied?from=${encodeURIComponent(pathname)}&module=${module}`, { replace: true });
     }
-  }, [loading, isAuthenticated, pathname, can, isSuperAdmin, navigate]);
+  }, [loading, isAuthenticated, pathname, roleLevel, can, isSuperAdmin, navigate]);
 
   if (loading) {
     return (

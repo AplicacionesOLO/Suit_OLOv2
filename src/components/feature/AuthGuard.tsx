@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 const PUBLIC_ROUTES = ['/login', '/forgot-password', '/auth/callback'];
 
 export default function AuthGuard({ children }: { children: ReactNode }) {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, platformUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [checked, setChecked] = useState(false);
@@ -20,11 +20,12 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
     }
 
     if (isAuthenticated && isPublic) {
-      navigate('/dashboard', { replace: true });
+      const roleLevel = platformUser?.role_level ?? 0;
+      navigate(roleLevel >= 50 ? '/dashboard' : '/my-access', { replace: true });
     }
 
     setChecked(true);
-  }, [isAuthenticated, loading, location.pathname, navigate]);
+  }, [isAuthenticated, loading, location.pathname, platformUser?.role_level, navigate]);
 
   if (loading || !checked) {
     return (

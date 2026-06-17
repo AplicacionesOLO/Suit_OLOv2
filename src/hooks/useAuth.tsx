@@ -98,12 +98,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(result.session);
     setUser(result.user);
     if (result.user) {
-      await fetchPlatformUser(result.user.id);
+      const pUser = await getPlatformUser(result.user.id);
+      setPlatformUser(pUser);
+      const roleLevel = pUser?.role_level ?? 0;
+      const targetPath = roleLevel >= 50 ? '/dashboard' : '/my-access';
+      setLoading(false);
+      navigate(targetPath);
+      return { error: null };
     }
     setLoading(false);
     navigate('/dashboard');
     return { error: null };
-  }, [navigate, fetchPlatformUser]);
+  }, [navigate]);
 
   const loginGoogle = useCallback(async () => {
     setError(null);

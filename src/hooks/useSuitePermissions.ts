@@ -14,7 +14,9 @@ export const ALL_ACTIONS = ['view', 'create', 'update', 'delete', 'revoke'] as c
 
 export type SuiteAction = (typeof ALL_ACTIONS)[number];
 
-const ALWAYS_VISIBLE = ['dashboard', 'my-access', 'profile'];
+const ALWAYS_VISIBLE = ['my-access', 'profile'];
+
+
 
 interface UseSuitePermissionsReturn {
   can: (module: string, action: string) => boolean;
