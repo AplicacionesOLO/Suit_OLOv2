@@ -60,6 +60,10 @@ export default function Input({
             ${(isPassword || rightAction) ? 'pr-10' : ''}
             disabled:opacity-40 disabled:cursor-not-allowed
           `}
+          style={{
+            WebkitTextFillColor: 'oklch(var(--foreground-200))',
+            caretColor: 'oklch(var(--foreground-200))',
+          }}
           onFocus={(e) => { setFocused(true); props.onFocus?.(e); }}
           onBlur={(e) => { setFocused(false); props.onBlur?.(e); }}
           {...props}

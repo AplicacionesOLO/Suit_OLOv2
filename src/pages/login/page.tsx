@@ -1,11 +1,18 @@
 import { useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import Button from '@/components/base/Button';
 import Input from '@/components/base/Input';
 
+const capabilities = [
+  { icon: 'ri-user-settings-line', label: 'Gestión de Usuarios' },
+  { icon: 'ri-shield-keyhole-line', label: 'Control de Accesos' },
+  { icon: 'ri-apps-2-line', label: 'Aplicaciones Corporativas' },
+  { icon: 'ri-file-search-line', label: 'Auditoría Centralizada' },
+];
+
+const badges = ['Logística', 'Distribución', 'Inventario', 'Seguridad'];
+
 export default function LoginPage() {
-  const navigate = useNavigate();
   const { login, loginGoogle, resetPassword, loading, error, clearError } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -54,24 +61,71 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex bg-background-50 relative overflow-hidden">
-      {/* Animated background grid */}
+      {/* Background layers */}
       <div className="absolute inset-0 z-0">
+        {/* Dot grid pattern */}
         <div
-          className="absolute inset-0 opacity-[0.03]"
+          className="absolute inset-0 opacity-[0.025]"
           style={{
-            backgroundImage: `radial-gradient(circle at 1px 1px, oklch(var(--foreground-50)) 1px, transparent 0)`,
-            backgroundSize: '40px 40px',
+            backgroundImage: `radial-gradient(circle at 2px 2px, oklch(var(--foreground-50)) 1.5px, transparent 0)`,
+            backgroundSize: '48px 48px',
           }}
         />
+
+        {/* Connection lines - horizontal */}
+        <div
+          className="absolute inset-0 opacity-[0.015]"
+          style={{
+            backgroundImage: `
+              linear-gradient(90deg, transparent 0%, oklch(var(--primary-500)) 25%, transparent 50%, oklch(var(--accent-500)) 75%, transparent 100%),
+              linear-gradient(90deg, transparent 0%, oklch(var(--accent-500)) 20%, transparent 40%, oklch(var(--primary-500)) 60%, transparent 80%, oklch(var(--accent-500)) 100%)
+            `,
+            backgroundSize: '100% 2px, 100% 1px',
+            backgroundPosition: '0 33%, 0 66%',
+            backgroundRepeat: 'no-repeat',
+          }}
+        />
+
+        {/* Connection lines - vertical */}
+        <div
+          className="absolute inset-0 opacity-[0.012]"
+          style={{
+            backgroundImage: `
+              linear-gradient(180deg, transparent 0%, oklch(var(--primary-500)) 30%, transparent 60%, oklch(var(--accent-500)) 100%),
+              linear-gradient(180deg, transparent 0%, oklch(var(--accent-500)) 25%, transparent 50%, oklch(var(--primary-500)) 75%, transparent 100%)
+            `,
+            backgroundSize: '1px 100%, 1px 100%',
+            backgroundPosition: '25% 0, 75% 0',
+            backgroundRepeat: 'no-repeat',
+          }}
+        />
+
+        {/* Node points at intersections */}
+        <div
+          className="absolute inset-0 opacity-[0.04]"
+          style={{
+            backgroundImage: `
+              radial-gradient(circle at 25% 33%, oklch(var(--primary-500)) 3px, transparent 0),
+              radial-gradient(circle at 75% 33%, oklch(var(--accent-500)) 3px, transparent 0),
+              radial-gradient(circle at 25% 66%, oklch(var(--accent-500)) 3px, transparent 0),
+              radial-gradient(circle at 75% 66%, oklch(var(--primary-500)) 3px, transparent 0),
+              radial-gradient(circle at 50% 50%, oklch(var(--primary-500)) 2px, transparent 0)
+            `,
+          }}
+        />
+
         {/* Glow orbs */}
-        <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full bg-primary-500/5 blur-[100px]" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] rounded-full bg-accent-500/5 blur-[100px]" />
+        <div className="absolute top-[-15%] left-[-8%] w-[550px] h-[550px] rounded-full bg-primary-500/4 blur-[120px]" />
+        <div className="absolute bottom-[-15%] right-[-8%] w-[450px] h-[450px] rounded-full bg-accent-500/4 blur-[120px]" />
+        <div className="absolute top-[40%] left-[50%] w-[300px] h-[300px] rounded-full bg-primary-500/2 blur-[100px]" />
       </div>
 
-      {/* Left panel - Branding */}
-      <div className="hidden lg:flex lg:w-[45%] xl:w-[42%] relative z-10 flex-col justify-between p-12 xl:p-16">
+      {/* Left panel - OLO Branding */}
+      <div className="hidden lg:flex lg:w-[45%] xl:w-[44%] relative z-10 flex-col justify-between p-12 xl:p-16">
+        {/* Top section */}
         <div>
-          <div className="flex items-center gap-3 mb-16">
+          {/* Logo + Brand */}
+          <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 rounded-xl bg-primary-500/15 border border-primary-500/25 flex items-center justify-center glow-primary">
               <span className="text-primary-400 font-bold text-xs tracking-tighter">OLO</span>
             </div>
@@ -81,22 +135,28 @@ export default function LoginPage() {
             </div>
           </div>
 
+          {/* OLO Identity subtitle */}
+          <p className="text-foreground-600 text-xs tracking-wide mb-16 ml-[52px] uppercase">
+            Overseas Logistics Operations
+          </p>
+
+          {/* Hero content */}
           <div className="max-w-md">
             <h1 className="text-3xl xl:text-4xl font-bold text-foreground-100 leading-tight mb-4">
-              Hub empresarial de{' '}
-              <span className="text-gradient-primary">aplicaciones</span>
+              Centro de{' '}
+              <span className="text-gradient-primary">Operaciones Digitales</span>
             </h1>
-            <p className="text-foreground-500 text-base leading-relaxed">
-              Plataforma centralizada de acceso, gobierno y seguridad para todas tus aplicaciones corporativas.
+            <p className="text-foreground-500 text-sm xl:text-base leading-relaxed">
+              Gestiona usuarios, permisos y accesos a todas las aplicaciones corporativas de OLO desde una única plataforma centralizada.
             </p>
           </div>
 
-          {/* Security badges */}
-          <div className="flex flex-wrap gap-3 mt-12">
-            {['SOC 2 Type II', 'ISO 27001', 'GDPR Ready', 'Zero Trust'].map((badge) => (
+          {/* Operational badges */}
+          <div className="flex flex-wrap gap-2.5 mt-10">
+            {badges.map((badge) => (
               <span
                 key={badge}
-                className="px-3 py-1.5 rounded-full text-xs font-medium bg-secondary-500/10 text-secondary-300 border border-secondary-500/15"
+                className="px-3 py-1.5 rounded-full text-xs font-medium bg-secondary-500/10 text-secondary-300 border border-secondary-500/12"
               >
                 {badge}
               </span>
@@ -104,16 +164,19 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-6">
-          {[
-            { value: '99.99%', label: 'Uptime SLA' },
-            { value: '256-bit', label: 'Encryption' },
-            { value: '50K+', label: 'Active Users' },
-          ].map((stat) => (
-            <div key={stat.label}>
-              <div className="text-lg font-bold text-foreground-200">{stat.value}</div>
-              <div className="text-xs text-foreground-600 mt-0.5">{stat.label}</div>
+        {/* Capability cards */}
+        <div className="grid grid-cols-2 gap-3 mt-auto">
+          {capabilities.map((cap) => (
+            <div
+              key={cap.label}
+              className="flex items-center gap-3 px-4 py-3 rounded-xl bg-background-100/70 border border-secondary-500/10 hover:border-secondary-500/20 transition-colors duration-300"
+            >
+              <span className="w-8 h-8 flex items-center justify-center rounded-lg bg-primary-500/10 text-primary-400 shrink-0">
+                <i className={`${cap.icon} text-sm`}></i>
+              </span>
+              <span className="text-xs font-medium text-foreground-400 leading-tight">
+                {cap.label}
+              </span>
             </div>
           ))}
         </div>
@@ -123,11 +186,16 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-6 md:p-12 relative z-10">
         <div className="w-full max-w-[420px] animate-slide-up">
           {/* Mobile branding */}
-          <div className="lg:hidden flex items-center gap-3 mb-10 justify-center">
-            <div className="w-9 h-9 rounded-xl bg-primary-500/15 border border-primary-500/25 flex items-center justify-center glow-primary">
-              <span className="text-primary-400 font-bold text-xs tracking-tighter">OLO</span>
+          <div className="lg:hidden mb-10 text-center">
+            <div className="flex items-center gap-2 justify-center mb-1">
+              <div className="w-9 h-9 rounded-xl bg-primary-500/15 border border-primary-500/25 flex items-center justify-center glow-primary">
+                <span className="text-primary-400 font-bold text-xs tracking-tighter">OLO</span>
+              </div>
+              <span className="text-foreground-100 font-bold text-lg tracking-tight">Suite OLO</span>
             </div>
-            <span className="text-foreground-100 font-bold text-lg tracking-tight">Suite OLO</span>
+            <p className="text-foreground-600 text-[11px] tracking-wide uppercase mt-1">
+              Overseas Logistics Operations
+            </p>
           </div>
 
           <div className="glass-panel-strong rounded-2xl p-8 md:p-10">
@@ -136,7 +204,7 @@ export default function LoginPage() {
                 Iniciar sesión
               </h2>
               <p className="text-sm text-foreground-500">
-                Accede a tu panel de administración empresarial
+                Accede a la plataforma corporativa de administración y seguridad de OLO.
               </p>
             </div>
 
@@ -162,7 +230,7 @@ export default function LoginPage() {
               <Input
                 label="Correo electrónico"
                 type="email"
-                placeholder="admin@empresa.com"
+                placeholder="admin@olo.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 icon={<i className="ri-mail-line text-base"></i>}
@@ -189,14 +257,14 @@ export default function LoginPage() {
                     onChange={(e) => setRemember(e.target.checked)}
                     className="w-4 h-4 rounded border-secondary-500/40 bg-background-100 text-primary-500 focus:ring-primary-500/30 focus:ring-offset-0 cursor-pointer"
                   />
-                  <span className="text-xs text-foreground-500 group-hover:text-foreground-400 transition-colors select-none">
+                  <span className="text-xs text-foreground-500 group-hover:text-foreground-400 transition-colors select-none whitespace-nowrap">
                     Recordar sesión
                   </span>
                 </label>
                 <button
                   type="button"
                   onClick={handleForgotPassword}
-                  className="text-xs text-primary-400 hover:text-primary-300 transition-colors font-medium"
+                  className="text-xs text-primary-400 hover:text-primary-300 transition-colors font-medium whitespace-nowrap"
                 >
                   ¿Olvidaste tu contraseña?
                 </button>
@@ -240,12 +308,12 @@ export default function LoginPage() {
               <span className="w-3.5 h-3.5 flex items-center justify-center">
                 <i className="ri-shield-check-line text-primary-400"></i>
               </span>
-              Conexión segura • TLS 1.3 • MFA disponible
+              Plataforma Corporativa · Acceso Seguro
             </div>
           </div>
 
           <p className="text-center text-xs text-foreground-700 mt-6">
-            Suite OLO Platform v3.0.0
+            Overseas Logistics Operations · Suite OLO
           </p>
         </div>
       </div>
