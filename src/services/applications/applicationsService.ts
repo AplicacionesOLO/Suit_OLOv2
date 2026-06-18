@@ -1,17 +1,6 @@
 import { supabase } from '@/services/supabase/client';
 import { cleanDate } from '@/utils/sanitize';
-
-async function getEffectiveTenantId(): Promise<string | null> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data: pu } = await supabase
-    .from('platform_users')
-    .select('tenant_id, tenant_context_override')
-    .eq('auth_user_id', user.id)
-    .maybeSingle();
-  if (!pu) return null;
-  return pu.tenant_context_override || pu.tenant_id;
-}
+import { getEffectiveTenantId } from '@/utils/tenant';
 
 export interface AppCategory {
   id: string;
@@ -141,10 +130,17 @@ export async function fetchCategories(): Promise<{ data: AppCategory[]; error: s
 
 export async function fetchApplications(): Promise<{ data: Application[]; error: string | null }> {
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('applications')
       .select('*')
       .order('name', { ascending: true });
+
+    const tenantId = await getEffectiveTenantId();
+    if (tenantId) {
+      query = query.eq('tenant_id', tenantId);
+    }
+
+    const { data, error } = await query;
     if (error) throw error;
     return { data: (data || []) as Application[], error: null };
   } catch (err: any) {
@@ -154,10 +150,17 @@ export async function fetchApplications(): Promise<{ data: Application[]; error:
 
 export async function fetchInstances(): Promise<{ data: AppInstance[]; error: string | null }> {
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('application_instances')
       .select('*')
       .order('created_at', { ascending: false });
+
+    const tenantId = await getEffectiveTenantId();
+    if (tenantId) {
+      query = query.eq('tenant_id', tenantId);
+    }
+
+    const { data, error } = await query;
     if (error) throw error;
     return { data: (data || []) as AppInstance[], error: null };
   } catch (err: any) {

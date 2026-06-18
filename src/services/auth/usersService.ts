@@ -1,5 +1,6 @@
 import { supabase } from '@/services/supabase/client';
 import { cleanDate } from '@/utils/sanitize';
+import { getEffectiveTenantId } from '@/utils/tenant';
 
 export interface PlatformUserFull {
   id: string;
@@ -60,6 +61,14 @@ export interface CreateInvitationInput {
   client_id?: string;
   first_name?: string;
   last_name?: string;
+  scope_tenants?: string[];
+  scope_countries?: string[];
+  scope_warehouses?: string[];
+  scope_clients?: string[];
+  scope_all_tenants?: boolean;
+  scope_all_countries?: boolean;
+  scope_all_warehouses?: boolean;
+  scope_all_clients?: boolean;
 }
 
 export interface UpdateUserInput {
@@ -73,10 +82,15 @@ export interface UpdateUserInput {
 }
 
 export async function fetchUsers(): Promise<{ users: PlatformUserFull[]; error: string | null }> {
-  const { data: users, error } = await supabase
-    .from('platform_users')
-    .select('*')
-    .order('created_at', { ascending: false });
+  const tenantId = await getEffectiveTenantId();
+
+  let query = supabase.from('platform_users').select('*').order('created_at', { ascending: false });
+
+  if (tenantId) {
+    query = query.eq('tenant_id', tenantId);
+  }
+
+  const { data: users, error } = await query;
 
   if (error) return { users: [], error: error.message };
 
@@ -203,6 +217,14 @@ export async function createUserInvitation(input: CreateInvitationInput): Promis
     p_client_id: input.client_id || null,
     p_first_name: input.first_name || null,
     p_last_name: input.last_name || null,
+    p_scope_tenants: input.scope_tenants || null,
+    p_scope_countries: input.scope_countries || null,
+    p_scope_warehouses: input.scope_warehouses || null,
+    p_scope_clients: input.scope_clients || null,
+    p_scope_all_tenants: input.scope_all_tenants || false,
+    p_scope_all_countries: input.scope_all_countries || false,
+    p_scope_all_warehouses: input.scope_all_warehouses || false,
+    p_scope_all_clients: input.scope_all_clients || false,
   });
 
   if (error) return { invitation: null, error: error.message };

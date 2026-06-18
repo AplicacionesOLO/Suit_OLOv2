@@ -3,6 +3,7 @@ import AppLayout from '@/components/feature/AppLayout';
 import { useUsers } from '@/hooks/useUsers';
 import { useSuitePermissions } from '@/hooks/useSuitePermissions';
 import type { PlatformUserFull, UpdateUserInput, CreateInvitationInput } from '@/services/auth/usersService';
+import MultiSelect from '@/components/base/MultiSelect';
 
 type Tab = 'active' | 'invitations';
 
@@ -25,6 +26,9 @@ export default function UsersPage() {
     email: '', tenant_id: '', role_id: '',
     country_id: '', warehouse_id: '', client_id: '',
     first_name: '', last_name: '',
+    scope_tenants: [], scope_countries: [], scope_warehouses: [], scope_clients: [],
+    scope_all_tenants: false, scope_all_countries: false,
+    scope_all_warehouses: false, scope_all_clients: false,
   });
   const [editForm, setEditForm] = useState({ role_id: '', country_id: '', warehouse_id: '', client_id: '', first_name: '', last_name: '', status: '' });
   const [saving, setSaving] = useState(false);
@@ -68,7 +72,14 @@ export default function UsersPage() {
   }, [invitations, searchQuery]);
 
   const resetInviteForm = () => {
-    setInviteForm({ email: '', tenant_id: '', role_id: '', country_id: '', warehouse_id: '', client_id: '', first_name: '', last_name: '' });
+    setInviteForm({
+      email: '', tenant_id: '', role_id: '',
+      country_id: '', warehouse_id: '', client_id: '',
+      first_name: '', last_name: '',
+      scope_tenants: [], scope_countries: [], scope_warehouses: [], scope_clients: [],
+      scope_all_tenants: false, scope_all_countries: false,
+      scope_all_warehouses: false, scope_all_clients: false,
+    });
     setFormError('');
   };
 
@@ -100,6 +111,23 @@ export default function UsersPage() {
   const handleInviteWarehouseChange = (wid: string) => {
     setInviteForm({ ...inviteForm, warehouse_id: wid, client_id: '' });
   };
+
+  // Helpers for multi-select options
+  const tenantOptions = tenants.map((t) => ({ id: t.id, label: t.name }));
+  const countryOptions = useMemo(() => {
+    if (!inviteForm.tenant_id) return [];
+    return countries.filter((c) => c.tenant_id === inviteForm.tenant_id).map((c) => ({ id: c.id, label: c.name }));
+  }, [countries, inviteForm.tenant_id]);
+  const warehouseOptions = useMemo(() => {
+    if (!inviteForm.tenant_id) return [];
+    const countrySet = new Set<string>([inviteForm.country_id, ...(inviteForm.scope_countries || [])].filter(Boolean));
+    return warehouses.filter((w) => countrySet.has(w.country_id)).map((w) => ({ id: w.id, label: w.name }));
+  }, [warehouses, inviteForm.tenant_id, inviteForm.country_id, inviteForm.scope_countries]);
+  const clientOptions = useMemo(() => {
+    if (!inviteForm.tenant_id) return [];
+    const warehouseSet = new Set<string>([inviteForm.warehouse_id, ...(inviteForm.scope_warehouses || [])].filter(Boolean));
+    return clients.filter((c) => warehouseSet.has(c.warehouse_id)).map((c) => ({ id: c.id, label: c.name }));
+  }, [clients, inviteForm.tenant_id, inviteForm.warehouse_id, inviteForm.scope_warehouses]);
 
   const handleSendInvitation = async () => {
     if (!inviteForm.email.trim()) { setFormError('El email es requerido'); return; }
@@ -524,21 +552,21 @@ export default function UsersPage() {
                 <p className="text-xs font-medium text-foreground-400 mb-3">Jerarquia operativa (opcional)</p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-foreground-400 mb-1.5">Pais</label>
+                    <label className="block text-xs font-medium text-foreground-400 mb-1.5">Pais principal</label>
                     <select value={inviteForm.country_id} onChange={(e) => handleInviteCountryChange(e.target.value)} disabled={!inviteForm.tenant_id} className="w-full h-10 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-300 outline-none focus:border-primary-500/40 disabled:opacity-40">
                       <option value="">Sin asignar</option>
                       {filteredCountries.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-foreground-400 mb-1.5">Almacen</label>
+                    <label className="block text-xs font-medium text-foreground-400 mb-1.5">Almacen principal</label>
                     <select value={inviteForm.warehouse_id} onChange={(e) => handleInviteWarehouseChange(e.target.value)} disabled={!inviteForm.country_id} className="w-full h-10 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-300 outline-none focus:border-primary-500/40 disabled:opacity-40">
                       <option value="">Sin asignar</option>
                       {filteredWarehouses.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-foreground-400 mb-1.5">Cliente</label>
+                    <label className="block text-xs font-medium text-foreground-400 mb-1.5">Cliente principal</label>
                     <select value={inviteForm.client_id} onChange={(e) => setInviteForm({ ...inviteForm, client_id: e.target.value })} disabled={!inviteForm.warehouse_id} className="w-full h-10 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-300 outline-none focus:border-primary-500/40 disabled:opacity-40">
                       <option value="">Sin asignar</option>
                       {filteredClients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -546,6 +574,108 @@ export default function UsersPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Multi-scope section */}
+              {inviteForm.tenant_id && (
+                <>
+                  <div className="border-t border-secondary-500/10 pt-4">
+                    <p className="text-xs font-medium text-foreground-400 mb-3">Alcances adicionales</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-medium text-foreground-400 mb-1.5">Tenants adicionales</label>
+                        <MultiSelect
+                          options={tenantOptions.filter((t) => t.id !== inviteForm.tenant_id)}
+                          selected={inviteForm.scope_tenants || []}
+                          onChange={(vals) => setInviteForm({ ...inviteForm, scope_tenants: vals })}
+                          placeholder="Ninguno"
+                          searchPlaceholder="Buscar tenant..."
+                          emptyMessage="Sin tenants disponibles"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-foreground-400 mb-1.5">Paises adicionales</label>
+                        <MultiSelect
+                          options={countryOptions.filter((c) => c.id !== inviteForm.country_id)}
+                          selected={inviteForm.scope_countries || []}
+                          onChange={(vals) => {
+                            setInviteForm({ ...inviteForm, scope_countries: vals });
+                          }}
+                          placeholder="Ninguno"
+                          searchPlaceholder="Buscar pais..."
+                          emptyMessage={!inviteForm.tenant_id ? 'Selecciona un tenant' : 'Sin paises disponibles'}
+                          disabled={!inviteForm.tenant_id}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-foreground-400 mb-1.5">Almacenes adicionales</label>
+                        <MultiSelect
+                          options={warehouseOptions.filter((w) => w.id !== inviteForm.warehouse_id)}
+                          selected={inviteForm.scope_warehouses || []}
+                          onChange={(vals) => setInviteForm({ ...inviteForm, scope_warehouses: vals })}
+                          placeholder="Ninguno"
+                          searchPlaceholder="Buscar almacen..."
+                          emptyMessage="Selecciona un pais para ver almacenes"
+                          disabled={countryOptions.length === 0}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-foreground-400 mb-1.5">Clientes adicionales</label>
+                        <MultiSelect
+                          options={clientOptions.filter((c) => c.id !== inviteForm.client_id)}
+                          selected={inviteForm.scope_clients || []}
+                          onChange={(vals) => setInviteForm({ ...inviteForm, scope_clients: vals })}
+                          placeholder="Ninguno"
+                          searchPlaceholder="Buscar cliente..."
+                          emptyMessage="Selecciona un almacen para ver clientes"
+                          disabled={warehouseOptions.length === 0}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-secondary-500/10 pt-4">
+                    <p className="text-xs font-medium text-foreground-400 mb-3">Acceso Global</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={inviteForm.scope_all_tenants || false}
+                          onChange={(e) => setInviteForm({ ...inviteForm, scope_all_tenants: e.target.checked })}
+                          className="w-4 h-4 rounded border-secondary-500/30 bg-background-100 text-primary-500 focus:ring-primary-500/20"
+                        />
+                        <span className="text-sm text-foreground-400">Todos los tenants</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={inviteForm.scope_all_countries || false}
+                          onChange={(e) => setInviteForm({ ...inviteForm, scope_all_countries: e.target.checked })}
+                          className="w-4 h-4 rounded border-secondary-500/30 bg-background-100 text-primary-500 focus:ring-primary-500/20"
+                        />
+                        <span className="text-sm text-foreground-400">Todos los paises</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={inviteForm.scope_all_warehouses || false}
+                          onChange={(e) => setInviteForm({ ...inviteForm, scope_all_warehouses: e.target.checked })}
+                          className="w-4 h-4 rounded border-secondary-500/30 bg-background-100 text-primary-500 focus:ring-primary-500/20"
+                        />
+                        <span className="text-sm text-foreground-400">Todos los almacenes</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={inviteForm.scope_all_clients || false}
+                          onChange={(e) => setInviteForm({ ...inviteForm, scope_all_clients: e.target.checked })}
+                          className="w-4 h-4 rounded border-secondary-500/30 bg-background-100 text-primary-500 focus:ring-primary-500/20"
+                        />
+                        <span className="text-sm text-foreground-400">Todos los clientes</span>
+                      </label>
+                    </div>
+                  </div>
+                </>
+              )}
 
               <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-accent-500/10 border border-accent-500/20 text-accent-400 text-sm">
                 <span className="w-4 h-4 flex items-center justify-center shrink-0"><i className="ri-information-line"></i></span>

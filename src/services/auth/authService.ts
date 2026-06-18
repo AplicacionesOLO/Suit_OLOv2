@@ -109,13 +109,41 @@ export async function updatePassword(newPassword: string): Promise<{ error: Auth
 }
 
 export async function getCurrentSession(): Promise<Session | null> {
-  const { data } = await supabase.auth.getSession();
-  return data.session;
+  try {
+    const { data } = await supabase.auth.getSession();
+    return data.session;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (
+      msg.includes('Refresh Token Not Found') ||
+      msg.includes('Invalid Refresh Token') ||
+      msg.includes('session_not_found')
+    ) {
+      console.warn('[Suite OLO] Token refresh falló en getSession — limpiando sesión local');
+      await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+      return null;
+    }
+    throw err;
+  }
 }
 
 export async function getCurrentUser(): Promise<User | null> {
-  const { data } = await supabase.auth.getUser();
-  return data.user;
+  try {
+    const { data } = await supabase.auth.getUser();
+    return data.user;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (
+      msg.includes('Refresh Token Not Found') ||
+      msg.includes('Invalid Refresh Token') ||
+      msg.includes('session_not_found')
+    ) {
+      console.warn('[Suite OLO] Token refresh falló en getUser — limpiando sesión local');
+      await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+      return null;
+    }
+    throw err;
+  }
 }
 
 export async function getPlatformUser(authUserId: string): Promise<PlatformUser | null> {

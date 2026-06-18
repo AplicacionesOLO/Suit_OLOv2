@@ -1,4 +1,5 @@
 import { supabase } from '@/services/supabase/client';
+import { getEffectiveTenantId } from '@/utils/tenant';
 
 export interface Client {
   id: string;
@@ -21,11 +22,14 @@ export interface ClientWithDetails extends Client {
 
 export async function fetchClients(): Promise<{ data: ClientWithDetails[]; error: string | null }> {
   try {
-    const { data: clients, error } = await supabase
-      .from('clients')
-      .select('*')
-      .order('name');
+    let query = supabase.from('clients').select('*').order('name');
 
+    const tenantId = await getEffectiveTenantId();
+    if (tenantId) {
+      query = query.eq('tenant_id', tenantId);
+    }
+
+    const { data: clients, error } = await query;
     if (error) throw error;
     if (!clients || clients.length === 0) return { data: [], error: null };
 
@@ -70,10 +74,17 @@ export async function fetchClients(): Promise<{ data: ClientWithDetails[]; error
 
 export async function fetchWarehousesForSelect(): Promise<{ data: { id: string; name: string; country_id: string; tenant_id: string }[]; error: string | null }> {
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('warehouses')
       .select('id, name, country_id, tenant_id')
       .order('name');
+
+    const tenantId = await getEffectiveTenantId();
+    if (tenantId) {
+      query = query.eq('tenant_id', tenantId);
+    }
+
+    const { data, error } = await query;
     if (error) throw error;
     return { data: data || [], error: null };
   } catch (err: any) {

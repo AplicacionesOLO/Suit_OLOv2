@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/feature/AppLayout';
 import { useAuth } from '@/hooks/useAuth';
+import { useTenantContext } from '@/hooks/useTenantContext';
 import { supabase } from '@/services/supabase/client';
 
 interface DashboardStats {
@@ -30,6 +31,7 @@ interface AuditEvent {
 export default function DashboardPage() {
   const navigate = useNavigate();
   const { platformUser } = useAuth();
+  const { effectiveTenantId, effectiveTenantName, roleLevel } = useTenantContext();
   const [stats, setStats] = useState<DashboardStats>({
     activeTenants: 0, activeCountries: 0, activeWarehouses: 0, activeClients: 0,
     activeUsers: 0, activeApplications: 0, activeInstances: 0,
@@ -43,24 +45,30 @@ export default function DashboardPage() {
     setLoading(true);
     setError(null);
     try {
+      const tid = effectiveTenantId;
+
+      // Helper: adds tenant_id filter only when tid is set
+      const tf = (q: any) => tid ? q.eq('tenant_id', tid) : q;
+
       const [
         { count: tCount }, { count: cCount }, { count: wCount }, { count: clCount },
         { count: uCount }, { count: aCount }, { count: iCount },
         { count: aaCount }, { count: raCount }, { count: piCount },
         { data: alerts }, { data: audit },
       ] = await Promise.all([
-        supabase.from('tenants').select('*', { count: 'exact', head: true }).eq('status', 'active'),
-        supabase.from('countries').select('*', { count: 'exact', head: true }).eq('status', 'active'),
-        supabase.from('warehouses').select('*', { count: 'exact', head: true }).eq('status', 'active'),
-        supabase.from('clients').select('*', { count: 'exact', head: true }).eq('status', 'active'),
-        supabase.from('platform_users').select('*', { count: 'exact', head: true }).eq('status', 'active'),
-        supabase.from('applications').select('*', { count: 'exact', head: true }).is('deleted_at', null).eq('status', 'active'),
-        supabase.from('application_instances').select('*', { count: 'exact', head: true }).is('deleted_at', null).eq('status', 'active'),
-        supabase.from('user_application_access').select('*', { count: 'exact', head: true }).eq('access_status', 'assigned'),
-        supabase.from('user_application_access').select('*', { count: 'exact', head: true }).eq('access_status', 'revoked'),
-        supabase.from('user_invitations').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-        supabase.from('audit_logs').select('id, action, entity_type, severity, created_at').eq('severity', 'critical').order('created_at', { ascending: false }).limit(10),
-        supabase.from('audit_logs').select('id, action, entity_type, severity, created_at, details').order('created_at', { ascending: false }).limit(10),
+        // tenants: filter by id when tenant context is active
+        (tid ? supabase.from('tenants').select('*', { count: 'exact', head: true }).eq('id', tid) : supabase.from('tenants').select('*', { count: 'exact', head: true })).eq('status', 'active'),
+        tf(supabase.from('countries').select('*', { count: 'exact', head: true })).eq('status', 'active'),
+        tf(supabase.from('warehouses').select('*', { count: 'exact', head: true })).eq('status', 'active'),
+        tf(supabase.from('clients').select('*', { count: 'exact', head: true })).eq('status', 'active'),
+        tf(supabase.from('platform_users').select('*', { count: 'exact', head: true })).eq('status', 'active'),
+        tf(supabase.from('applications').select('*', { count: 'exact', head: true })).is('deleted_at', null).eq('status', 'active'),
+        tf(supabase.from('application_instances').select('*', { count: 'exact', head: true })).is('deleted_at', null).eq('status', 'active'),
+        tf(supabase.from('user_application_access').select('*', { count: 'exact', head: true })).eq('access_status', 'assigned'),
+        tf(supabase.from('user_application_access').select('*', { count: 'exact', head: true })).eq('access_status', 'revoked'),
+        tf(supabase.from('user_invitations').select('*', { count: 'exact', head: true })).eq('status', 'pending'),
+        tf(supabase.from('audit_logs').select('id, action, entity_type, severity, created_at')).eq('severity', 'critical').order('created_at', { ascending: false }).limit(10),
+        tf(supabase.from('audit_logs').select('id, action, entity_type, severity, created_at, details')).order('created_at', { ascending: false }).limit(10),
       ]);
 
       setStats({
@@ -82,7 +90,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [effectiveTenantId]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -141,6 +149,9 @@ export default function DashboardPage() {
             <p className="text-sm text-foreground-500 mt-1">
               Resumen operativo de la plataforma{' '}
               <span className="text-primary-400 font-medium">Suite OLO</span>
+              {effectiveTenantName && (
+                <span className="text-foreground-400"> · Tenant activo: <span className="text-accent-400 font-medium">{effectiveTenantName}</span></span>
+              )}
             </p>
           </div>
           {error && (

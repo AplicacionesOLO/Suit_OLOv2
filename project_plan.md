@@ -496,3 +496,124 @@ Ningún Tenant Admin puede modificar level/is_system de roles.
 6. Confirmar que NO existen políticas `*_soft_delete` en pg_policies
 7. Luego ejecutar `supabase/phase_5.3_test_users.sql` y validar en `/rls-test`
 8. **Prueba crítica V3.1:** Intentar como Tenant Admin un `UPDATE roles SET level=100` — debe ser bloqueado por `roles_update` vía `can_manage_role()`
+
+### Fase 6: Modelo de Alcances Multi-Tenant ✅ COMPLETADO (Jun 2026)
+
+**Objetivo:** Evolucionar del modelo usuario → tenant único a un modelo enterprise donde un usuario puede tener acceso a múltiples tenants, países, almacenes y clientes simultáneamente.
+
+**Arquitectura del nuevo modelo:**
+```
+IDENTIDAD (quién es)
+  → ROL (capacidades administrativas)
+    → PERMISOS (qué puede hacer)
+      → ALCANCES (dónde puede operar: multi-tenant, multi-país, multi-almacén, multi-cliente)
+        → APLICACIONES (qué apps puede abrir)
+```
+
+**Cambios en Base de Datos:**
+
+1. **Tablas puente pobladas y activas:**
+   - `user_tenants` — relación usuario ↔ tenant (con FK, UNIQUE, índices)
+   - `user_countries` — relación usuario ↔ país
+   - `user_warehouses` — relación usuario ↔ almacén
+   - `user_clients` — relación usuario ↔ cliente
+
+2. **Columnas `scope_all_*` en `platform_users`:**
+   - `scope_all_tenants` (boolean) — acceso a todos los tenants
+   - `scope_all_countries` (boolean) — acceso a todos los países
+   - `scope_all_warehouses` (boolean) — acceso a todos los almacenes
+   - `scope_all_clients` (boolean) — acceso a todos los clientes
+
+3. **`user_invitations` extendido:**
+   - `scope_tenants`, `scope_countries`, `scope_warehouses`, `scope_clients` (UUID[]) — alcances multi-select
+   - `scope_all_tenants`, `scope_all_countries`, `scope_all_warehouses`, `scope_all_clients` (boolean) — acceso global
+
+**Funciones RLS actualizadas:**
+
+| Función | Comportamiento nuevo |
+|---------|---------------------|
+| `get_accessible_tenant_ids()` | **NUEVA** — retorna array de todos los tenant IDs del usuario desde `user_tenants` |
+| `get_accessible_tenants()` | Ahora lee de `user_tenants` bridge table, no de `platform_users.tenant_id` único |
+| `get_user_tenant_id()` | Prioriza `tenant_context_override`, luego `user_tenants`, luego `platform_users.tenant_id` |
+| `get_user_country_id()` | **NUEVA** — retorna país activo con soporte multi-tenant |
+| `can_access_country()` | Verifica `user_countries` bridge + `scope_all_countries` + `scope_all_tenants` |
+| `can_access_warehouse()` | Verifica `user_warehouses` bridge + herencia tenant→país + scope_all flags |
+| `can_access_client()` | Verifica `user_clients` bridge + herencia completa + scope_all flags |
+| `create_user_invitation()` | Acepta `p_scope_tenants[]`, `p_scope_countries[]`, `p_scope_warehouses[]`, `p_scope_clients[]` + 4 flags `p_scope_all_*` |
+| `handle_new_auth_user()` | Al aceptar invitación, popula automáticamente las 4 tablas puente via `_populate_user_scopes()` |
+| `_populate_user_scopes()` | **NUEVA** — helper que inserta scopes primarios + arrays en tablas puente con ON CONFLICT DO NOTHING |
+
+**Cambios en Frontend:**
+
+1. **`MultiSelect` component** (`src/components/base/MultiSelect.tsx`):
+   - Búsqueda integrada con filtrado
+   - Selección múltiple con checkboxes
+   - Botones "Todos" / "Limpiar"
+   - Dropdown animado con glass-panel
+   - Contador de seleccionados
+
+2. **Modal de invitación rediseñado** (`src/pages/users/page.tsx`):
+   - Sección "Alcances adicionales" con 4 MultiSelects (tenants, países, almacenes, clientes)
+   - Sección "Acceso Global" con 4 checkboxes (scope_all_*)
+   - Jerarquía principal conservada para compatibilidad
+   - Filtrado encadenado: país→almacén→cliente basado en selecciones combinadas
+
+3. **Context Switcher en Topbar** (`src/components/feature/Topbar.tsx`):
+   - **Antes:** Solo Super Admin (role_level >= 100) podía cambiar de tenant
+   - **Ahora:** Cualquier usuario con múltiples tenants asignados puede cambiar de contexto
+   - Condición: `accessibleTenants.length > 1`
+
+4. **`usersService` actualizado:**
+   - `CreateInvitationInput` extendido con `scope_*` arrays y `scope_all_*` flags
+   - `createUserInvitation()` pasa los 8 nuevos parámetros al RPC
+
+**Migración de datos existentes:**
+- Ejecutada automáticamente: todos los `platform_users.tenant_id` → `user_tenants`
+- Ídem para `country_id` → `user_countries`, `warehouse_id` → `user_warehouses`, `client_id` → `user_clients`
+- Sin pérdida de datos. Se preservan las columnas originales para compatibilidad.
+
+**Compatibilidad:**
+- Las columnas `tenant_id`, `country_id`, `warehouse_id`, `client_id` en `platform_users` se mantienen
+- Las funciones RLS usan las tablas puente como fuente primaria, con fallback a columnas originales
+- Usuarios existentes sin cambios en su experiencia
+- Nuevas invitaciones pueden usar multi-scope opcionalmente
+
+**Criterios de aceptación:**
+- ✅ Multi-tenant real: un usuario puede tener N tenants
+- ✅ Multi-país real: un usuario puede tener N países
+- ✅ Multi-almacén real: un usuario puede tener N almacenes
+- ✅ Multi-cliente real: un usuario puede tener N clientes
+- ✅ Acceso global configurable (scope_all_*)
+- ✅ Selector de contexto para todos los usuarios multi-tenant
+- ✅ Invitaciones con multi-select de alcances
+- ✅ Migración automática sin pérdida de datos
+- ✅ RLS actualizado para respetar tablas puente
+- ✅ Compatible con usuarios existentes
+- ✅ Arquitectura escalable para crecimiento regional de OLO
+
+**Archivos modificados/creados:**
+
+```
+NUEVOS:
+src/components/base/MultiSelect.tsx          — Componente multi-select reutilizable
+
+MODIFICADOS:
+src/services/auth/usersService.ts            — Tipos multi-scope + RPC params extendidos
+src/pages/users/page.tsx                     — Modal de invitación con multi-selects + scope_all
+src/components/feature/Topbar.tsx            — Context switcher para todos los multi-tenant
+src/hooks/useTenantContext.tsx               — Ya usaba get_accessible_tenants() actualizado
+
+SQL (ejecutado en Supabase):
+- ALTER user_invitations: 8 columnas nuevas (scope_* arrays + scope_all_* flags)
+- CREATE/REPLACE get_accessible_tenant_ids()
+- CREATE/REPLACE get_accessible_tenants()
+- CREATE/REPLACE get_user_tenant_id()
+- CREATE/REPLACE get_user_country_id()
+- CREATE/REPLACE can_access_country()
+- CREATE/REPLACE can_access_warehouse()
+- CREATE/REPLACE can_access_client()
+- CREATE/REPLACE create_user_invitation()
+- CREATE/REPLACE handle_new_auth_user()
+- CREATE _populate_user_scopes()
+- Migración: INSERT INTO user_tenants/countries/warehouses/clients
+```

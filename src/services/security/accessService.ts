@@ -1,17 +1,6 @@
 import { supabase } from '@/services/supabase/client';
 import { cleanDate } from '@/utils/sanitize';
-
-async function getEffectiveTenantId(): Promise<string | null> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data: pu } = await supabase
-    .from('platform_users')
-    .select('tenant_id, tenant_context_override')
-    .eq('auth_user_id', user.id)
-    .maybeSingle();
-  if (!pu) return null;
-  return pu.tenant_context_override || pu.tenant_id;
-}
+import { getEffectiveTenantId } from '@/utils/tenant';
 
 export interface UserAppAccess {
   id: string;
@@ -63,11 +52,18 @@ export interface PlatformUserBrief {
 
 export async function fetchPlatformUsers(): Promise<{ data: PlatformUserBrief[]; error: string | null }> {
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('platform_users')
       .select('id, first_name, last_name, email, role_id, status')
       .eq('status', 'active')
       .order('first_name', { ascending: true });
+
+    const tenantId = await getEffectiveTenantId();
+    if (tenantId) {
+      query = query.eq('tenant_id', tenantId);
+    }
+
+    const { data, error } = await query;
     if (error) throw error;
     return { data: (data || []) as PlatformUserBrief[], error: null };
   } catch (err: any) {

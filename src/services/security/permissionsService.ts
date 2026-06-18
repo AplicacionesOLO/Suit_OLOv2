@@ -9,18 +9,6 @@ export interface SuitePermissionsData {
   modules: Record<string, SuitePermissionsModule>;
 }
 
-async function getEffectiveTenantId(): Promise<string | null> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data: pu } = await supabase
-    .from('platform_users')
-    .select('tenant_id, tenant_context_override')
-    .eq('auth_user_id', user.id)
-    .maybeSingle();
-  if (!pu) return null;
-  return pu.tenant_context_override || pu.tenant_id;
-}
-
 export async function fetchRolePermissions(roleId: string): Promise<{ data: SuitePermissionsData | null; error: Error | null }> {
   try {
     const { data, error } = await supabase

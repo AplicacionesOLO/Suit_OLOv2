@@ -112,7 +112,7 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
     await tenantCtx.clearTenant();
   };
 
-  const canSwitchTenant = (platformUser?.role_level ?? 0) >= 100 && tenantCtx.accessibleTenants.length > 1;
+  const canSwitchTenant = tenantCtx.accessibleTenants.length > 1;
 
   const timeAgo = (dateStr: string) => {
     const diff = Date.now() - new Date(dateStr).getTime();

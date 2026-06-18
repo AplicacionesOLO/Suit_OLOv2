@@ -12,6 +12,7 @@ import {
   sendPasswordReset,
   type PlatformUser,
 } from '@/services/auth/authService';
+import { supabase } from '@/services/supabase/client';
 
 interface AuthContextValue {
   session: Session | null;
@@ -60,8 +61,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           setLoading(false);
         }
-      } catch {
-        if (mounted) setLoading(false);
+      } catch (sessionErr: unknown) {
+        // Refresh token expirado o inválido — limpiar sesión local y seguir
+        if (!mounted) return;
+        const msg = sessionErr instanceof Error ? sessionErr.message : String(sessionErr);
+        if (
+          msg.includes('Refresh Token Not Found') ||
+          msg.includes('Invalid Refresh Token') ||
+          msg.includes('session_not_found') ||
+          msg.includes('AuthSessionMissingError')
+        ) {
+          console.warn('[Suite OLO] Sesión expirada durante inicialización — redirigiendo a login');
+          try {
+            await supabase.auth.signOut({ scope: 'local' });
+          } catch {
+            // Ya no hay sesión
+          }
+          setSession(null);
+          setUser(null);
+          setPlatformUser(null);
+        }
+        setLoading(false);
       }
     };
 

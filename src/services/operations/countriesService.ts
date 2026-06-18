@@ -1,4 +1,5 @@
 import { supabase } from '@/services/supabase/client';
+import { getEffectiveTenantId } from '@/utils/tenant';
 
 export interface Country {
   id: string;
@@ -26,11 +27,14 @@ export interface CountryWithCounts extends Country {
 
 export async function fetchCountries(): Promise<{ data: CountryWithCounts[]; error: string | null }> {
   try {
-    const { data: countries, error } = await supabase
-      .from('countries')
-      .select('*')
-      .order('name');
+    let query = supabase.from('countries').select('*').order('name');
 
+    const tenantId = await getEffectiveTenantId();
+    if (tenantId) {
+      query = query.eq('tenant_id', tenantId);
+    }
+
+    const { data: countries, error } = await query;
     if (error) throw error;
     if (!countries || countries.length === 0) return { data: [], error: null };
 

@@ -1,16 +1,5 @@
 import { supabase } from '@/services/supabase/client';
-
-async function getEffectiveTenantId(): Promise<string | null> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data: pu } = await supabase
-    .from('platform_users')
-    .select('tenant_id, tenant_context_override')
-    .eq('auth_user_id', user.id)
-    .maybeSingle();
-  if (!pu) return null;
-  return pu.tenant_context_override || pu.tenant_id;
-}
+import { getEffectiveTenantId } from '@/utils/tenant';
 
 export interface RolePermissions {
   modules: Record<string, { menu: boolean; actions: string[] }>;
