@@ -8,6 +8,8 @@ import {
 } from '@/services/auth/usersService';
 import { revokeUserAccess } from '@/services/security/accessService';
 import MultiSelect from '@/components/base/MultiSelect';
+import { validateFullCascade } from '@/utils/organizationCascade';
+import type { TenantOption, ClientOption } from '@/types/organization';
 
 interface EditUserModalProps {
   user: PlatformUserFull;
@@ -194,32 +196,27 @@ export default function EditUserModal({ user, isOpen, onClose, onSaved, onEditUs
     setSaving(true);
     setFormError('');
 
-    // ========== CASCADE VALIDATION ==========
-    // Rule: tenant.country_id must be in selected countries
-    // Rule: client.tenant_id must be in selected tenants
-    const selectedCountryIds = new Set([editForm.country_id, ...editForm.scope_countries].filter(Boolean));
-    const selectedTenantIds = new Set([editForm.tenant_id, ...editForm.scope_tenants].filter(Boolean));
+    // ========== CASCADE VALIDATION (usa helper centralizado) ==========
+    const cascadeResult = validateFullCascade({
+      countryId: editForm.country_id,
+      tenantId: editForm.tenant_id,
+      clientId: editForm.client_id,
+      scopeCountryIds: editForm.scope_countries,
+      scopeTenantIds: editForm.scope_tenants,
+      scopeClientIds: editForm.scope_clients,
+      scopeAllCountries: editForm.scope_all_countries,
+      scopeAllTenants: editForm.scope_all_tenants,
+      scopeAllClients: editForm.scope_all_clients,
+      tenants: tenants as TenantOption[],
+      clients: clients as ClientOption[],
+    });
 
-    if (!editForm.scope_all_tenants && !editForm.scope_all_countries) {
-      for (const tid of selectedTenantIds) {
-        const tenant = tenants.find((t) => t.id === tid);
-        if (tenant?.country_id && !selectedCountryIds.has(tenant.country_id)) {
-          setSaving(false);
-          setFormError(`El tenant "${tenant.name}" pertenece a un pais no seleccionado. Agrega ese pais a los alcances o elimina el tenant.`);
-          return;
-        }
-      }
-    }
-
-    if (!editForm.scope_all_clients && !editForm.scope_all_tenants) {
-      for (const clid of [editForm.client_id, ...editForm.scope_clients].filter(Boolean)) {
-        const client = clients.find((c) => c.id === clid);
-        if (client && !selectedTenantIds.has(client.tenant_id)) {
-          setSaving(false);
-          setFormError(`El cliente "${client.name}" pertenece a un tenant no seleccionado. Agrega ese tenant a los alcances o elimina el cliente.`);
-          return;
-        }
-      }
+    if (!cascadeResult.valid) {
+      setSaving(false);
+      setFormError(cascadeResult.errors.length > 0
+        ? cascadeResult.errors[0]
+        : cascadeResult.errorMessage);
+      return;
     }
 
     const primaryCountryIds = editForm.country_id ? [editForm.country_id] : [];

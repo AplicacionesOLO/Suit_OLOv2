@@ -37,7 +37,7 @@ export async function fetchClients(): Promise<{ data: ClientWithDetails[]; error
 
     const [{ data: warehouses }, { data: tenants }] = await Promise.all([
       supabase.from('warehouses').select('id, name, country_id, tenant_id').in('id', warehouseIds),
-      supabase.from('tenants').select('id, name'),
+      supabase.from('tenants').select('id, name, country_id'),
     ]);
 
     const whMap = new Map((warehouses || []).map((w) => [w.id, w]));

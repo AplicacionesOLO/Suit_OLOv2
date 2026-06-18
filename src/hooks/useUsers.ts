@@ -12,15 +12,16 @@ import {
   type UpdateUserInput,
 } from '@/services/auth/usersService';
 import { supabase } from '@/services/supabase/client';
+import { auditCascadeData } from '@/utils/organizationCascade';
 
 interface UseUsersReturn {
   users: PlatformUserFull[];
   invitations: UserInvitation[];
-  tenants: { id: string; name: string }[];
+  tenants: { id: string; name: string; country_id: string | null }[];
   roles: { id: string; name: string; level: number }[];
   countries: { id: string; name: string; tenant_id: string }[];
   warehouses: { id: string; name: string; country_id: string }[];
-  clients: { id: string; name: string; warehouse_id: string }[];
+  clients: { id: string; name: string; warehouse_id: string; tenant_id: string }[];
   loading: boolean;
   error: string | null;
   sendInvitation: (input: CreateInvitationInput) => Promise<{ error: string | null }>;
@@ -33,11 +34,11 @@ interface UseUsersReturn {
 export function useUsers(): UseUsersReturn {
   const [users, setUsers] = useState<PlatformUserFull[]>([]);
   const [invitations, setInvitations] = useState<UserInvitation[]>([]);
-  const [tenants, setTenants] = useState<{ id: string; name: string }[]>([]);
+  const [tenants, setTenants] = useState<{ id: string; name: string; country_id: string | null }[]>([]);
   const [roles, setRoles] = useState<{ id: string; name: string; level: number }[]>([]);
   const [countries, setCountries] = useState<{ id: string; name: string; tenant_id: string }[]>([]);
   const [warehouses, setWarehouses] = useState<{ id: string; name: string; country_id: string }[]>([]);
-  const [clients, setClients] = useState<{ id: string; name: string; warehouse_id: string }[]>([]);
+  const [clients, setClients] = useState<{ id: string; name: string; warehouse_id: string; tenant_id: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,11 +50,11 @@ export function useUsers(): UseUsersReturn {
       const [usersResult, invitationsResult, tenantsResult, rolesResult, countriesResult, warehousesResult, clientsResult] = await Promise.all([
         fetchUsers(),
         fetchInvitations(),
-        supabase.from('tenants').select('id, name').order('name'),
+        supabase.from('tenants').select('id, name, country_id').order('name'),
         supabase.from('roles').select('id, name, level').order('level'),
         supabase.from('countries').select('id, name, tenant_id').order('name'),
         supabase.from('warehouses').select('id, name, country_id').order('name'),
-        supabase.from('clients').select('id, name, warehouse_id').order('name'),
+        supabase.from('clients').select('id, name, warehouse_id, tenant_id').order('name'),
       ]);
 
       if (usersResult.error) { setError(usersResult.error); }
@@ -67,6 +68,11 @@ export function useUsers(): UseUsersReturn {
       if (countriesResult.data) setCountries(countriesResult.data);
       if (warehousesResult.data) setWarehouses(warehousesResult.data);
       if (clientsResult.data) setClients(clientsResult.data);
+
+      // Auditar integridad de cascada en desarrollo
+      if (tenantsResult.data && clientsResult.data) {
+        auditCascadeData(tenantsResult.data, clientsResult.data);
+      }
     } catch (e) {
       setError('Error al cargar datos');
     } finally {

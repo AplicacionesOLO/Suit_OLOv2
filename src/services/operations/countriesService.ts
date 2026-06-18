@@ -43,7 +43,7 @@ export async function fetchCountries(): Promise<{ data: CountryWithCounts[]; err
     const [{ data: warehouses }, { data: clients }, { data: tenants }] = await Promise.all([
       supabase.from('warehouses').select('id, country_id').in('country_id', countryIds),
       supabase.from('clients').select('id, warehouse_id').in('warehouse_id', countryIds),
-      supabase.from('tenants').select('id, name'),
+      supabase.from('tenants').select('id, name, country_id'),
     ]);
 
     const warehouseCountMap = new Map<string, number>();
@@ -163,7 +163,7 @@ export async function toggleCountryStatus(
 
 export async function fetchTenants(): Promise<{ data: { id: string; name: string }[]; error: string | null }> {
   try {
-    const { data, error } = await supabase.from('tenants').select('id, name').order('name');
+    const { data, error } = await supabase.from('tenants').select('id, name, country_id').order('name');
     if (error) throw error;
     return { data: data || [], error: null };
   } catch (err: any) {

@@ -39,7 +39,7 @@ export async function fetchWarehouses(): Promise<{ data: WarehouseWithDetails[];
     const [{ data: countries }, { data: clients }, { data: tenants }] = await Promise.all([
       supabase.from('countries').select('id, name, code, tenant_id').in('id', countryIds),
       supabase.from('clients').select('id, warehouse_id').in('warehouse_id', warehouseIds),
-      supabase.from('tenants').select('id, name'),
+      supabase.from('tenants').select('id, name, country_id'),
     ]);
 
     const countryMap = new Map((countries || []).map((c) => [c.id, c]));

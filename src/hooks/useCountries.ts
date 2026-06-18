@@ -10,7 +10,7 @@ import {
 
 interface UseCountriesReturn {
   countries: CountryWithCounts[];
-  tenants: { id: string; name: string }[];
+  tenants: { id: string; name: string; country_id: string | null }[];
   loading: boolean;
   error: string | null;
   refresh: () => void;

@@ -59,7 +59,7 @@ export default function AssignmentsPage() {
     try {
       const [usersRes, tenantsRes, rolesRes] = await Promise.all([
         fetchPlatformUsers(),
-        supabase.from('tenants').select('id, name').order('name'),
+        supabase.from('tenants').select('id, name, country_id').order('name'),
         supabase.from('roles').select('id, name').order('name'),
       ]);
       setUsers(usersRes.data);

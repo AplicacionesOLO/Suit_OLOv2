@@ -135,7 +135,7 @@ export async function fetchUsers(): Promise<{ users: PlatformUserFull[]; error: 
   const clients: Record<string, string> = {};
 
   if (tenantIds.length > 0) {
-    const { data: t } = await supabase.from('tenants').select('id, name').in('id', tenantIds);
+    const { data: t } = await supabase.from('tenants').select('id, name, country_id').in('id', tenantIds);
     if (t) t.forEach((r) => { tenants[r.id] = r.name; });
   }
   if (roleIds.length > 0) {
@@ -151,7 +151,7 @@ export async function fetchUsers(): Promise<{ users: PlatformUserFull[]; error: 
     if (w) w.forEach((wh) => { warehouses[wh.id] = wh.name; });
   }
   if (clientIds.length > 0) {
-    const { data: cl } = await supabase.from('clients').select('id, name').in('id', clientIds);
+    const { data: cl } = await supabase.from('clients').select('id, name, tenant_id').in('id', clientIds);
     if (cl) cl.forEach((c) => { clients[c.id] = c.name; });
   }
 
@@ -194,7 +194,7 @@ export async function fetchInvitations(): Promise<{ invitations: UserInvitation[
   const inviters: Record<string, string> = {};
 
   if (tenantIds.length > 0) {
-    const { data: t } = await supabase.from('tenants').select('id, name').in('id', tenantIds);
+    const { data: t } = await supabase.from('tenants').select('id, name, country_id').in('id', tenantIds);
     if (t) t.forEach((r) => { tenants[r.id] = r.name; });
   }
   if (roleIds.length > 0) {
@@ -210,7 +210,7 @@ export async function fetchInvitations(): Promise<{ invitations: UserInvitation[
     if (w) w.forEach((wh) => { warehouses[wh.id] = wh.name; });
   }
   if (clientIds.length > 0) {
-    const { data: cl } = await supabase.from('clients').select('id, name').in('id', clientIds);
+    const { data: cl } = await supabase.from('clients').select('id, name, tenant_id').in('id', clientIds);
     if (cl) cl.forEach((c) => { clients[c.id] = c.name; });
   }
   if (inviterIds.length > 0) {
