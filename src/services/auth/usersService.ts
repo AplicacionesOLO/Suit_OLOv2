@@ -79,6 +79,36 @@ export interface UpdateUserInput {
   first_name?: string;
   last_name?: string;
   status?: string;
+  scope_tenants?: string[];
+  scope_countries?: string[];
+  scope_warehouses?: string[];
+  scope_clients?: string[];
+  scope_all_tenants?: boolean;
+  scope_all_countries?: boolean;
+  scope_all_warehouses?: boolean;
+  scope_all_clients?: boolean;
+  tenant_id?: string;
+}
+
+export interface UserBridgeScopes {
+  tenant_ids: string[];
+  country_ids: string[];
+  warehouse_ids: string[];
+  client_ids: string[];
+}
+
+export interface UserAppAccessForEdit {
+  id: string;
+  application_id: string;
+  instance_id: string | null;
+  access_status: string;
+  expires_at: string | null;
+  application_name: string;
+  application_icon: string;
+  application_color: string;
+  instance_name: string | null;
+  granted_at: string | null;
+  role_id: string | null;
 }
 
 export async function fetchUsers(): Promise<{ users: PlatformUserFull[]; error: string | null }> {
@@ -265,7 +295,12 @@ export async function updatePlatformUser(userId: string, input: UpdateUserInput)
   if (input.first_name !== undefined) updateData.first_name = input.first_name;
   if (input.last_name !== undefined) updateData.last_name = input.last_name;
   if (input.status !== undefined) updateData.status = input.status;
-    updateData.updated_at = cleanDate(new Date());
+  if (input.tenant_id !== undefined) updateData.tenant_id = input.tenant_id;
+  if (input.scope_all_tenants !== undefined) updateData.scope_all_tenants = input.scope_all_tenants;
+  if (input.scope_all_countries !== undefined) updateData.scope_all_countries = input.scope_all_countries;
+  if (input.scope_all_warehouses !== undefined) updateData.scope_all_warehouses = input.scope_all_warehouses;
+  if (input.scope_all_clients !== undefined) updateData.scope_all_clients = input.scope_all_clients;
+  updateData.updated_at = cleanDate(new Date());
 
   const { error } = await supabase
     .from('platform_users')
@@ -273,6 +308,21 @@ export async function updatePlatformUser(userId: string, input: UpdateUserInput)
     .eq('id', userId);
 
   if (error) return { error: error.message };
+
+  // Sync bridge tables if scope arrays are provided
+  if (input.scope_tenants !== undefined || input.scope_countries !== undefined ||
+      input.scope_warehouses !== undefined || input.scope_clients !== undefined) {
+    const scopeError = await syncUserBridgeScopes(userId, {
+      tenant_ids: input.scope_tenants,
+      country_ids: input.scope_countries,
+      warehouse_ids: input.scope_warehouses,
+      client_ids: input.scope_clients,
+    });
+    if (scopeError) {
+      // Non-blocking: core update succeeded, scope sync failed
+      console.warn('[updatePlatformUser] Scope sync warning:', scopeError);
+    }
+  }
 
   try {
     await supabase.from('audit_logs').insert({
@@ -287,6 +337,154 @@ export async function updatePlatformUser(userId: string, input: UpdateUserInput)
   } catch { /* non-critical */ }
 
   return { error: null };
+}
+
+async function syncUserBridgeScopes(userId: string, scopes: {
+  tenant_ids?: string[];
+  country_ids?: string[];
+  warehouse_ids?: string[];
+  client_ids?: string[];
+}): Promise<string | null> {
+  try {
+    const deletions: Promise<any>[] = [];
+    if (scopes.tenant_ids !== undefined) deletions.push(supabase.from('user_tenants').delete().eq('user_id', userId));
+    if (scopes.country_ids !== undefined) deletions.push(supabase.from('user_countries').delete().eq('user_id', userId));
+    if (scopes.warehouse_ids !== undefined) deletions.push(supabase.from('user_warehouses').delete().eq('user_id', userId));
+    if (scopes.client_ids !== undefined) deletions.push(supabase.from('user_clients').delete().eq('user_id', userId));
+
+    await Promise.all(deletions);
+
+    const insertions: Promise<any>[] = [];
+    if (scopes.tenant_ids && scopes.tenant_ids.length > 0) {
+      insertions.push(supabase.from('user_tenants').insert(scopes.tenant_ids.map((tid) => ({ user_id: userId, tenant_id: tid }))));
+    }
+    if (scopes.country_ids && scopes.country_ids.length > 0) {
+      insertions.push(supabase.from('user_countries').insert(scopes.country_ids.map((cid) => ({ user_id: userId, country_id: cid }))));
+    }
+    if (scopes.warehouse_ids && scopes.warehouse_ids.length > 0) {
+      insertions.push(supabase.from('user_warehouses').insert(scopes.warehouse_ids.map((wid) => ({ user_id: userId, warehouse_id: wid }))));
+    }
+    if (scopes.client_ids && scopes.client_ids.length > 0) {
+      insertions.push(supabase.from('user_clients').insert(scopes.client_ids.map((clid) => ({ user_id: userId, client_id: clid }))));
+    }
+
+    if (insertions.length > 0) await Promise.all(insertions);
+
+    return null;
+  } catch (err: any) {
+    return err.message || 'Error syncing scopes';
+  }
+}
+
+export async function fetchUserBridgeScopes(userId: string): Promise<{ data: UserBridgeScopes; error: string | null }> {
+  try {
+    const [tenantsRes, countriesRes, warehousesRes, clientsRes] = await Promise.all([
+      supabase.from('user_tenants').select('tenant_id').eq('user_id', userId),
+      supabase.from('user_countries').select('country_id').eq('user_id', userId),
+      supabase.from('user_warehouses').select('warehouse_id').eq('user_id', userId),
+      supabase.from('user_clients').select('client_id').eq('user_id', userId),
+    ]);
+
+    return {
+      data: {
+        tenant_ids: (tenantsRes.data || []).map((r: any) => r.tenant_id),
+        country_ids: (countriesRes.data || []).map((r: any) => r.country_id),
+        warehouse_ids: (warehousesRes.data || []).map((r: any) => r.warehouse_id),
+        client_ids: (clientsRes.data || []).map((r: any) => r.client_id),
+      },
+      error: null,
+    };
+  } catch (err: any) {
+    return { data: { tenant_ids: [], country_ids: [], warehouse_ids: [], client_ids: [] }, error: err.message };
+  }
+}
+
+export async function fetchUserAppAccessesForEdit(userId: string): Promise<{ data: UserAppAccessForEdit[]; error: string | null }> {
+  try {
+    const { data: accesses, error } = await supabase
+      .from('user_application_access')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    if (!accesses || accesses.length === 0) return { data: [], error: null };
+
+    const appIds = [...new Set(accesses.map((a: any) => a.application_id))];
+    const instanceIds = [...new Set(accesses.map((a: any) => a.instance_id).filter(Boolean))] as string[];
+
+    const [appsRes, instancesRes] = await Promise.all([
+      supabase.from('applications').select('id, name, icon, color').in('id', appIds),
+      instanceIds.length > 0 ? supabase.from('application_instances').select('id, instance_name').in('id', instanceIds) : Promise.resolve({ data: [] }),
+    ]);
+
+    const appMap: Record<string, { name: string; icon: string; color: string }> = {};
+    (appsRes.data || []).forEach((a: any) => { appMap[a.id] = { name: a.name, icon: a.icon, color: a.color }; });
+
+    const instMap: Record<string, string> = {};
+    (instancesRes.data || []).forEach((i: any) => { instMap[i.id] = i.instance_name; });
+
+    return {
+      data: accesses.map((a: any) => ({
+        id: a.id,
+        application_id: a.application_id,
+        instance_id: a.instance_id,
+        access_status: a.access_status,
+        expires_at: a.expires_at,
+        application_name: appMap[a.application_id]?.name || '—',
+        application_icon: appMap[a.application_id]?.icon || 'ri-apps-2-line',
+        application_color: appMap[a.application_id]?.color || 'emerald',
+        instance_name: a.instance_id ? instMap[a.instance_id] : null,
+        granted_at: a.granted_at,
+        role_id: a.role_id,
+      })),
+      error: null,
+    };
+  } catch (err: any) {
+    return { data: [], error: err.message };
+  }
+}
+
+export async function fetchUserAuditEvents(userId: string): Promise<{ data: any[]; error: string | null }> {
+  try {
+    const { data, error } = await supabase
+      .from('audit_logs')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (error) throw error;
+    return { data: (data || []) as any[], error: null };
+  } catch (err: any) {
+    return { data: [], error: err.message };
+  }
+}
+
+export async function fetchRolePermissionsForDisplay(roleId: string): Promise<{ data: Record<string, string[]> | null; error: string | null }> {
+  try {
+    const { data, error } = await supabase
+      .from('roles')
+      .select('permissions')
+      .eq('id', roleId)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!data?.permissions) return { data: null, error: null };
+
+    const perms = data.permissions as any;
+    const modules = perms?.modules || {};
+
+    const result: Record<string, string[]> = {};
+    for (const [key, mod] of Object.entries(modules) as [string, any][]) {
+      if (mod?.actions && Array.isArray(mod.actions)) {
+        result[key] = mod.actions;
+      }
+    }
+    return { data: result, error: null };
+  } catch (err: any) {
+    return { data: null, error: err.message };
+  }
 }
 
 export async function deletePlatformUser(userId: string): Promise<{ error: string | null }> {

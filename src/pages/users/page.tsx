@@ -2,8 +2,9 @@ import { useState, useMemo, useCallback } from 'react';
 import AppLayout from '@/components/feature/AppLayout';
 import { useUsers } from '@/hooks/useUsers';
 import { useSuitePermissions } from '@/hooks/useSuitePermissions';
-import type { PlatformUserFull, UpdateUserInput, CreateInvitationInput } from '@/services/auth/usersService';
+import type { PlatformUserFull, CreateInvitationInput } from '@/services/auth/usersService';
 import MultiSelect from '@/components/base/MultiSelect';
+import EditUserModal from './components/EditUserModal';
 
 type Tab = 'active' | 'invitations';
 
@@ -30,7 +31,6 @@ export default function UsersPage() {
     scope_all_tenants: false, scope_all_countries: false,
     scope_all_warehouses: false, scope_all_clients: false,
   });
-  const [editForm, setEditForm] = useState({ role_id: '', country_id: '', warehouse_id: '', client_id: '', first_name: '', last_name: '', status: '' });
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
 
@@ -89,16 +89,6 @@ export default function UsersPage() {
   };
 
   const openEdit = (user: PlatformUserFull) => {
-    setEditForm({
-      role_id: user.role_id || '',
-      country_id: user.country_id || '',
-      warehouse_id: user.warehouse_id || '',
-      client_id: user.client_id || '',
-      first_name: user.first_name || '',
-      last_name: user.last_name || '',
-      status: user.status || 'active',
-    });
-    setFormError('');
     setEditingUser(user);
   };
 
@@ -150,26 +140,6 @@ export default function UsersPage() {
     resetInviteForm();
     setActiveTab('invitations');
     showToast('success', 'Invitacion creada correctamente. El usuario podra activarse al iniciar sesion.');
-  };
-
-  const handleEditSave = async () => {
-    if (!editingUser) return;
-    setSaving(true);
-    setFormError('');
-    const update: UpdateUserInput = {
-      role_id: editForm.role_id || undefined,
-      country_id: editForm.country_id || undefined,
-      warehouse_id: editForm.warehouse_id || undefined,
-      client_id: editForm.client_id || undefined,
-      first_name: editForm.first_name || undefined,
-      last_name: editForm.last_name || undefined,
-      status: editForm.status || undefined,
-    };
-    const result = await editUser(editingUser.id, update);
-    setSaving(false);
-    if (result.error) { setFormError(result.error); return; }
-    setEditingUser(null);
-    showToast('success', 'Usuario actualizado correctamente');
   };
 
   const handleDelete = async () => {
@@ -694,76 +664,18 @@ export default function UsersPage() {
       )}
 
       {/* Edit User Modal */}
-      {editingUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setEditingUser(null)} />
-          <div className="relative glass-panel-strong rounded-2xl w-full max-w-xl p-6 animate-scale-in max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-foreground-200">Editar usuario</h2>
-              <button onClick={() => setEditingUser(null)} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-foreground-200 hover:bg-background-200/50 transition-all">
-                <span className="w-4 h-4 flex items-center justify-center"><i className="ri-close-line text-lg"></i></span>
-              </button>
-            </div>
-
-            {formError && (
-              <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm mb-4">
-                <span className="w-4 h-4 flex items-center justify-center"><i className="ri-error-warning-line"></i></span>
-                {formError}
-              </div>
-            )}
-
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 p-4 rounded-lg bg-background-100">
-                <div className="w-10 h-10 rounded-full bg-accent-500/20 border border-accent-500/25 flex items-center justify-center">
-                  <span className="text-accent-400 text-sm font-semibold">
-                    {editingUser.first_name?.[0] || editingUser.email?.[0]?.toUpperCase()}
-                    {editingUser.last_name?.[0] || ''}
-                  </span>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-foreground-200">{editingUser.first_name || editingUser.last_name ? `${editingUser.first_name || ''} ${editingUser.last_name || ''}`.trim() : (editingUser.email || 'Usuario')}</p>
-                  <p className="text-xs text-foreground-500">{editingUser.email}</p>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-foreground-400 mb-1.5">Nombre</label>
-                <input type="text" value={editForm.first_name} onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })} className="w-full h-10 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-200 outline-none focus:border-primary-500/40 transition-all" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-foreground-400 mb-1.5">Apellido</label>
-                <input type="text" value={editForm.last_name} onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })} className="w-full h-10 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-200 outline-none focus:border-primary-500/40 transition-all" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-foreground-400 mb-1.5">Rol</label>
-                  <select value={editForm.role_id} onChange={(e) => setEditForm({ ...editForm, role_id: e.target.value })} className="w-full h-10 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-300 outline-none focus:border-primary-500/40">
-                    <option value="">Sin rol</option>
-                    {roles.map((r) => <option key={r.id} value={r.id}>{r.name} (Nivel {r.level})</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-foreground-400 mb-1.5">Estado</label>
-                  <select value={editForm.status} onChange={(e) => setEditForm({ ...editForm, status: e.target.value })} className="w-full h-10 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-300 outline-none focus:border-primary-500/40">
-                    <option value="active">Activo</option>
-                    <option value="pending_review">Revision</option>
-                    <option value="inactive">Inactivo</option>
-                    <option value="suspended">Suspendido</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-3 mt-6">
-              <button onClick={() => setEditingUser(null)} className="h-9 px-4 rounded-lg border border-secondary-500/20 text-sm text-foreground-400 hover:text-foreground-200 hover:border-secondary-500/40 transition-all whitespace-nowrap">Cancelar</button>
-              <button onClick={handleEditSave} disabled={saving} className="h-9 px-4 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-sm font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed">
-                {saving ? 'Guardando...' : 'Guardar cambios'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <EditUserModal
+        user={editingUser}
+        isOpen={!!editingUser}
+        onClose={() => setEditingUser(null)}
+        onSaved={() => { refresh(); }}
+        onEditUser={editUser}
+        tenants={tenants}
+        roles={roles}
+        countries={countries}
+        warehouses={warehouses}
+        clients={clients}
+      />
 
       {/* Delete User Modal */}
       {confirmDelete && (
