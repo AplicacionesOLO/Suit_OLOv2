@@ -37,13 +37,19 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showTenantMenu, setShowTenantMenu] = useState(false);
+  const [showCountryMenu, setShowCountryMenu] = useState(false);
+  const [showClientMenu, setShowClientMenu] = useState(false);
   const [switchingTenant, setSwitchingTenant] = useState<string | null>(null);
+  const [switchingCountry, setSwitchingCountry] = useState<string | null>(null);
+  const [switchingClient, setSwitchingClient] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifLoading, setNotifLoading] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
   const tenantRef = useRef<HTMLDivElement>(null);
+  const countryRef = useRef<HTMLDivElement>(null);
+  const clientRef = useRef<HTMLDivElement>(null);
 
   const loadNotifications = useCallback(async () => {
     if (!platformUser?.id) return;
@@ -82,6 +88,12 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
       if (tenantRef.current && !tenantRef.current.contains(e.target as Node)) {
         setShowTenantMenu(false);
       }
+      if (countryRef.current && !countryRef.current.contains(e.target as Node)) {
+        setShowCountryMenu(false);
+      }
+      if (clientRef.current && !clientRef.current.contains(e.target as Node)) {
+        setShowClientMenu(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -112,7 +124,33 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
     await tenantCtx.clearTenant();
   };
 
+  const handleSwitchCountry = async (countryId: string) => {
+    setSwitchingCountry(countryId);
+    setShowCountryMenu(false);
+    await tenantCtx.switchCountry(countryId);
+    setSwitchingCountry(null);
+  };
+
+  const handleClearCountry = async () => {
+    setShowCountryMenu(false);
+    await tenantCtx.clearCountry();
+  };
+
+  const handleSwitchClient = async (clientId: string) => {
+    setSwitchingClient(clientId);
+    setShowClientMenu(false);
+    await tenantCtx.switchClient(clientId);
+    setSwitchingClient(null);
+  };
+
+  const handleClearClient = async () => {
+    setShowClientMenu(false);
+    await tenantCtx.clearClient();
+  };
+
   const canSwitchTenant = tenantCtx.accessibleTenants.length > 1;
+  const canSwitchCountry = tenantCtx.accessibleCountries.length > 1;
+  const canSwitchClient = tenantCtx.accessibleClients.length > 1;
 
   const timeAgo = (dateStr: string) => {
     const diff = Date.now() - new Date(dateStr).getTime();
@@ -160,81 +198,132 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
 
       {/* Right: Actions */}
       <div className="flex items-center gap-2 ml-4">
-        {/* Tenant context */}
-        {canSwitchTenant && (
-          <div className="relative" ref={tenantRef}>
-            <button
-              onClick={() => setShowTenantMenu(!showTenantMenu)}
-              className="flex items-center gap-2 h-9 px-3 rounded-lg border border-secondary-500/20 bg-background-100 hover:border-secondary-500/40 transition-all text-sm"
-            >
-              {tenantCtx.tenantOverrideActive ? (
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse-glow shrink-0"></span>
-              ) : (
-                <span className="w-1.5 h-1.5 rounded-full bg-primary-400 shrink-0"></span>
-              )}
-              <span className="text-foreground-300 text-xs max-w-[130px] truncate hidden md:block">
-                {tenantCtx.effectiveTenantName || 'Sin tenant'}
-              </span>
-              {switchingTenant ? (
-                <span className="w-3.5 h-3.5 flex items-center justify-center text-foreground-500">
-                  <i className="ri-loader-4-line animate-spin text-xs"></i>
+        {/* Context switchers: País → Tenant → Cliente */}
+        <div className="flex items-center gap-1.5">
+          {/* País selector */}
+          {canSwitchCountry && (
+            <div className="relative" ref={countryRef}>
+              <button
+                onClick={() => { setShowCountryMenu(!showCountryMenu); setShowTenantMenu(false); setShowClientMenu(false); }}
+                className="flex items-center gap-1.5 h-9 px-2.5 rounded-lg border border-secondary-500/20 bg-background-100 hover:border-secondary-500/40 transition-all text-sm"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>
+                <span className="text-foreground-300 text-xs max-w-[80px] truncate hidden md:block">
+                  {tenantCtx.effectiveCountryName || 'Sin pais'}
                 </span>
-              ) : (
-                <span className="w-3.5 h-3.5 flex items-center justify-center text-foreground-500">
-                  <i className="ri-arrow-down-s-line text-xs"></i>
-                </span>
-              )}
-            </button>
-
-            {showTenantMenu && (
-              <div className="absolute right-0 top-full mt-2 w-72 glass-panel-strong rounded-xl animate-scale-in overflow-hidden z-50">
-                <div className="px-4 py-3 border-b border-secondary-500/10">
-                  <p className="text-xs font-medium text-foreground-400 mb-1">
-                    {tenantCtx.tenantOverrideActive ? 'Contexto anulado' : 'Tenant actual'}
-                  </p>
-                  <p className="text-sm font-semibold text-foreground-200">{tenantCtx.effectiveTenantName}</p>
-                </div>
-                <div className="max-h-56 overflow-y-auto py-1">
-                  {tenantCtx.accessibleTenants.map((t) => {
-                    const isCurrent = t.tenant_id === tenantCtx.effectiveTenantId && !tenantCtx.tenantOverrideActive;
-                    const isOverride = t.tenant_id === tenantCtx.effectiveTenantId && tenantCtx.tenantOverrideActive;
-                    return (
-                      <button
-                        key={t.tenant_id}
-                        onClick={() => handleSwitchTenant(t.tenant_id)}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-background-200/50 transition-colors"
-                      >
-                        <span className={`w-2 h-2 rounded-full shrink-0 ${isCurrent ? 'bg-primary-400' : isOverride ? 'bg-amber-400' : 'bg-secondary-500/40'}`}></span>
-                        <span className={`flex-1 ${isCurrent || isOverride ? 'text-foreground-200 font-medium' : 'text-foreground-500'}`}>
-                          {t.tenant_name}
-                        </span>
-                        {isCurrent && <span className="text-2xs text-primary-400 font-medium">Actual</span>}
-                        {isOverride && <span className="text-2xs text-amber-400 font-medium">Anulado</span>}
-                      </button>
-                    );
-                  })}
-                </div>
-                {tenantCtx.tenantOverrideActive && (
-                  <div className="border-t border-secondary-500/10 p-2">
-                    <button onClick={handleClearOverride} className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-foreground-400 hover:text-foreground-200 hover:bg-background-200/50 transition-colors">
-                      <span className="w-3.5 h-3.5 flex items-center justify-center"><i className="ri-arrow-go-back-line"></i></span>
-                      Volver a mi tenant original
-                    </button>
-                  </div>
+                {switchingCountry ? (
+                  <span className="w-3 h-3 flex items-center justify-center text-foreground-500">
+                    <i className="ri-loader-4-line animate-spin text-xs"></i>
+                  </span>
+                ) : (
+                  <span className="w-3 h-3 flex items-center justify-center text-foreground-500">
+                    <i className="ri-arrow-down-s-line text-xs"></i>
+                  </span>
                 )}
-              </div>
-            )}
-          </div>
-        )}
+              </button>
+              {showCountryMenu && (
+                <div className="absolute left-0 top-full mt-2 w-56 glass-panel-strong rounded-xl animate-scale-in overflow-hidden z-50">
+                  <div className="px-4 py-3 border-b border-secondary-500/10">
+                    <p className="text-xs font-medium text-foreground-400 mb-1">Pais activo</p>
+                    <p className="text-sm font-semibold text-foreground-200">{tenantCtx.effectiveCountryName || 'Sin pais'}</p>
+                  </div>
+                  <div className="max-h-56 overflow-y-auto py-1">
+                    {tenantCtx.accessibleCountries.map((c) => {
+                      const isCurrent = c.id === tenantCtx.effectiveCountryId;
+                      return (
+                        <button
+                          key={c.id}
+                          onClick={() => handleSwitchCountry(c.id)}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-background-200/50 transition-colors"
+                        >
+                          <span className={`w-2 h-2 rounded-full shrink-0 ${isCurrent ? 'bg-emerald-400' : 'bg-secondary-500/40'}`}></span>
+                          <span className={`flex-1 ${isCurrent ? 'text-foreground-200 font-medium' : 'text-foreground-500'}`}>{c.name}</span>
+                          {isCurrent && <span className="text-2xs text-emerald-400 font-medium">Activo</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
-        {!canSwitchTenant && tenantCtx.effectiveTenantName && (
-          <div className="flex items-center gap-2 h-9 px-3 rounded-lg border border-secondary-500/20 bg-background-100 text-sm">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary-400 shrink-0"></span>
-            <span className="text-foreground-300 text-xs max-w-[130px] truncate hidden md:block">
-              {tenantCtx.effectiveTenantName}
-            </span>
-          </div>
-        )}
+          {/* Tenant selector */}
+          {canSwitchTenant && (
+            <div className="relative" ref={tenantRef}>
+              <button
+                onClick={() => setShowTenantMenu(!showTenantMenu)}
+                className="flex items-center gap-2 h-9 px-3 rounded-lg border border-secondary-500/20 bg-background-100 hover:border-secondary-500/40 transition-all text-sm"
+              >
+                {tenantCtx.tenantOverrideActive ? (
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse-glow shrink-0"></span>
+                ) : (
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary-400 shrink-0"></span>
+                )}
+                <span className="text-foreground-300 text-xs max-w-[130px] truncate hidden md:block">
+                  {tenantCtx.effectiveTenantName || 'Sin tenant'}
+                </span>
+                {switchingTenant ? (
+                  <span className="w-3.5 h-3.5 flex items-center justify-center text-foreground-500">
+                    <i className="ri-loader-4-line animate-spin text-xs"></i>
+                  </span>
+                ) : (
+                  <span className="w-3.5 h-3.5 flex items-center justify-center text-foreground-500">
+                    <i className="ri-arrow-down-s-line text-xs"></i>
+                  </span>
+                )}
+              </button>
+
+              {showTenantMenu && (
+                <div className="absolute right-0 top-full mt-2 w-72 glass-panel-strong rounded-xl animate-scale-in overflow-hidden z-50">
+                  <div className="px-4 py-3 border-b border-secondary-500/10">
+                    <p className="text-xs font-medium text-foreground-400 mb-1">
+                      {tenantCtx.tenantOverrideActive ? 'Contexto anulado' : 'Tenant actual'}
+                    </p>
+                    <p className="text-sm font-semibold text-foreground-200">{tenantCtx.effectiveTenantName}</p>
+                  </div>
+                  <div className="max-h-56 overflow-y-auto py-1">
+                    {tenantCtx.accessibleTenants.map((t) => {
+                      const isCurrent = t.tenant_id === tenantCtx.effectiveTenantId && !tenantCtx.tenantOverrideActive;
+                      const isOverride = t.tenant_id === tenantCtx.effectiveTenantId && tenantCtx.tenantOverrideActive;
+                      return (
+                        <button
+                          key={t.tenant_id}
+                          onClick={() => handleSwitchTenant(t.tenant_id)}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-background-200/50 transition-colors"
+                        >
+                          <span className={`w-2 h-2 rounded-full shrink-0 ${isCurrent ? 'bg-primary-400' : isOverride ? 'bg-amber-400' : 'bg-secondary-500/40'}`}></span>
+                          <span className={`flex-1 ${isCurrent || isOverride ? 'text-foreground-200 font-medium' : 'text-foreground-500'}`}>
+                            {t.tenant_name}
+                          </span>
+                          {isCurrent && <span className="text-2xs text-primary-400 font-medium">Actual</span>}
+                          {isOverride && <span className="text-2xs text-amber-400 font-medium">Anulado</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {tenantCtx.tenantOverrideActive && (
+                    <div className="border-t border-secondary-500/10 p-2">
+                      <button onClick={handleClearOverride} className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-foreground-400 hover:text-foreground-200 hover:bg-background-200/50 transition-colors">
+                        <span className="w-3.5 h-3.5 flex items-center justify-center"><i className="ri-arrow-go-back-line"></i></span>
+                        Volver a mi tenant original
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {!canSwitchTenant && !canSwitchCountry && tenantCtx.effectiveTenantName && (
+            <div className="flex items-center gap-2 h-9 px-3 rounded-lg border border-secondary-500/20 bg-background-100 text-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary-400 shrink-0"></span>
+              <span className="text-foreground-300 text-xs max-w-[130px] truncate hidden md:block">
+                {tenantCtx.effectiveTenantName}
+              </span>
+            </div>
+          )}
+        </div>
 
         {/* Real Notifications */}
         <div className="relative" ref={notifRef}>

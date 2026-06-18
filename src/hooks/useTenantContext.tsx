@@ -17,21 +17,33 @@ interface TenantInfo {
 interface CountryInfo {
   id: string;
   name: string;
+}
+
+interface ClientInfo {
+  id: string;
+  name: string;
   tenant_id: string;
 }
 
 interface TenantContextValue {
   effectiveTenantId: string | null;
   effectiveTenantName: string | null;
+  effectiveCountryId: string | null;
+  effectiveCountryName: string | null;
+  effectiveClientId: string | null;
+  effectiveClientName: string | null;
   tenantOverrideActive: boolean;
   roleLevel: number;
   accessibleTenants: TenantInfo[];
   accessibleCountries: CountryInfo[];
+  accessibleClients: ClientInfo[];
   loading: boolean;
   switchTenant: (tenantId: string) => Promise<boolean>;
   clearTenant: () => Promise<boolean>;
   switchCountry: (countryId: string) => Promise<boolean>;
   clearCountry: () => Promise<boolean>;
+  switchClient: (clientId: string) => Promise<boolean>;
+  clearClient: () => Promise<boolean>;
   refresh: () => Promise<void>;
 }
 
@@ -40,10 +52,15 @@ const TenantContext = createContext<TenantContextValue | null>(null);
 export function TenantContextProvider({ children }: { children: ReactNode }) {
   const [effectiveTenantId, setEffectiveTenantId] = useState<string | null>(null);
   const [effectiveTenantName, setEffectiveTenantName] = useState<string | null>(null);
+  const [effectiveCountryId, setEffectiveCountryId] = useState<string | null>(null);
+  const [effectiveCountryName, setEffectiveCountryName] = useState<string | null>(null);
+  const [effectiveClientId, setEffectiveClientId] = useState<string | null>(null);
+  const [effectiveClientName, setEffectiveClientName] = useState<string | null>(null);
   const [tenantOverrideActive, setTenantOverrideActive] = useState(false);
   const [roleLevel, setRoleLevel] = useState(0);
   const [accessibleTenants, setAccessibleTenants] = useState<TenantInfo[]>([]);
   const [accessibleCountries, setAccessibleCountries] = useState<CountryInfo[]>([]);
+  const [accessibleClients, setAccessibleClients] = useState<ClientInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const initialLoad = useRef(true);
 
@@ -52,22 +69,33 @@ export function TenantContextProvider({ children }: { children: ReactNode }) {
     if (ctx) {
       setEffectiveTenantId(ctx.tenant_id);
       setEffectiveTenantName(ctx.tenant_name);
+      setEffectiveCountryId(ctx.country_id || null);
+      setEffectiveCountryName(ctx.country_name || null);
       setTenantOverrideActive(!!ctx.tenant_context_override);
       setRoleLevel(ctx.role_level);
     }
 
+    // Load accessible tenants
     const { tenants } = await fetchAccessibleTenants();
     setAccessibleTenants(tenants);
 
-    const effectiveTid = ctx?.tenant_id;
-    if (effectiveTid) {
-      const { data: countries } = await supabase
-        .from('countries')
+    // Load accessible countries via RPC
+    const { data: countries, error: countriesErr } = await supabase
+      .rpc('get_accessible_countries');
+    if (!countriesErr && countries) {
+      setAccessibleCountries(countries);
+    }
+
+    // Load accessible clients - for all accessible tenants
+    if (tenants.length > 0) {
+      const tenantIds = tenants.map((t) => t.tenant_id);
+      const { data: clients } = await supabase
+        .from('clients')
         .select('id, name, tenant_id')
-        .eq('tenant_id', effectiveTid)
+        .in('tenant_id', tenantIds)
         .eq('status', 'active')
         .order('name');
-      if (countries) setAccessibleCountries(countries);
+      if (clients) setAccessibleClients(clients);
     }
 
     setLoading(false);
@@ -130,6 +158,21 @@ export function TenantContextProvider({ children }: { children: ReactNode }) {
     return ok;
   }, [loadContext]);
 
+  const switchClient = useCallback(async (clientId: string): Promise<boolean> => {
+    // Use set_client_context RPC
+    const { data, error } = await supabase.rpc('set_client_context', { p_client_id: clientId });
+    if (error) return false;
+    if (data) await loadContext();
+    return !!data;
+  }, [loadContext]);
+
+  const clearClient = useCallback(async (): Promise<boolean> => {
+    const { data, error } = await supabase.rpc('clear_client_context');
+    if (error) return false;
+    if (data) await loadContext();
+    return !!data;
+  }, [loadContext]);
+
   const refresh = useCallback(async () => {
     setLoading(true);
     await loadContext();
@@ -138,15 +181,22 @@ export function TenantContextProvider({ children }: { children: ReactNode }) {
   const ctxValue: TenantContextValue = {
     effectiveTenantId,
     effectiveTenantName,
+    effectiveCountryId,
+    effectiveCountryName,
+    effectiveClientId,
+    effectiveClientName,
     tenantOverrideActive,
     roleLevel,
     accessibleTenants,
     accessibleCountries,
+    accessibleClients,
     loading,
     switchTenant,
     clearTenant,
     switchCountry,
     clearCountry,
+    switchClient,
+    clearClient,
     refresh,
   };
 

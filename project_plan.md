@@ -617,3 +617,93 @@ SQL (ejecutado en Supabase):
 - CREATE _populate_user_scopes()
 - Migración: INSERT INTO user_tenants/countries/warehouses/clients
 ```
+
+### Fase 7: Modelo de Cascada País → Tenant → Cliente ✅ COMPLETADO (Jun 2026)
+
+**Objetivo:** Rediseñar el modelo de alcances multi-tenant del modelo de listas independientes a una jerarquía organizacional en cascada: País → Tenant → Cliente → Usuario → Aplicaciones.
+
+**Problema del modelo anterior:**
+- Las 4 tablas puente (`user_countries`, `user_tenants`, `user_warehouses`, `user_clients`) eran listas independientes
+- El usuario podía seleccionar cualquier combinación sin validación jerárquica
+- Permitía configuraciones inconsistentes (ej: País=Costa Rica, Tenant=OLO Panamá, Cliente=Walmart CR)
+
+**Nuevo modelo:**
+```
+País (raíz organizacional)
+└── Tenant (existe dentro de un país)
+    └── Cliente (existe dentro de un tenant)
+        └── Usuario
+            └── Aplicaciones
+```
+
+**Cambios en Base de Datos:**
+
+1. **`tenants.country_id`** — Nueva columna UUID FK→countries. Establece que un tenant pertenece a un país. Poblada desde datos existentes (reverse lookup countries.tenant_id).
+
+2. **`get_accessible_countries()`** — Nueva función RPC: retorna países accesibles via `user_countries` bridge o via `tenants.country_id` de tenants asignados. Super Admin + scope_all ven todos. Respeta `country_context_override`.
+
+3. **`get_accessible_clients(p_tenant_id)`** — Nueva función RPC: retorna clientes accesibles via `user_clients` bridge o via tenants asignados. Filtrable por tenant_id para cascada. Super Admin + scope_all ven todos. Respeta `client_context_override`.
+
+**Jerarquía RLS:**
+```
+can_access_country() → ROOT: verifica user_countries o tenants.country_id
+can_access_tenant()  → verifica user_tenants o acceso por país
+can_access_client()  → verifica user_clients o acceso por tenant (sin warehouse)
+```
+
+**Cambios en Frontend:**
+
+1. **`EditUserModal` rediseñado** (`src/pages/users/components/EditUserModal.tsx`):
+   - **Eliminado:** Almacén de toda la cadena de alcance
+   - **Sección 3 — Contexto Principal:** País → Tenant → Cliente (cascada automática: tenant filtrado por país, cliente filtrado por tenant)
+   - **Sección 4 — Alcances Adicionales:** MultiSelect de Países (raíz), Tenants (filtrados por países seleccionados), Clientes (filtrados por tenants seleccionados)
+   - **Sección 5 — Acceso Global:** 3 checkboxes: Todos los países, Todos los tenants, Todos los clientes
+   - **Validación de guardado:** tenant.country_id ∈ países seleccionados, cliente.tenant_id ∈ tenants seleccionados. Si falla, muestra mensaje descriptivo.
+   - **Indicador de cascada:** muestra visualmente la ruta País → Tenant → Cliente
+
+2. **`Topbar` con cascada** (`src/components/feature/Topbar.tsx`):
+   - **Selector de País:** dropdown con todos los países accesibles (verde esmeralda)
+   - **Selector de Tenant:** dropdown con todos los tenants accesibles (primario)
+   - **Condición:** solo visible si `accessibleCountries/Tenants.length > 1`
+
+3. **`useTenantContext` extendido** (`src/hooks/useTenantContext.tsx`):
+   - `effectiveCountryId`, `effectiveCountryName` — país activo
+   - `effectiveClientId`, `effectiveClientName` — cliente activo
+   - `accessibleCountries`, `accessibleClients` — datos para selectores
+   - `switchClient()`, `clearClient()` — cambio de cliente via RPC `set_client_context`
+
+4. **`My Access` — Sección "Mis Alcances"** (`src/pages/my-access/page.tsx`):
+   - Muestra 3 tarjetas: Países asignados, Tenants asignados, Clientes asignados
+   - Con indicadores visuales de cuál está activo
+
+5. **`usersService` actualizado** (`src/services/auth/usersService.ts`):
+   - `UpdateUserInput`: eliminado `warehouse_id`, `scope_warehouses`, `scope_all_warehouses`
+   - `getUserContext()`: ahora retorna `country_id`, `country_name`, `client_context_override`
+   - `syncUserBridgeScopes()`: eliminada sincronización de `user_warehouses`
+   - `fetchUserBridgeScopes()`: eliminada lectura de `user_warehouses`
+
+**Reglas de negocio implementadas:**
+- ✅ País es la raíz organizacional
+- ✅ Tenants se filtran por los países seleccionados
+- ✅ Clientes se filtran por los tenants seleccionados
+- ✅ Sin Almacén en la cadena de alcance
+- ✅ Validación de consistencia antes de guardar
+- ✅ Mensaje descriptivo si hay relaciones inconsistentes
+- ✅ Super Admin (level >= 100) ve todo, tiene scope_all automático
+- ✅ La experiencia es País → Tenant → Cliente como única fuente de verdad
+
+**Archivos modificados:**
+```
+SQL (ejecutado en Supabase):
+- ALTER tenants ADD country_id
+- CREATE get_accessible_countries()
+- CREATE get_accessible_clients()
+
+MODIFICADOS:
+src/pages/users/components/EditUserModal.tsx   — Rediseño completo: cascada País→Tenant→Cliente + validación
+src/pages/users/page.tsx                        — Eliminado warehouses de props de EditUserModal
+src/services/auth/usersService.ts              — UpdateUserInput sin warehouse, getUserContext extendido
+src/hooks/useTenantContext.tsx                 — Country y Client context
+src/components/feature/Topbar.tsx              — Selectores País + Tenant en cascada
+src/pages/my-access/page.tsx                   — Sección Mis Alcances (País→Tenant→Cliente)
+```

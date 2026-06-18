@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/feature/AppLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { useApplicationAccess } from '@/hooks/useApplicationAccess';
+import { useTenantContext } from '@/hooks/useTenantContext';
 import { logAuditEvent } from '@/services/security/accessService';
 
 const statusConfig: Record<string, { label: string; bg: string; text: string; border: string }> = {
@@ -28,6 +29,7 @@ export default function MyAccessPage() {
   const navigate = useNavigate();
   const { platformUser, user } = useAuth();
   const { myAccesses, myLoading, loadMyAccesses } = useApplicationAccess();
+  const { accessibleCountries, accessibleTenants, accessibleClients, effectiveCountryName, effectiveTenantName } = useTenantContext();
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
@@ -111,6 +113,73 @@ export default function MyAccessPage() {
             </p>
           </div>
         </div>
+
+        {/* Mis Alcances — Organizational scope */}
+        <section className="glass-panel rounded-2xl p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="w-5 h-5 rounded-md bg-emerald-500/10 flex items-center justify-center">
+              <i className="ri-stack-line text-emerald-400 text-xs"></i>
+            </span>
+            <h2 className="text-sm font-semibold text-foreground-200">Mis Alcances</h2>
+            <span className="text-2xs text-foreground-500 ml-1">Pais → Tenant → Cliente</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="p-3 rounded-xl bg-background-100/70 border border-secondary-500/10">
+              <p className="text-xs font-medium text-foreground-500 mb-2 flex items-center gap-1.5">
+                <span className="w-3 h-3 flex items-center justify-center text-emerald-400"><i className="ri-global-line text-xs"></i></span>
+                Paises
+              </p>
+              {accessibleCountries.length === 0 ? (
+                <p className="text-xs text-foreground-600 italic">Sin paises asignados</p>
+              ) : (
+                <ul className="space-y-1">
+                  {accessibleCountries.map((c) => (
+                    <li key={c.id} className="flex items-center gap-2 text-xs text-foreground-300">
+                      <span className={`w-1.5 h-1.5 rounded-full ${c.id === effectiveCountryName ? 'bg-emerald-400' : 'bg-emerald-400/40'}`}></span>
+                      {c.name}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div className="p-3 rounded-xl bg-background-100/70 border border-secondary-500/10">
+              <p className="text-xs font-medium text-foreground-500 mb-2 flex items-center gap-1.5">
+                <span className="w-3 h-3 flex items-center justify-center text-primary-400"><i className="ri-building-line text-xs"></i></span>
+                Tenants
+              </p>
+              {accessibleTenants.length === 0 ? (
+                <p className="text-xs text-foreground-600 italic">Sin tenants asignados</p>
+              ) : (
+                <ul className="space-y-1">
+                  {accessibleTenants.map((t) => (
+                    <li key={t.tenant_id} className="flex items-center gap-2 text-xs text-foreground-300">
+                      <span className={`w-1.5 h-1.5 rounded-full ${t.tenant_name === effectiveTenantName ? 'bg-primary-400' : 'bg-primary-400/40'}`}></span>
+                      {t.tenant_name}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div className="p-3 rounded-xl bg-background-100/70 border border-secondary-500/10">
+              <p className="text-xs font-medium text-foreground-500 mb-2 flex items-center gap-1.5">
+                <span className="w-3 h-3 flex items-center justify-center text-amber-400"><i className="ri-building-2-line text-xs"></i></span>
+                Clientes
+              </p>
+              {accessibleClients.length === 0 ? (
+                <p className="text-xs text-foreground-600 italic">Sin clientes asignados</p>
+              ) : (
+                <ul className="space-y-1">
+                  {accessibleClients.map((cl) => (
+                    <li key={cl.id} className="flex items-center gap-2 text-xs text-foreground-300">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400/40"></span>
+                      {cl.name}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </section>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {[

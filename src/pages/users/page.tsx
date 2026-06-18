@@ -673,7 +673,6 @@ export default function UsersPage() {
         tenants={tenants}
         roles={roles}
         countries={countries}
-        warehouses={warehouses}
         clients={clients}
       />
 

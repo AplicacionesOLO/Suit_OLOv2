@@ -15,11 +15,10 @@ interface EditUserModalProps {
   onClose: () => void;
   onSaved: () => void;
   onEditUser: (userId: string, input: UpdateUserInput) => Promise<{ error: string | null }>;
-  tenants: { id: string; name: string }[];
+  tenants: { id: string; name: string; country_id?: string | null }[];
   roles: { id: string; name: string; level: number }[];
   countries: { id: string; name: string; tenant_id: string }[];
-  warehouses: { id: string; name: string; country_id: string }[];
-  clients: { id: string; name: string; warehouse_id: string }[];
+  clients: { id: string; name: string; tenant_id: string }[];
 }
 
 type EditFormState = {
@@ -29,28 +28,21 @@ type EditFormState = {
   status: string;
   tenant_id: string;
   country_id: string;
-  warehouse_id: string;
   client_id: string;
-  scope_tenants: string[];
   scope_countries: string[];
-  scope_warehouses: string[];
+  scope_tenants: string[];
   scope_clients: string[];
-  scope_all_tenants: boolean;
   scope_all_countries: boolean;
-  scope_all_warehouses: boolean;
+  scope_all_tenants: boolean;
   scope_all_clients: boolean;
 };
 
-function autoCountryId(cid: string | null | undefined): string { return cid || ''; }
-function autoWarehouseId(wid: string | null | undefined): string { return wid || ''; }
-function autoClientId(clid: string | null | undefined): string { return clid || ''; }
-
-export default function EditUserModal({ user, isOpen, onClose, onSaved, onEditUser, tenants, roles, countries, warehouses, clients }: EditUserModalProps) {
+export default function EditUserModal({ user, isOpen, onClose, onSaved, onEditUser, tenants, roles, countries, clients }: EditUserModalProps) {
   const [editForm, setEditForm] = useState<EditFormState>({
     first_name: '', last_name: '', role_id: '', status: 'active',
-    tenant_id: '', country_id: '', warehouse_id: '', client_id: '',
-    scope_tenants: [], scope_countries: [], scope_warehouses: [], scope_clients: [],
-    scope_all_tenants: false, scope_all_countries: false, scope_all_warehouses: false, scope_all_clients: false,
+    tenant_id: '', country_id: '', client_id: '',
+    scope_countries: [], scope_tenants: [], scope_clients: [],
+    scope_all_countries: false, scope_all_tenants: false, scope_all_clients: false,
   });
 
   const [appAccesses, setAppAccesses] = useState<UserAppAccessForEdit[]>([]);
@@ -63,7 +55,67 @@ export default function EditUserModal({ user, isOpen, onClose, onSaved, onEditUs
   const [formError, setFormError] = useState('');
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  // Load initial form data and dynamic sections when modal opens
+  // ========== CASCADING LOGIC ==========
+
+  // All active countries (for the root selector)
+  const allCountryOptions = useMemo(() => countries.map((c) => ({ id: c.id, label: c.name })), [countries]);
+
+  // Tenants filtered by selected countries: tenant.country_id must be in selected country set
+  const tenantOptionsByCountry = useMemo(() => {
+    const selectedCountrySet = new Set([editForm.country_id, ...editForm.scope_countries].filter(Boolean));
+    if (selectedCountrySet.size === 0) return tenants.map((t) => ({ id: t.id, label: t.name }));
+    return tenants
+      .filter((t) => t.country_id && selectedCountrySet.has(t.country_id))
+      .map((t) => ({ id: t.id, label: t.name }));
+  }, [tenants, editForm.country_id, editForm.scope_countries]);
+
+  // All tenant options (unfiltered, for reference dropdowns)
+  const allTenantOptions = useMemo(() => tenants.map((t) => ({ id: t.id, label: t.name })), [tenants]);
+
+  // Clients filtered by selected tenants: client.tenant_id must be in selected tenant set
+  const clientOptionsByTenant = useMemo(() => {
+    const selectedTenantSet = new Set([editForm.tenant_id, ...editForm.scope_tenants].filter(Boolean));
+    if (selectedTenantSet.size === 0) return clients.map((c) => ({ id: c.id, label: c.name }));
+    return clients
+      .filter((c) => selectedTenantSet.has(c.tenant_id))
+      .map((c) => ({ id: c.id, label: c.name }));
+  }, [clients, editForm.tenant_id, editForm.scope_tenants]);
+
+  // Countries filtered by selected tenant (for Section 3 country dropdown)
+  const countriesByTenant = useMemo(() => {
+    if (!editForm.tenant_id) return [];
+    const tenant = tenants.find((t) => t.id === editForm.tenant_id);
+    const tenantCountryId = tenant?.country_id;
+    if (!tenantCountryId) return countries;
+    return countries.filter((c) => c.id === tenantCountryId);
+  }, [countries, tenants, editForm.tenant_id]);
+
+  // Clients filtered by selected tenant only (for Section 3 client dropdown)
+  const clientsByTenantOnly = useMemo(() => {
+    if (!editForm.tenant_id) return [];
+    return clients.filter((c) => c.tenant_id === editForm.tenant_id);
+  }, [clients, editForm.tenant_id]);
+
+  // ========== COMPUTED CONTEXTS (Section 8) ==========
+  const availableCountryNames = useMemo(() => {
+    if (editForm.scope_all_countries) return ['Todos los paises'];
+    const ids = new Set([editForm.country_id, ...editForm.scope_countries].filter(Boolean));
+    return countries.filter((c) => ids.has(c.id)).map((c) => c.name);
+  }, [editForm.scope_all_countries, editForm.country_id, editForm.scope_countries, countries]);
+
+  const availableTenantNames = useMemo(() => {
+    if (editForm.scope_all_tenants) return ['Todos los tenants'];
+    const ids = new Set([editForm.tenant_id, ...editForm.scope_tenants].filter(Boolean));
+    return tenants.filter((t) => ids.has(t.id)).map((t) => t.name);
+  }, [editForm.scope_all_tenants, editForm.tenant_id, editForm.scope_tenants, tenants]);
+
+  const availableClientNames = useMemo(() => {
+    if (editForm.scope_all_clients) return ['Todos los clientes'];
+    const ids = new Set([editForm.client_id, ...editForm.scope_clients].filter(Boolean));
+    return clients.filter((c) => ids.has(c.id)).map((c) => c.name);
+  }, [editForm.scope_all_clients, editForm.client_id, editForm.scope_clients, clients]);
+
+  // ========== LOAD DYNAMIC DATA ==========
   useEffect(() => {
     if (!isOpen || !user) return;
 
@@ -73,16 +125,13 @@ export default function EditUserModal({ user, isOpen, onClose, onSaved, onEditUs
       role_id: user.role_id || '',
       status: user.status || 'active',
       tenant_id: user.tenant_id || '',
-      country_id: autoCountryId(user.country_id),
-      warehouse_id: autoWarehouseId(user.warehouse_id),
-      client_id: autoClientId(user.client_id),
-      scope_tenants: [],
+      country_id: user.country_id || '',
+      client_id: user.client_id || '',
       scope_countries: [],
-      scope_warehouses: [],
+      scope_tenants: [],
       scope_clients: [],
-      scope_all_tenants: (user as any).scope_all_tenants || false,
       scope_all_countries: (user as any).scope_all_countries || false,
-      scope_all_warehouses: (user as any).scope_all_warehouses || false,
+      scope_all_tenants: (user as any).scope_all_tenants || false,
       scope_all_clients: (user as any).scope_all_clients || false,
     });
 
@@ -94,7 +143,6 @@ export default function EditUserModal({ user, isOpen, onClose, onSaved, onEditUs
     setFormError('');
     setToast(null);
 
-    // Load dynamic sections in parallel
     const loadSections = async () => {
       const [scopesRes, appsRes, auditRes] = await Promise.all([
         fetchUserBridgeScopes(user.id),
@@ -105,17 +153,15 @@ export default function EditUserModal({ user, isOpen, onClose, onSaved, onEditUs
       if (scopesRes.data && !scopesRes.error) {
         setEditForm((prev) => ({
           ...prev,
-          scope_tenants: scopesRes.data.tenant_ids,
-          scope_countries: scopesRes.data.country_ids,
-          scope_warehouses: scopesRes.data.warehouse_ids,
-          scope_clients: scopesRes.data.client_ids,
+          scope_countries: scopesRes.data.country_ids.filter((cid: string) => cid !== user.country_id),
+          scope_tenants: scopesRes.data.tenant_ids.filter((tid: string) => tid !== user.tenant_id),
+          scope_clients: scopesRes.data.client_ids.filter((clid: string) => clid !== user.client_id),
         }));
       }
 
       if (appsRes.data) setAppAccesses(appsRes.data);
       if (auditRes.data) setAuditLogs(auditRes.data);
 
-      // Load role permissions if user has a role
       if (user.role_id) {
         const permRes = await fetchRolePermissionsForDisplay(user.role_id);
         if (permRes.data) setRolePermissions(permRes.data);
@@ -127,75 +173,58 @@ export default function EditUserModal({ user, isOpen, onClose, onSaved, onEditUs
     loadSections();
   }, [isOpen, user]);
 
-  // Derived data for dropdowns
-  const filteredCountries = useMemo(() => {
-    if (!editForm.tenant_id) return [];
-    return countries.filter((c) => c.tenant_id === editForm.tenant_id);
-  }, [countries, editForm.tenant_id]);
-
-  const filteredWarehouses = useMemo(() => {
-    if (!editForm.country_id) return [];
-    return warehouses.filter((w) => w.country_id === editForm.country_id);
-  }, [warehouses, editForm.country_id]);
-
-  const filteredClients = useMemo(() => {
-    if (!editForm.warehouse_id) return [];
-    return clients.filter((c) => c.warehouse_id === editForm.warehouse_id);
-  }, [clients, editForm.warehouse_id]);
-
-  // Options for multi-select scopes
-  const tenantOptions = useMemo(() => tenants.map((t) => ({ id: t.id, label: t.name })), [tenants]);
-
-  const countryOptionsForScopes = useMemo(() => {
-    if (!editForm.tenant_id) return [];
-    return countries.filter((c) => c.tenant_id === editForm.tenant_id).map((c) => ({ id: c.id, label: c.name }));
-  }, [countries, editForm.tenant_id]);
-
-  const warehouseOptionsForScopes = useMemo(() => {
-    if (!editForm.tenant_id) return [];
-    const countrySet = new Set<string>([editForm.country_id, ...editForm.scope_countries].filter(Boolean));
-    return warehouses.filter((w) => countrySet.has(w.country_id)).map((w) => ({ id: w.id, label: w.name }));
-  }, [warehouses, editForm.tenant_id, editForm.country_id, editForm.scope_countries]);
-
-  const clientOptionsForScopes = useMemo(() => {
-    if (!editForm.tenant_id) return [];
-    const warehouseSet = new Set<string>([editForm.warehouse_id, ...editForm.scope_warehouses].filter(Boolean));
-    return clients.filter((c) => warehouseSet.has(c.warehouse_id)).map((c) => ({ id: c.id, label: c.name }));
-  }, [clients, editForm.tenant_id, editForm.warehouse_id, editForm.scope_warehouses]);
-
-  // Computed available contexts (Section 8)
-  const availableTenantNames = useMemo(() => {
-    if (editForm.scope_all_tenants) return ['Todos los tenants'];
-    const ids = new Set([editForm.tenant_id, ...editForm.scope_tenants].filter(Boolean));
-    return tenants.filter((t) => ids.has(t.id)).map((t) => t.name);
-  }, [editForm.scope_all_tenants, editForm.tenant_id, editForm.scope_tenants, tenants]);
-
-  const availableCountryNames = useMemo(() => {
-    if (editForm.scope_all_countries) return ['Todos los paises'];
-    const ids = new Set([editForm.country_id, ...editForm.scope_countries].filter(Boolean));
-    return countries.filter((c) => ids.has(c.id)).map((c) => c.name);
-  }, [editForm.scope_all_countries, editForm.country_id, editForm.scope_countries, countries]);
-
-  const availableWarehouseNames = useMemo(() => {
-    if (editForm.scope_all_warehouses) return ['Todos los almacenes'];
-    const ids = new Set([editForm.warehouse_id, ...editForm.scope_warehouses].filter(Boolean));
-    return warehouses.filter((w) => ids.has(w.id)).map((w) => w.name);
-  }, [editForm.scope_all_warehouses, editForm.warehouse_id, editForm.scope_warehouses, warehouses]);
-
-  const availableClientNames = useMemo(() => {
-    if (editForm.scope_all_clients) return ['Todos los clientes'];
-    const ids = new Set([editForm.client_id, ...editForm.scope_clients].filter(Boolean));
-    return clients.filter((c) => ids.has(c.id)).map((c) => c.name);
-  }, [editForm.scope_all_clients, editForm.client_id, editForm.scope_clients, clients]);
-
+  // ========== HANDLERS ==========
   const showToast = useCallback((type: 'success' | 'error', message: string) => {
     setToast({ type, message });
     setTimeout(() => setToast(null), 4000);
   }, []);
 
+  const handleTenantChange = (tid: string) => {
+    // When tenant changes, reset country and client to match the new tenant's country
+    const tenant = tenants.find((t) => t.id === tid);
+    setEditForm((prev) => ({
+      ...prev,
+      tenant_id: tid,
+      country_id: tenant?.country_id || '',
+      client_id: '',
+    }));
+  };
+
   const handleSave = async () => {
     setSaving(true);
     setFormError('');
+
+    // ========== CASCADE VALIDATION ==========
+    // Rule: tenant.country_id must be in selected countries
+    // Rule: client.tenant_id must be in selected tenants
+    const selectedCountryIds = new Set([editForm.country_id, ...editForm.scope_countries].filter(Boolean));
+    const selectedTenantIds = new Set([editForm.tenant_id, ...editForm.scope_tenants].filter(Boolean));
+
+    if (!editForm.scope_all_tenants && !editForm.scope_all_countries) {
+      for (const tid of selectedTenantIds) {
+        const tenant = tenants.find((t) => t.id === tid);
+        if (tenant?.country_id && !selectedCountryIds.has(tenant.country_id)) {
+          setSaving(false);
+          setFormError(`El tenant "${tenant.name}" pertenece a un pais no seleccionado. Agrega ese pais a los alcances o elimina el tenant.`);
+          return;
+        }
+      }
+    }
+
+    if (!editForm.scope_all_clients && !editForm.scope_all_tenants) {
+      for (const clid of [editForm.client_id, ...editForm.scope_clients].filter(Boolean)) {
+        const client = clients.find((c) => c.id === clid);
+        if (client && !selectedTenantIds.has(client.tenant_id)) {
+          setSaving(false);
+          setFormError(`El cliente "${client.name}" pertenece a un tenant no seleccionado. Agrega ese tenant a los alcances o elimina el cliente.`);
+          return;
+        }
+      }
+    }
+
+    const primaryCountryIds = editForm.country_id ? [editForm.country_id] : [];
+    const primaryTenantIds = editForm.tenant_id ? [editForm.tenant_id] : [];
+    const primaryClientIds = editForm.client_id ? [editForm.client_id] : [];
 
     const update: UpdateUserInput = {
       first_name: editForm.first_name || undefined,
@@ -204,15 +233,12 @@ export default function EditUserModal({ user, isOpen, onClose, onSaved, onEditUs
       status: editForm.status || undefined,
       tenant_id: editForm.tenant_id || undefined,
       country_id: editForm.country_id || undefined,
-      warehouse_id: editForm.warehouse_id || undefined,
       client_id: editForm.client_id || undefined,
-      scope_tenants: [editForm.tenant_id, ...editForm.scope_tenants].filter(Boolean),
-      scope_countries: [editForm.country_id, ...editForm.scope_countries].filter(Boolean),
-      scope_warehouses: [editForm.warehouse_id, ...editForm.scope_warehouses].filter(Boolean),
-      scope_clients: [editForm.client_id, ...editForm.scope_clients].filter(Boolean),
-      scope_all_tenants: editForm.scope_all_tenants,
+      scope_countries: [...primaryCountryIds, ...editForm.scope_countries].filter(Boolean),
+      scope_tenants: [...primaryTenantIds, ...editForm.scope_tenants].filter(Boolean),
+      scope_clients: [...primaryClientIds, ...editForm.scope_clients].filter(Boolean),
       scope_all_countries: editForm.scope_all_countries,
-      scope_all_warehouses: editForm.scope_all_warehouses,
+      scope_all_tenants: editForm.scope_all_tenants,
       scope_all_clients: editForm.scope_all_clients,
     };
 
@@ -239,6 +265,7 @@ export default function EditUserModal({ user, isOpen, onClose, onSaved, onEditUs
     showToast('success', 'Acceso revocado');
   };
 
+  // ========== UTILITY ==========
   const statusBadge = (status: string) => {
     switch (status) {
       case 'active': case 'assigned': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
@@ -262,32 +289,14 @@ export default function EditUserModal({ user, isOpen, onClose, onSaved, onEditUs
 
   const auditActionLabel = (action: string): string => {
     const map: Record<string, string> = {
-      'LOGIN': 'Inicio de sesion',
-      'LOGOUT': 'Cierre de sesion',
-      'LOGIN_FAILED': 'Intento fallido de login',
-      'USER_UPDATED': 'Usuario actualizado',
-      'USER_DELETED': 'Usuario eliminado',
-      'USER_INVITED': 'Usuario invitado',
-      'USER_INVITATION_REVOKED': 'Invitacion revocada',
-      'ACCESS_GRANTED': 'Acceso otorgado',
-      'ACCESS_REVOKED': 'Acceso revocado',
-      'ACCESS_DENIED': 'Acceso denegado',
-      'TENANT_CHANGED': 'Cambio de tenant',
-      'PASSWORD_CHANGED': 'Cambio de contrasena',
-      'APP_OPENED': 'Aplicacion abierta',
-      'PERMISSION_CHANGED': 'Permisos modificados',
-      'ROLE_CHANGED': 'Rol modificado',
+      'LOGIN': 'Inicio de sesion', 'LOGOUT': 'Cierre de sesion', 'LOGIN_FAILED': 'Intento fallido de login',
+      'USER_UPDATED': 'Usuario actualizado', 'USER_DELETED': 'Usuario eliminado', 'USER_INVITED': 'Usuario invitado',
+      'USER_INVITATION_REVOKED': 'Invitacion revocada', 'ACCESS_GRANTED': 'Acceso otorgado',
+      'ACCESS_REVOKED': 'Acceso revocado', 'ACCESS_DENIED': 'Acceso denegado', 'TENANT_CHANGED': 'Cambio de tenant',
+      'PASSWORD_CHANGED': 'Cambio de contrasena', 'APP_OPENED': 'Aplicacion abierta',
+      'PERMISSION_CHANGED': 'Permisos modificados', 'ROLE_CHANGED': 'Rol modificado',
     };
     return map[action] || action;
-  };
-
-  const auditSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'critical': return 'text-red-400';
-      case 'high': return 'text-amber-400';
-      case 'medium': return 'text-accent-400';
-      default: return 'text-foreground-500';
-    }
   };
 
   if (!isOpen) return null;
@@ -417,109 +426,174 @@ export default function EditUserModal({ user, isOpen, onClose, onSaved, onEditUs
             </div>
           </section>
 
-          {/* ========== SECTION 3: MAIN TENANT ========== */}
+          {/* ================================================================ */}
+          {/* SECTION 3: CONTEXTO PRINCIPAL — País → Tenant → Cliente */}
+          {/* ================================================================ */}
           <section className="border-t border-secondary-500/10 pt-6">
             <div className="flex items-center gap-2 mb-4">
               <span className="w-5 h-5 rounded-md bg-accent-500/10 flex items-center justify-center">
-                <i className="ri-building-line text-accent-400 text-xs"></i>
+                <i className="ri-stack-line text-accent-400 text-xs"></i>
               </span>
-              <h3 className="text-sm font-semibold text-foreground-200">Tenant principal</h3>
-              <span className="text-2xs text-foreground-500 ml-1">Define el contexto por defecto al iniciar sesion</span>
+              <h3 className="text-sm font-semibold text-foreground-200">Contexto principal</h3>
+              <span className="text-2xs text-foreground-500 ml-1">Pais → Tenant → Cliente — define el contexto por defecto</span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* PAÍS — root of the hierarchy */}
               <div>
-                <label className="block text-xs font-medium text-foreground-400 mb-1.5">Tenant</label>
-                <select value={editForm.tenant_id} onChange={(e) => setEditForm({ ...editForm, tenant_id: e.target.value, country_id: '', warehouse_id: '', client_id: '' })} className="w-full h-10 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-300 outline-none focus:border-primary-500/40">
-                  <option value="">Sin tenant</option>
-                  {tenants.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-foreground-400 mb-1.5">Pais principal</label>
-                <select value={editForm.country_id} onChange={(e) => setEditForm({ ...editForm, country_id: e.target.value, warehouse_id: '', client_id: '' })} disabled={!editForm.tenant_id} className="w-full h-10 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-300 outline-none focus:border-primary-500/40 disabled:opacity-40">
+                <label className="block text-xs font-medium text-foreground-400 mb-1.5">
+                  <span className="w-3 h-3 inline-flex items-center justify-center mr-1 text-emerald-400"><i className="ri-global-line text-xs"></i></span>
+                  Pais principal
+                </label>
+                <select
+                  value={editForm.country_id}
+                  onChange={(e) => setEditForm({ ...editForm, country_id: e.target.value })}
+                  className="w-full h-10 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-300 outline-none focus:border-primary-500/40"
+                >
                   <option value="">Sin pais</option>
-                  {filteredCountries.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  {countries.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
+
+              {/* TENANT — filtered by country */}
               <div>
-                <label className="block text-xs font-medium text-foreground-400 mb-1.5">Almacen principal</label>
-                <select value={editForm.warehouse_id} onChange={(e) => setEditForm({ ...editForm, warehouse_id: e.target.value, client_id: '' })} disabled={!editForm.country_id} className="w-full h-10 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-300 outline-none focus:border-primary-500/40 disabled:opacity-40">
-                  <option value="">Sin almacen</option>
-                  {filteredWarehouses.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
+                <label className="block text-xs font-medium text-foreground-400 mb-1.5">
+                  <span className="w-3 h-3 inline-flex items-center justify-center mr-1 text-primary-400"><i className="ri-building-line text-xs"></i></span>
+                  Tenant principal
+                </label>
+                <select
+                  value={editForm.tenant_id}
+                  onChange={(e) => handleTenantChange(e.target.value)}
+                  className="w-full h-10 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-300 outline-none focus:border-primary-500/40"
+                >
+                  <option value="">Sin tenant</option>
+                  {tenantOptionsByCountry.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
                 </select>
+                {editForm.country_id && tenantOptionsByCountry.length === 0 && (
+                  <p className="text-2xs text-amber-400 mt-1">No hay tenants en este pais</p>
+                )}
               </div>
+
+              {/* CLIENTE — filtered by tenant */}
               <div>
-                <label className="block text-xs font-medium text-foreground-400 mb-1.5">Cliente principal</label>
-                <select value={editForm.client_id} onChange={(e) => setEditForm({ ...editForm, client_id: e.target.value })} disabled={!editForm.warehouse_id} className="w-full h-10 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-300 outline-none focus:border-primary-500/40 disabled:opacity-40">
+                <label className="block text-xs font-medium text-foreground-400 mb-1.5">
+                  <span className="w-3 h-3 inline-flex items-center justify-center mr-1 text-amber-400"><i className="ri-building-2-line text-xs"></i></span>
+                  Cliente principal
+                </label>
+                <select
+                  value={editForm.client_id}
+                  onChange={(e) => setEditForm({ ...editForm, client_id: e.target.value })}
+                  disabled={!editForm.tenant_id}
+                  className="w-full h-10 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-300 outline-none focus:border-primary-500/40 disabled:opacity-40"
+                >
                   <option value="">Sin cliente</option>
-                  {filteredClients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  {clientsByTenantOnly.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
+            </div>
+
+            {/* Cascade status indicator */}
+            <div className="mt-3 flex items-center gap-2 text-xs text-foreground-500">
+              <span className="w-3.5 h-3.5 flex items-center justify-center"><i className="ri-information-line"></i></span>
+              <span>
+                {editForm.country_id ? (
+                  editForm.tenant_id ? (
+                    editForm.client_id ? (
+                      <>Contexto: <span className="text-emerald-400 font-medium">{countries.find(c => c.id === editForm.country_id)?.name}</span> → <span className="text-primary-400 font-medium">{tenants.find(t => t.id === editForm.tenant_id)?.name}</span> → <span className="text-amber-400 font-medium">{clients.find(c => c.id === editForm.client_id)?.name}</span></>
+                    ) : (
+                      <>Contexto: <span className="text-emerald-400 font-medium">{countries.find(c => c.id === editForm.country_id)?.name}</span> → <span className="text-primary-400 font-medium">{tenants.find(t => t.id === editForm.tenant_id)?.name}</span> → <span className="text-foreground-600">sin cliente</span></>
+                    )
+                  ) : (
+                    <>Contexto: <span className="text-emerald-400 font-medium">{countries.find(c => c.id === editForm.country_id)?.name}</span> → <span className="text-foreground-600">sin tenant</span></>
+                  )
+                ) : (
+                  'Selecciona un pais para comenzar la cascada'
+                )}
+              </span>
             </div>
           </section>
 
-          {/* ========== SECTION 4: MULTI-TENANT SCOPES ========== */}
+          {/* ================================================================ */}
+          {/* SECTION 4: ALCANCES ADICIONALES — Cascading multi-selects */}
+          {/* ================================================================ */}
           <section className="border-t border-secondary-500/10 pt-6">
             <div className="flex items-center gap-2 mb-4">
               <span className="w-5 h-5 rounded-md bg-emerald-500/10 flex items-center justify-center">
                 <i className="ri-stack-line text-emerald-400 text-xs"></i>
               </span>
-              <h3 className="text-sm font-semibold text-foreground-200">Alcances multi-tenant</h3>
-              <span className="text-2xs text-foreground-500 ml-1">Tenants, paises, almacenes y clientes adicionales</span>
+              <h3 className="text-sm font-semibold text-foreground-200">Alcances adicionales</h3>
+              <span className="text-2xs text-foreground-500 ml-1">Selecciona en cascada: Paises → Tenants → Clientes</span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* PAÍSES — Level 1 (root, no filter) */}
               <div>
-                <label className="block text-xs font-medium text-foreground-400 mb-1.5">Tenants adicionales</label>
+                <label className="block text-xs font-medium text-foreground-400 mb-1.5">
+                  <i className="ri-global-line text-emerald-400 text-xs mr-1"></i>
+                  Paises adicionales
+                </label>
                 <MultiSelect
-                  options={tenantOptions.filter((t) => t.id !== editForm.tenant_id)}
-                  selected={editForm.scope_tenants}
-                  onChange={(vals) => setEditForm({ ...editForm, scope_tenants: vals })}
-                  placeholder={editForm.scope_all_tenants ? 'Todos los tenants (global)' : 'Ninguno'}
-                  searchPlaceholder="Buscar tenant..."
-                  emptyMessage="Sin tenants disponibles"
-                  disabled={editForm.scope_all_tenants}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-foreground-400 mb-1.5">Paises adicionales</label>
-                <MultiSelect
-                  options={countryOptionsForScopes.filter((c) => c.id !== editForm.country_id)}
+                  options={allCountryOptions.filter((c) => c.id !== editForm.country_id)}
                   selected={editForm.scope_countries}
                   onChange={(vals) => setEditForm({ ...editForm, scope_countries: vals })}
                   placeholder={editForm.scope_all_countries ? 'Todos los paises (global)' : 'Ninguno'}
                   searchPlaceholder="Buscar pais..."
-                  emptyMessage={!editForm.tenant_id ? 'Selecciona un tenant principal' : 'Sin paises disponibles'}
-                  disabled={editForm.scope_all_countries || !editForm.tenant_id}
+                  emptyMessage="Sin paises disponibles"
+                  disabled={editForm.scope_all_countries}
                 />
               </div>
+
+              {/* TENANTS — Level 2 (filtered by selected countries) */}
               <div>
-                <label className="block text-xs font-medium text-foreground-400 mb-1.5">Almacenes adicionales</label>
+                <label className="block text-xs font-medium text-foreground-400 mb-1.5">
+                  <i className="ri-building-line text-primary-400 text-xs mr-1"></i>
+                  Tenants adicionales
+                </label>
                 <MultiSelect
-                  options={warehouseOptionsForScopes.filter((w) => w.id !== editForm.warehouse_id)}
-                  selected={editForm.scope_warehouses}
-                  onChange={(vals) => setEditForm({ ...editForm, scope_warehouses: vals })}
-                  placeholder={editForm.scope_all_warehouses ? 'Todos los almacenes (global)' : 'Ninguno'}
-                  searchPlaceholder="Buscar almacen..."
-                  emptyMessage="Selecciona un pais para ver almacenes"
-                  disabled={editForm.scope_all_warehouses || countryOptionsForScopes.length === 0}
+                  options={tenantOptionsByCountry.filter((t) => t.id !== editForm.tenant_id)}
+                  selected={editForm.scope_tenants}
+                  onChange={(vals) => setEditForm({ ...editForm, scope_tenants: vals })}
+                  placeholder={editForm.scope_all_tenants ? 'Todos los tenants (global)' : 'Ninguno'}
+                  searchPlaceholder="Buscar tenant..."
+                  emptyMessage={
+                    editForm.scope_all_countries
+                      ? 'Todos los tenants disponibles'
+                      : editForm.country_id || editForm.scope_countries.length > 0
+                        ? 'Sin tenants en los paises seleccionados'
+                        : 'Selecciona un pais primero'
+                  }
+                  disabled={editForm.scope_all_tenants}
                 />
               </div>
+
+              {/* CLIENTES — Level 3 (filtered by selected tenants) */}
               <div>
-                <label className="block text-xs font-medium text-foreground-400 mb-1.5">Clientes adicionales</label>
+                <label className="block text-xs font-medium text-foreground-400 mb-1.5">
+                  <i className="ri-building-2-line text-amber-400 text-xs mr-1"></i>
+                  Clientes adicionales
+                </label>
                 <MultiSelect
-                  options={clientOptionsForScopes.filter((c) => c.id !== editForm.client_id)}
+                  options={clientOptionsByTenant.filter((c) => c.id !== editForm.client_id)}
                   selected={editForm.scope_clients}
                   onChange={(vals) => setEditForm({ ...editForm, scope_clients: vals })}
                   placeholder={editForm.scope_all_clients ? 'Todos los clientes (global)' : 'Ninguno'}
                   searchPlaceholder="Buscar cliente..."
-                  emptyMessage="Selecciona un almacen para ver clientes"
-                  disabled={editForm.scope_all_clients || warehouseOptionsForScopes.length === 0}
+                  emptyMessage={
+                    editForm.scope_all_tenants
+                      ? 'Todos los clientes disponibles'
+                      : editForm.tenant_id || editForm.scope_tenants.length > 0
+                        ? 'Sin clientes en los tenants seleccionados'
+                        : 'Selecciona un tenant primero'
+                  }
+                  disabled={editForm.scope_all_clients}
                 />
               </div>
             </div>
           </section>
 
-          {/* ========== SECTION 5: GLOBAL ACCESS ========== */}
+          {/* ================================================================ */}
+          {/* SECTION 5: ACCESO GLOBAL */}
+          {/* ================================================================ */}
           <section className="border-t border-secondary-500/10 pt-6">
             <div className="flex items-center gap-2 mb-4">
               <span className="w-5 h-5 rounded-md bg-amber-500/10 flex items-center justify-center">
@@ -527,21 +601,32 @@ export default function EditUserModal({ user, isOpen, onClose, onSaved, onEditUs
               </span>
               <h3 className="text-sm font-semibold text-foreground-200">Acceso global</h3>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <label className={`flex items-center gap-2.5 p-3 rounded-lg border transition-all cursor-pointer ${editForm.scope_all_tenants ? 'bg-primary-500/10 border-primary-500/30' : 'bg-background-100/50 border-secondary-500/15 hover:border-secondary-500/30'}`}>
-                <input type="checkbox" checked={editForm.scope_all_tenants} onChange={(e) => setEditForm({ ...editForm, scope_all_tenants: e.target.checked, scope_tenants: e.target.checked ? [] : editForm.scope_tenants })} className="w-4 h-4 rounded border-secondary-500/30 bg-background-100 text-primary-500 focus:ring-primary-500/20" />
-                <span className="text-sm text-foreground-400">Todos los tenants</span>
-              </label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <label className={`flex items-center gap-2.5 p-3 rounded-lg border transition-all cursor-pointer ${editForm.scope_all_countries ? 'bg-primary-500/10 border-primary-500/30' : 'bg-background-100/50 border-secondary-500/15 hover:border-secondary-500/30'}`}>
-                <input type="checkbox" checked={editForm.scope_all_countries} onChange={(e) => setEditForm({ ...editForm, scope_all_countries: e.target.checked, scope_countries: e.target.checked ? [] : editForm.scope_countries })} className="w-4 h-4 rounded border-secondary-500/30 bg-background-100 text-primary-500 focus:ring-primary-500/20" />
+                <input
+                  type="checkbox"
+                  checked={editForm.scope_all_countries}
+                  onChange={(e) => setEditForm({ ...editForm, scope_all_countries: e.target.checked, scope_countries: e.target.checked ? [] : editForm.scope_countries })}
+                  className="w-4 h-4 rounded border-secondary-500/30 bg-background-100 text-primary-500 focus:ring-primary-500/20"
+                />
                 <span className="text-sm text-foreground-400">Todos los paises</span>
               </label>
-              <label className={`flex items-center gap-2.5 p-3 rounded-lg border transition-all cursor-pointer ${editForm.scope_all_warehouses ? 'bg-primary-500/10 border-primary-500/30' : 'bg-background-100/50 border-secondary-500/15 hover:border-secondary-500/30'}`}>
-                <input type="checkbox" checked={editForm.scope_all_warehouses} onChange={(e) => setEditForm({ ...editForm, scope_all_warehouses: e.target.checked, scope_warehouses: e.target.checked ? [] : editForm.scope_warehouses })} className="w-4 h-4 rounded border-secondary-500/30 bg-background-100 text-primary-500 focus:ring-primary-500/20" />
-                <span className="text-sm text-foreground-400">Todos los almacenes</span>
+              <label className={`flex items-center gap-2.5 p-3 rounded-lg border transition-all cursor-pointer ${editForm.scope_all_tenants ? 'bg-primary-500/10 border-primary-500/30' : 'bg-background-100/50 border-secondary-500/15 hover:border-secondary-500/30'}`}>
+                <input
+                  type="checkbox"
+                  checked={editForm.scope_all_tenants}
+                  onChange={(e) => setEditForm({ ...editForm, scope_all_tenants: e.target.checked, scope_tenants: e.target.checked ? [] : editForm.scope_tenants })}
+                  className="w-4 h-4 rounded border-secondary-500/30 bg-background-100 text-primary-500 focus:ring-primary-500/20"
+                />
+                <span className="text-sm text-foreground-400">Todos los tenants</span>
               </label>
               <label className={`flex items-center gap-2.5 p-3 rounded-lg border transition-all cursor-pointer ${editForm.scope_all_clients ? 'bg-primary-500/10 border-primary-500/30' : 'bg-background-100/50 border-secondary-500/15 hover:border-secondary-500/30'}`}>
-                <input type="checkbox" checked={editForm.scope_all_clients} onChange={(e) => setEditForm({ ...editForm, scope_all_clients: e.target.checked, scope_clients: e.target.checked ? [] : editForm.scope_clients })} className="w-4 h-4 rounded border-secondary-500/30 bg-background-100 text-primary-500 focus:ring-primary-500/20" />
+                <input
+                  type="checkbox"
+                  checked={editForm.scope_all_clients}
+                  onChange={(e) => setEditForm({ ...editForm, scope_all_clients: e.target.checked, scope_clients: e.target.checked ? [] : editForm.scope_clients })}
+                  className="w-4 h-4 rounded border-secondary-500/30 bg-background-100 text-primary-500 focus:ring-primary-500/20"
+                />
                 <span className="text-sm text-foreground-400">Todos los clientes</span>
               </label>
             </div>
@@ -659,31 +744,23 @@ export default function EditUserModal({ user, isOpen, onClose, onSaved, onEditUs
             )}
           </section>
 
-          {/* ========== SECTION 8: AVAILABLE CONTEXTS ========== */}
+          {/* ================================================================ */}
+          {/* SECTION 8: CONTEXTOS DISPONIBLES — País → Tenant → Cliente */}
+          {/* ================================================================ */}
           <section className="border-t border-secondary-500/10 pt-6">
             <div className="flex items-center gap-2 mb-4">
               <span className="w-5 h-5 rounded-md bg-primary-500/10 flex items-center justify-center">
                 <i className="ri-arrow-left-right-line text-primary-400 text-xs"></i>
               </span>
               <h3 className="text-sm font-semibold text-foreground-200">Contextos disponibles</h3>
-              <span className="text-2xs text-foreground-500 ml-1">Lo que vera en el selector del Topbar</span>
+              <span className="text-2xs text-foreground-500 ml-1">Lo que vera en el selector del Topbar: Pais → Tenant → Cliente</span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="p-4 rounded-xl bg-background-100/70 border border-secondary-500/10">
-                <p className="text-xs font-medium text-foreground-500 mb-2">Puede cambiar entre:</p>
-                <ul className="space-y-1">
-                  {availableTenantNames.length === 0 ? (
-                    <li className="text-xs text-foreground-600 italic">Ningun tenant</li>
-                  ) : availableTenantNames.map((name) => (
-                    <li key={name} className="flex items-center gap-2 text-xs text-foreground-300">
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary-400/60"></span>
-                      {name}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className="p-4 rounded-xl bg-background-100/70 border border-secondary-500/10">
-                <p className="text-xs font-medium text-foreground-500 mb-2">Paises disponibles:</p>
+                <p className="text-xs font-medium text-foreground-500 mb-2 flex items-center gap-1.5">
+                  <span className="w-3 h-3 flex items-center justify-center text-emerald-400"><i className="ri-global-line text-xs"></i></span>
+                  Paises disponibles
+                </p>
                 <ul className="space-y-1">
                   {availableCountryNames.length === 0 ? (
                     <li className="text-xs text-foreground-600 italic">Ningun pais</li>
@@ -696,26 +773,32 @@ export default function EditUserModal({ user, isOpen, onClose, onSaved, onEditUs
                 </ul>
               </div>
               <div className="p-4 rounded-xl bg-background-100/70 border border-secondary-500/10">
-                <p className="text-xs font-medium text-foreground-500 mb-2">Almacenes disponibles:</p>
+                <p className="text-xs font-medium text-foreground-500 mb-2 flex items-center gap-1.5">
+                  <span className="w-3 h-3 flex items-center justify-center text-primary-400"><i className="ri-building-line text-xs"></i></span>
+                  Tenants disponibles
+                </p>
                 <ul className="space-y-1">
-                  {availableWarehouseNames.length === 0 ? (
-                    <li className="text-xs text-foreground-600 italic">Ningun almacen</li>
-                  ) : availableWarehouseNames.map((name) => (
+                  {availableTenantNames.length === 0 ? (
+                    <li className="text-xs text-foreground-600 italic">Ningun tenant</li>
+                  ) : availableTenantNames.map((name) => (
                     <li key={name} className="flex items-center gap-2 text-xs text-foreground-300">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400/60"></span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary-400/60"></span>
                       {name}
                     </li>
                   ))}
                 </ul>
               </div>
               <div className="p-4 rounded-xl bg-background-100/70 border border-secondary-500/10">
-                <p className="text-xs font-medium text-foreground-500 mb-2">Clientes disponibles:</p>
+                <p className="text-xs font-medium text-foreground-500 mb-2 flex items-center gap-1.5">
+                  <span className="w-3 h-3 flex items-center justify-center text-amber-400"><i className="ri-building-2-line text-xs"></i></span>
+                  Clientes disponibles
+                </p>
                 <ul className="space-y-1">
                   {availableClientNames.length === 0 ? (
                     <li className="text-xs text-foreground-600 italic">Ningun cliente</li>
                   ) : availableClientNames.map((name) => (
                     <li key={name} className="flex items-center gap-2 text-xs text-foreground-300">
-                      <span className="w-1.5 h-1.5 rounded-full bg-accent-400/60"></span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400/60"></span>
                       {name}
                     </li>
                   ))}
