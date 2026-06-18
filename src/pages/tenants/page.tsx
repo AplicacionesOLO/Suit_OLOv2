@@ -1,8 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/feature/AppLayout';
 import { useTenants } from '@/hooks/useTenants';
 import { useSuitePermissions } from '@/hooks/useSuitePermissions';
+import { supabase } from '@/services/supabase/client';
 import type { TenantWithCounts, CreateTenantInput, UpdateTenantInput, TenantSettings } from '@/services/operations/tenantsService';
 
 type FilterStatus = '' | 'active' | 'suspended' | 'deleted';
@@ -34,6 +35,15 @@ export default function TenantsPage() {
   const { tenants, loading, error, addTenant, editTenant, suspendTenant, activateTenant, softDeleteTenant, refresh } = useTenants();
   const { can } = useSuitePermissions();
 
+  // Countries for dropdown
+  const [allCountries, setAllCountries] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    supabase.from('countries').select('id, name').order('name').then(({ data }) => {
+      if (data) setAllCountries(data);
+    });
+  }, []);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('');
 
@@ -44,8 +54,12 @@ export default function TenantsPage() {
   const [formError, setFormError] = useState('');
   const [formName, setFormName] = useState('');
   const [formCode, setFormCode] = useState('');
+  const [formCountryId, setFormCountryId] = useState('');
   const [formStatus, setFormStatus] = useState('active');
   const [formSettings, setFormSettings] = useState<TenantSettings>({ ...emptySettings });
+
+  // Detail modal (ojo)
+  const [detailTarget, setDetailTarget] = useState<TenantWithCounts | null>(null);
 
   // Suspend modal
   const [suspendTarget, setSuspendTarget] = useState<TenantWithCounts | null>(null);
@@ -72,6 +86,7 @@ export default function TenantsPage() {
     setEditing(null);
     setFormName('');
     setFormCode('');
+    setFormCountryId('');
     setFormStatus('active');
     setFormSettings({ ...emptySettings });
     setFormError('');
@@ -82,6 +97,7 @@ export default function TenantsPage() {
     setEditing(t);
     setFormName(t.name);
     setFormCode(t.code);
+    setFormCountryId(t.country_id || '');
     setFormStatus(t.status);
     const s = (t.settings || {}) as TenantSettings;
     setFormSettings({
@@ -102,6 +118,7 @@ export default function TenantsPage() {
     if (!formName.trim()) { setFormError('El nombre de la empresa es requerido'); return; }
     if (!formCode.trim()) { setFormError('El codigo es requerido'); return; }
     if (formCode.trim().length < 2) { setFormError('El codigo debe tener al menos 2 caracteres'); return; }
+    if (!editing && !formCountryId) { setFormError('Debe seleccionar un pais para crear el tenant'); return; }
     if (formSettings.primary_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formSettings.primary_email)) {
       setFormError('El email no es valido'); return;
     }
@@ -136,6 +153,7 @@ export default function TenantsPage() {
       const createInput: CreateTenantInput = {
         name: formName.trim(),
         code: formCode.trim().toUpperCase(),
+        country_id: formCountryId || undefined,
         status: formStatus,
         settings: hasSettings ? settings : undefined,
       };
@@ -265,6 +283,7 @@ export default function TenantsPage() {
                   <tr className="border-b border-secondary-500/10">
                     <th className="text-left px-5 py-3 text-xs font-medium text-foreground-500 uppercase tracking-wider">Empresa</th>
                     <th className="text-left px-5 py-3 text-xs font-medium text-foreground-500 uppercase tracking-wider">Codigo</th>
+                    <th className="text-left px-5 py-3 text-xs font-medium text-foreground-500 uppercase tracking-wider">Pais</th>
                     <th className="text-left px-5 py-3 text-xs font-medium text-foreground-500 uppercase tracking-wider">Estado</th>
                     <th className="text-center px-4 py-3 text-xs font-medium text-foreground-500 uppercase tracking-wider">Paises</th>
                     <th className="text-center px-4 py-3 text-xs font-medium text-foreground-500 uppercase tracking-wider">Almacenes</th>
@@ -285,7 +304,7 @@ export default function TenantsPage() {
                               <i className="ri-building-4-line text-primary-400 text-base"></i>
                             </div>
                             <div>
-                              <button onClick={() => navigate(`/tenants/${t.id}`)} className="text-sm font-medium text-foreground-200 hover:text-primary-400 transition-colors text-left">
+                              <button onClick={() => setDetailTarget(t)} className="text-sm font-medium text-foreground-200 hover:text-primary-400 transition-colors text-left">
                                 {t.name}
                               </button>
                               <p className="text-2xs text-foreground-600 mt-0.5">{t.domain || '—'}</p>
@@ -293,6 +312,9 @@ export default function TenantsPage() {
                           </div>
                         </td>
                         <td className="px-5 py-3.5"><code className="text-xs bg-secondary-500/10 text-secondary-400 px-2 py-0.5 rounded font-mono">{t.code}</code></td>
+                        <td className="px-5 py-3.5">
+                          <span className="text-sm text-foreground-300">{t.country_name || <span className="text-foreground-600 italic">Sin pais</span>}</span>
+                        </td>
                         <td className="px-5 py-3.5">
                           <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-2xs font-medium border ${sc.badgeBg} ${sc.badgeText} ${sc.border}`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`}></span>
@@ -306,7 +328,7 @@ export default function TenantsPage() {
                         <td className="px-5 py-3.5"><span className="text-xs text-foreground-500 whitespace-nowrap">{formatDate(t.created_at)}</span></td>
                         <td className="px-5 py-3.5">
                           <div className="flex items-center justify-end gap-1">
-                            <button onClick={() => navigate(`/tenants/${t.id}`)} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-foreground-200 hover:bg-background-200/50 transition-all" title="Ver detalles">
+                            <button onClick={() => setDetailTarget(t)} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-foreground-200 hover:bg-background-200/50 transition-all" title="Ver detalles">
                               <span className="w-4 h-4 flex items-center justify-center"><i className="ri-eye-line text-sm"></i></span>
                             </button>
                             {can('tenants', 'update') && (
@@ -390,6 +412,14 @@ export default function TenantsPage() {
                 </div>
               </div>
 
+              <div>
+                <label className="block text-xs font-medium text-foreground-400 mb-1.5">Pais {!editing && <span className="text-red-400">*</span>}</label>
+                <select value={formCountryId} onChange={(e) => setFormCountryId(e.target.value)} className="w-full h-10 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-300 outline-none focus:border-primary-500/40">
+                  <option value="">{allCountries.length === 0 ? 'Cargando paises...' : 'Seleccionar pais'}</option>
+                  {allCountries.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-foreground-400 mb-1.5">Estado <span className="text-red-400">*</span></label>
@@ -462,6 +492,118 @@ export default function TenantsPage() {
           </div>
         </div>
       )}
+
+      {/* Detail modal (read-only) */}
+      {detailTarget && (() => {
+        const dt = detailTarget;
+        const dsc = statusConfig[dt.status] || statusConfig.active;
+        const dsettings = (dt.settings || {}) as TenantSettings;
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setDetailTarget(null)} />
+            <div className="relative glass-panel-strong rounded-2xl w-full max-w-lg p-6 animate-scale-in max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary-500/10 border border-primary-500/20 flex items-center justify-center shrink-0">
+                    <i className="ri-building-4-line text-primary-400 text-lg"></i>
+                  </div>
+                  <div>
+                    <h2 className="text-base font-semibold text-foreground-200">{dt.name}</h2>
+                    <code className="text-xs bg-secondary-500/10 text-secondary-400 px-1.5 py-0.5 rounded font-mono">{dt.code}</code>
+                  </div>
+                </div>
+                <button onClick={() => setDetailTarget(null)} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-foreground-200 hover:bg-background-200/50 transition-all">
+                  <span className="w-4 h-4 flex items-center justify-center"><i className="ri-close-line text-lg"></i></span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 mb-5">
+                <div className="bg-background-100 rounded-lg p-3 border border-secondary-500/10">
+                  <span className="text-2xs text-foreground-600 uppercase tracking-wider">Pais</span>
+                  <p className="text-sm text-foreground-200 mt-1 font-medium">{dt.country_name || 'Sin pais'}</p>
+                </div>
+                <div className="bg-background-100 rounded-lg p-3 border border-secondary-500/10">
+                  <span className="text-2xs text-foreground-600 uppercase tracking-wider">Estado</span>
+                  <p className="mt-1">
+                    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-2xs font-medium border ${dsc.badgeBg} ${dsc.badgeText} ${dsc.border}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${dsc.dot}`}></span>
+                      {dsc.label}
+                    </span>
+                  </p>
+                </div>
+                <div className="bg-background-100 rounded-lg p-3 border border-secondary-500/10">
+                  <span className="text-2xs text-foreground-600 uppercase tracking-wider">Dominio</span>
+                  <p className="text-sm text-foreground-200 mt-1">{dt.domain || '—'}</p>
+                </div>
+                <div className="bg-background-100 rounded-lg p-3 border border-secondary-500/10">
+                  <span className="text-2xs text-foreground-600 uppercase tracking-wider">Plan</span>
+                  <p className="text-sm text-foreground-200 mt-1 font-medium">{dsettings.plan || 'Free'}</p>
+                </div>
+                <div className="bg-background-100 rounded-lg p-3 border border-secondary-500/10">
+                  <span className="text-2xs text-foreground-600 uppercase tracking-wider">Creado</span>
+                  <p className="text-sm text-foreground-200 mt-1">{formatDate(dt.created_at)}</p>
+                </div>
+                <div className="bg-background-100 rounded-lg p-3 border border-secondary-500/10">
+                  <span className="text-2xs text-foreground-600 uppercase tracking-wider">Actualizado</span>
+                  <p className="text-sm text-foreground-200 mt-1">{formatDate(dt.updated_at)}</p>
+                </div>
+              </div>
+
+              <div className="mb-5">
+                <h3 className="text-xs font-semibold text-foreground-300 uppercase tracking-wider mb-3">Estadisticas</h3>
+                <div className="grid grid-cols-5 gap-2">
+                  {[
+                    { label: 'Paises', value: dt.country_count },
+                    { label: 'Almacenes', value: dt.warehouse_count },
+                    { label: 'Clientes', value: dt.client_count },
+                    { label: 'Usuarios', value: dt.user_count },
+                    { label: 'Apps', value: dt.instance_count },
+                  ].map((s) => (
+                    <div key={s.label} className="bg-background-100 rounded-lg p-3 text-center border border-secondary-500/10">
+                      <div className="text-lg font-bold text-foreground-100">{s.value}</div>
+                      <div className="text-2xs text-foreground-600">{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {dsettings.primary_email && (
+                <div className="mb-5">
+                  <h3 className="text-xs font-semibold text-foreground-300 uppercase tracking-wider mb-2">Contacto</h3>
+                  <div className="bg-background-100 rounded-lg p-3 border border-secondary-500/10 space-y-2">
+                    <div className="flex items-center gap-2 text-sm text-foreground-300">
+                      <span className="w-4 h-4 flex items-center justify-center text-foreground-500"><i className="ri-mail-line text-xs"></i></span>
+                      {dsettings.primary_email}
+                    </div>
+                    {dsettings.phone && (
+                      <div className="flex items-center gap-2 text-sm text-foreground-300">
+                        <span className="w-4 h-4 flex items-center justify-center text-foreground-500"><i className="ri-phone-line text-xs"></i></span>
+                        {dsettings.phone}
+                      </div>
+                    )}
+                    {dsettings.website && (
+                      <div className="flex items-center gap-2 text-sm text-foreground-300">
+                        <span className="w-4 h-4 flex items-center justify-center text-foreground-500"><i className="ri-global-line text-xs"></i></span>
+                        <a href={dsettings.website} target="_blank" rel="noopener noreferrer" className="text-primary-400 hover:text-primary-300 transition-colors">{dsettings.website}</a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-secondary-500/10">
+                {can('tenants', 'update') && (
+                  <button onClick={() => { setDetailTarget(null); openEdit(dt); }} className="h-9 px-4 rounded-lg border border-secondary-500/20 text-sm text-foreground-400 hover:text-foreground-200 hover:border-secondary-500/40 transition-all whitespace-nowrap">
+                    <span className="w-4 h-4 flex items-center justify-center mr-1.5"><i className="ri-edit-line"></i></span>
+                    Editar
+                  </button>
+                )}
+                <button onClick={() => setDetailTarget(null)} className="h-9 px-4 rounded-lg bg-background-100 border border-secondary-500/20 text-sm text-foreground-400 hover:text-foreground-200 transition-all whitespace-nowrap">Cerrar</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Suspend confirmation */}
       {suspendTarget && (

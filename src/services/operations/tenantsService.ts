@@ -6,6 +6,7 @@ export interface Tenant {
   name: string;
   code: string;
   domain: string | null;
+  country_id: string | null;
   status: string;
   settings: Record<string, unknown> | null;
   created_at: string;
@@ -13,6 +14,7 @@ export interface Tenant {
 }
 
 export interface TenantWithCounts extends Tenant {
+  country_name?: string;
   country_count: number;
   warehouse_count: number;
   client_count: number;
@@ -34,6 +36,7 @@ export interface TenantSettings {
 export interface CreateTenantInput {
   name: string;
   code: string;
+  country_id?: string;
   status?: string;
   settings?: TenantSettings;
 }
@@ -81,6 +84,16 @@ export async function fetchTenants(): Promise<{ data: TenantWithCounts[]; error:
       supabase.from('application_instances').select('id, tenant_id').in('tenant_id', tenantIds),
     ]);
 
+    const countryIds = tenants.map((t) => t.country_id).filter(Boolean) as string[];
+    let countryNameMap = new Map<string, string>();
+    if (countryIds.length > 0) {
+      const { data: linkedCountries } = await supabase
+        .from('countries')
+        .select('id, name')
+        .in('id', countryIds);
+      (linkedCountries || []).forEach((c) => countryNameMap.set(c.id, c.name));
+    }
+
     const countsMap = new Map<string, { countries: number; warehouses: number; clients: number; users: number; instances: number }>();
     tenantIds.forEach((id) => countsMap.set(id, { countries: 0, warehouses: 0, clients: 0, users: 0, instances: 0 }));
 
@@ -94,6 +107,7 @@ export async function fetchTenants(): Promise<{ data: TenantWithCounts[]; error:
       const c = countsMap.get(t.id) || { countries: 0, warehouses: 0, clients: 0, users: 0, instances: 0 };
       return {
         ...t,
+        country_name: t.country_id ? (countryNameMap.get(t.country_id) || undefined) : undefined,
         country_count: c.countries,
         warehouse_count: c.warehouses,
         client_count: c.clients,
@@ -164,6 +178,7 @@ export async function createTenant(input: CreateTenantInput): Promise<{ data: Te
       .insert({
         name: input.name,
         code: input.code,
+        country_id: input.country_id || null,
         status: input.status || 'active',
         settings: input.settings || null,
       })

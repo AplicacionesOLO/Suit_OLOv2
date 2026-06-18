@@ -117,9 +117,9 @@ export default function TenantDetailPage() {
                 </div>
               </div>
             </div>
-            <button onClick={() => navigate(`/tenants?edit=${tenant.id}`)} className="flex items-center gap-2 h-9 px-4 rounded-lg border border-secondary-500/20 text-sm text-foreground-400 hover:text-foreground-200 hover:border-secondary-500/40 transition-all whitespace-nowrap">
+            <button onClick={() => navigate('/tenants')} className="flex items-center gap-2 h-9 px-4 rounded-lg border border-secondary-500/20 text-sm text-foreground-400 hover:text-foreground-200 hover:border-secondary-500/40 transition-all whitespace-nowrap">
               <span className="w-4 h-4 flex items-center justify-center"><i className="ri-edit-line"></i></span>
-              Editar
+              Volver a lista
             </button>
           </div>
         </div>
