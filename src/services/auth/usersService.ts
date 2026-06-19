@@ -74,15 +74,18 @@ export interface CreateInvitationInput {
 export interface UpdateUserInput {
   role_id?: string;
   country_id?: string;
+  warehouse_id?: string;
   client_id?: string;
   first_name?: string;
   last_name?: string;
   status?: string;
   scope_countries?: string[];
   scope_tenants?: string[];
+  scope_warehouses?: string[];
   scope_clients?: string[];
   scope_all_countries?: boolean;
   scope_all_tenants?: boolean;
+  scope_all_warehouses?: boolean;
   scope_all_clients?: boolean;
   tenant_id?: string;
 }
@@ -90,6 +93,7 @@ export interface UpdateUserInput {
 export interface UserBridgeScopes {
   tenant_ids: string[];
   country_ids: string[];
+  warehouse_ids: string[];
   client_ids: string[];
 }
 
@@ -286,6 +290,7 @@ export async function updatePlatformUser(userId: string, input: UpdateUserInput)
   const updateData: Record<string, unknown> = {};
   if (input.role_id !== undefined) updateData.role_id = input.role_id;
   if (input.country_id !== undefined) updateData.country_id = input.country_id;
+  if (input.warehouse_id !== undefined) updateData.warehouse_id = input.warehouse_id;
   if (input.client_id !== undefined) updateData.client_id = input.client_id;
   if (input.first_name !== undefined) updateData.first_name = input.first_name;
   if (input.last_name !== undefined) updateData.last_name = input.last_name;
@@ -293,6 +298,7 @@ export async function updatePlatformUser(userId: string, input: UpdateUserInput)
   if (input.tenant_id !== undefined) updateData.tenant_id = input.tenant_id;
   if (input.scope_all_tenants !== undefined) updateData.scope_all_tenants = input.scope_all_tenants;
   if (input.scope_all_countries !== undefined) updateData.scope_all_countries = input.scope_all_countries;
+  if (input.scope_all_warehouses !== undefined) updateData.scope_all_warehouses = input.scope_all_warehouses;
   if (input.scope_all_clients !== undefined) updateData.scope_all_clients = input.scope_all_clients;
   updateData.updated_at = cleanDate(new Date());
 
@@ -305,10 +311,11 @@ export async function updatePlatformUser(userId: string, input: UpdateUserInput)
 
   // Sync bridge tables if scope arrays are provided
   if (input.scope_tenants !== undefined || input.scope_countries !== undefined ||
-      input.scope_clients !== undefined) {
+      input.scope_warehouses !== undefined || input.scope_clients !== undefined) {
     const scopeError = await syncUserBridgeScopes(userId, {
       tenant_ids: input.scope_tenants,
       country_ids: input.scope_countries,
+      warehouse_ids: input.scope_warehouses,
       client_ids: input.scope_clients,
     });
     if (scopeError) {
@@ -335,12 +342,14 @@ export async function updatePlatformUser(userId: string, input: UpdateUserInput)
 async function syncUserBridgeScopes(userId: string, scopes: {
   tenant_ids?: string[];
   country_ids?: string[];
+  warehouse_ids?: string[];
   client_ids?: string[];
 }): Promise<string | null> {
   try {
     const deletions: Promise<any>[] = [];
     if (scopes.tenant_ids !== undefined) deletions.push(supabase.from('user_tenants').delete().eq('user_id', userId));
     if (scopes.country_ids !== undefined) deletions.push(supabase.from('user_countries').delete().eq('user_id', userId));
+    if (scopes.warehouse_ids !== undefined) deletions.push(supabase.from('user_warehouses').delete().eq('user_id', userId));
     if (scopes.client_ids !== undefined) deletions.push(supabase.from('user_clients').delete().eq('user_id', userId));
 
     await Promise.all(deletions);
@@ -351,6 +360,9 @@ async function syncUserBridgeScopes(userId: string, scopes: {
     }
     if (scopes.country_ids && scopes.country_ids.length > 0) {
       insertions.push(supabase.from('user_countries').insert(scopes.country_ids.map((cid) => ({ user_id: userId, country_id: cid }))));
+    }
+    if (scopes.warehouse_ids && scopes.warehouse_ids.length > 0) {
+      insertions.push(supabase.from('user_warehouses').insert(scopes.warehouse_ids.map((wid) => ({ user_id: userId, warehouse_id: wid }))));
     }
     if (scopes.client_ids && scopes.client_ids.length > 0) {
       insertions.push(supabase.from('user_clients').insert(scopes.client_ids.map((clid) => ({ user_id: userId, client_id: clid }))));
@@ -366,9 +378,10 @@ async function syncUserBridgeScopes(userId: string, scopes: {
 
 export async function fetchUserBridgeScopes(userId: string): Promise<{ data: UserBridgeScopes; error: string | null }> {
   try {
-    const [tenantsRes, countriesRes, clientsRes] = await Promise.all([
+    const [tenantsRes, countriesRes, warehousesRes, clientsRes] = await Promise.all([
       supabase.from('user_tenants').select('tenant_id').eq('user_id', userId),
       supabase.from('user_countries').select('country_id').eq('user_id', userId),
+      supabase.from('user_warehouses').select('warehouse_id').eq('user_id', userId),
       supabase.from('user_clients').select('client_id').eq('user_id', userId),
     ]);
 
@@ -376,12 +389,13 @@ export async function fetchUserBridgeScopes(userId: string): Promise<{ data: Use
       data: {
         tenant_ids: (tenantsRes.data || []).map((r: any) => r.tenant_id),
         country_ids: (countriesRes.data || []).map((r: any) => r.country_id),
+        warehouse_ids: (warehousesRes.data || []).map((r: any) => r.warehouse_id),
         client_ids: (clientsRes.data || []).map((r: any) => r.client_id),
       },
       error: null,
     };
   } catch (err: any) {
-    return { data: { tenant_ids: [], country_ids: [], client_ids: [] }, error: err.message };
+    return { data: { tenant_ids: [], country_ids: [], warehouse_ids: [], client_ids: [] }, error: err.message };
   }
 }
 

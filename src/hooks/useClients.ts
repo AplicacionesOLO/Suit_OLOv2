@@ -1,19 +1,29 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   fetchClients,
-  fetchWarehousesForSelect,
+  fetchCountriesForClientSelect,
+  fetchTenantsByCountry,
+  fetchWarehousesByTenant,
   createClient,
   updateClient,
   toggleClientStatus,
   type ClientWithDetails,
+  type CountrySelectOption,
+  type TenantSelectOption,
+  type WarehouseSelectOption,
 } from '@/services/operations/clientsService';
+import type { WarehouseOption } from '@/types/organization';
 
 interface UseClientsReturn {
   clients: ClientWithDetails[];
-  warehouses: { id: string; name: string; country_id: string; tenant_id: string }[];
+  countries: CountrySelectOption[];
+  tenants: TenantSelectOption[];
+  warehouses: WarehouseSelectOption[];
   loading: boolean;
   error: string | null;
   refresh: () => void;
+  loadTenantsByCountry: (countryId: string) => Promise<TenantSelectOption[]>;
+  loadWarehousesByTenant: (tenantId: string) => Promise<WarehouseSelectOption[]>;
   addClient: (data: { name: string; code: string; contact_email: string; warehouse_id: string; tenant_id: string }) => Promise<{ error: string | null }>;
   editClient: (id: string, data: { name?: string; code?: string; contact_email?: string; warehouse_id?: string; tenant_id?: string }) => Promise<{ error: string | null }>;
   toggleStatus: (id: string, currentStatus: string) => Promise<{ error: string | null }>;
@@ -21,17 +31,22 @@ interface UseClientsReturn {
 
 export function useClients(): UseClientsReturn {
   const [clients, setClients] = useState<ClientWithDetails[]>([]);
-  const [warehouses, setWarehouses] = useState<{ id: string; name: string; country_id: string; tenant_id: string }[]>([]);
+  const [countries, setCountries] = useState<CountrySelectOption[]>([]);
+  const [tenants, setTenants] = useState<TenantSelectOption[]>([]);
+  const [warehouses, setWarehouses] = useState<WarehouseSelectOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
       setError(null);
-      const [clResult, whResult] = await Promise.all([fetchClients(), fetchWarehousesForSelect()]);
+      const [clResult, coResult] = await Promise.all([
+        fetchClients(),
+        fetchCountriesForClientSelect(),
+      ]);
       if (clResult.error) setError(clResult.error);
       setClients(clResult.data);
-      if (!whResult.error) setWarehouses(whResult.data);
+      if (!coResult.error) setCountries(coResult.data);
     } catch (err: any) {
       setError(err.message || 'Error desconocido');
     } finally {
@@ -40,6 +55,20 @@ export function useClients(): UseClientsReturn {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  const loadTenantsByCountry = useCallback(async (countryId: string): Promise<TenantSelectOption[]> => {
+    if (!countryId) { setTenants([]); return []; }
+    const { data } = await fetchTenantsByCountry(countryId);
+    setTenants(data);
+    return data;
+  }, []);
+
+  const loadWarehousesByTenant = useCallback(async (tenantId: string): Promise<WarehouseSelectOption[]> => {
+    if (!tenantId) { setWarehouses([]); return []; }
+    const { data } = await fetchWarehousesByTenant(tenantId);
+    setWarehouses(data);
+    return data;
+  }, []);
 
   const addClient = useCallback(async (data: { name: string; code: string; contact_email: string; warehouse_id: string; tenant_id: string }) => {
     const result = await createClient(data);
@@ -59,5 +88,5 @@ export function useClients(): UseClientsReturn {
     return result;
   }, [load]);
 
-  return { clients, warehouses, loading, error, refresh: load, addClient, editClient, toggleStatus };
+  return { clients, countries, tenants, warehouses, loading, error, refresh: load, loadTenantsByCountry, loadWarehousesByTenant, addClient, editClient, toggleStatus };
 }

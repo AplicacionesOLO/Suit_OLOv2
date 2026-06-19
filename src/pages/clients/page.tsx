@@ -1,65 +1,136 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import AppLayout from '@/components/feature/AppLayout';
 import { useClients } from '@/hooks/useClients';
 import { useSuitePermissions } from '@/hooks/useSuitePermissions';
-import type { ClientWithDetails } from '@/services/operations/clientsService';
+import type { ClientWithDetails, TenantSelectOption, WarehouseSelectOption, CountrySelectOption } from '@/services/operations/clientsService';
+import { fetchTenantsByCountry, fetchWarehousesByTenant } from '@/services/operations/clientsService';
 
 export default function ClientsPage() {
-  const { clients, warehouses, loading, addClient, editClient, toggleStatus } = useClients();
+  const { clients, countries, tenants, warehouses, loading, loadTenantsByCountry, loadWarehousesByTenant, addClient, editClient, toggleStatus } = useClients();
   const { can } = useSuitePermissions();
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterCountry, setFilterCountry] = useState('');
+  const [filterTenant, setFilterTenant] = useState('');
   const [filterWarehouse, setFilterWarehouse] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<ClientWithDetails | null>(null);
   const [confirmToggle, setConfirmToggle] = useState<ClientWithDetails | null>(null);
-  const [formData, setFormData] = useState({ name: '', code: '', contact_email: '', warehouse_id: '', tenant_id: '' });
+  const [formData, setFormData] = useState({ name: '', code: '', contact_email: '', country_id: '', tenant_id: '', warehouse_id: '' });
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
 
-  const warehouseMap = useMemo(() => new Map(warehouses.map((w) => [w.id, w])), [warehouses]);
+  // --- Filter dropdown options (derived from clients data, NOT from hook state) ---
+  const filterCountryOptions = useMemo(() => {
+    const unique = new Map<string, { id: string; name: string; code: string }>();
+    clients.forEach((c) => {
+      const k = c.country_code;
+      if (!unique.has(k)) unique.set(k, { id: c.country_code, name: c.country_name, code: c.country_code });
+    });
+    return [...unique.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }, [clients]);
+
+  const filterTenantOptions = useMemo(() => {
+    const unique = new Map<string, { id: string; name: string }>();
+    clients
+      .filter((c) => !filterCountry || c.country_code === filterCountry)
+      .forEach((c) => {
+        if (!unique.has(c.tenant_id)) unique.set(c.tenant_id, { id: c.tenant_id, name: c.tenant_name });
+      });
+    return [...unique.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }, [clients, filterCountry]);
+
+  const filterWarehouseOptions = useMemo(() => {
+    const unique = new Map<string, { id: string; name: string }>();
+    clients
+      .filter((c) => !filterTenant || c.tenant_id === filterTenant)
+      .forEach((c) => {
+        if (!unique.has(c.warehouse_id)) unique.set(c.warehouse_id, { id: c.warehouse_id, name: c.warehouse_name });
+      });
+    return [...unique.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }, [clients, filterTenant]);
 
   const filtered = useMemo(() => {
     let result = clients;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      result = result.filter((c) => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q) || (c.contact_email || '').toLowerCase().includes(q) || c.country_name.toLowerCase().includes(q));
+      result = result.filter((c) =>
+        c.name.toLowerCase().includes(q) ||
+        c.code.toLowerCase().includes(q) ||
+        (c.contact_email || '').toLowerCase().includes(q) ||
+        c.country_name.toLowerCase().includes(q) ||
+        c.tenant_name.toLowerCase().includes(q) ||
+        c.warehouse_name.toLowerCase().includes(q)
+      );
     }
+    if (filterCountry) result = result.filter((c) => c.country_code === filterCountry);
+    if (filterTenant) result = result.filter((c) => c.tenant_id === filterTenant);
     if (filterWarehouse) result = result.filter((c) => c.warehouse_id === filterWarehouse);
     if (filterStatus) result = result.filter((c) => c.status === filterStatus);
     return result;
-  }, [clients, searchQuery, filterWarehouse, filterStatus]);
+  }, [clients, searchQuery, filterCountry, filterTenant, filterWarehouse, filterStatus]);
 
+  // --- Form handlers ---
   const openCreate = () => {
-    const first = warehouses[0];
-    setFormData({ name: '', code: '', contact_email: '', warehouse_id: first?.id || '', tenant_id: first?.tenant_id || '' });
+    setFormData({ name: '', code: '', contact_email: '', country_id: '', tenant_id: '', warehouse_id: '' });
     setFormError('');
     setEditing(null);
     setShowModal(true);
   };
 
-  const openEdit = (c: ClientWithDetails) => {
-    setFormData({ name: c.name, code: c.code, contact_email: c.contact_email || '', warehouse_id: c.warehouse_id, tenant_id: c.tenant_id });
+  const openEdit = async (c: ClientWithDetails) => {
+    const country = countries.find((co) => co.code === c.country_code);
+    setFormData({
+      name: c.name,
+      code: c.code,
+      contact_email: c.contact_email || '',
+      country_id: country?.id || '',
+      tenant_id: c.tenant_id,
+      warehouse_id: c.warehouse_id,
+    });
+    if (country) await loadTenantsByCountry(country.id);
+    await loadWarehousesByTenant(c.tenant_id);
     setFormError('');
     setEditing(c);
     setShowModal(true);
   };
 
-  const handleWarehouseChange = (whId: string) => {
-    const wh = warehouseMap.get(whId);
-    setFormData({ ...formData, warehouse_id: whId, tenant_id: wh?.tenant_id || '' });
+  const handleCountryChange = async (countryId: string) => {
+    setFormData({ ...formData, country_id: countryId, tenant_id: '', warehouse_id: '' });
+    if (countryId) await loadTenantsByCountry(countryId);
+  };
+
+  const handleTenantChange = async (tenantId: string) => {
+    setFormData({ ...formData, tenant_id: tenantId, warehouse_id: '' });
+    if (tenantId) await loadWarehousesByTenant(tenantId);
   };
 
   const handleSave = async () => {
-    if (!formData.name.trim() || !formData.code.trim() || !formData.warehouse_id) {
-      setFormError('Nombre, codigo y almacen son requeridos');
+    if (!formData.name.trim() || !formData.code.trim() || !formData.warehouse_id || !formData.tenant_id) {
+      setFormError('Nombre, codigo, tenant y almacen son requeridos');
+      return;
+    }
+    if (!editing && !formData.country_id) {
+      setFormError('Debe seleccionar un pais y tenant para crear el cliente');
       return;
     }
     setSaving(true);
     setFormError('');
     const result = editing
-      ? await editClient(editing.id, { name: formData.name.trim(), code: formData.code.trim().toUpperCase(), contact_email: formData.contact_email.trim(), warehouse_id: formData.warehouse_id, tenant_id: formData.tenant_id })
-      : await addClient({ name: formData.name.trim(), code: formData.code.trim().toUpperCase(), contact_email: formData.contact_email.trim(), warehouse_id: formData.warehouse_id, tenant_id: formData.tenant_id });
+      ? await editClient(editing.id, {
+          name: formData.name.trim(),
+          code: formData.code.trim().toUpperCase(),
+          contact_email: formData.contact_email.trim(),
+          warehouse_id: formData.warehouse_id,
+          tenant_id: formData.tenant_id,
+        })
+      : await addClient({
+          name: formData.name.trim(),
+          code: formData.code.trim().toUpperCase(),
+          contact_email: formData.contact_email.trim(),
+          warehouse_id: formData.warehouse_id,
+          tenant_id: formData.tenant_id,
+        });
     setSaving(false);
     if (result.error) { setFormError(result.error); return; }
     setShowModal(false);
@@ -69,6 +140,17 @@ export default function ClientsPage() {
     if (!confirmToggle) return;
     await toggleStatus(confirmToggle.id, confirmToggle.status);
     setConfirmToggle(null);
+  };
+
+  const handleFilterCountryChange = (val: string) => {
+    setFilterCountry(val);
+    setFilterTenant('');
+    setFilterWarehouse('');
+  };
+
+  const handleFilterTenantChange = (val: string) => {
+    setFilterTenant(val);
+    setFilterWarehouse('');
   };
 
   if (loading) {
@@ -88,7 +170,7 @@ export default function ClientsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-xl font-bold text-foreground-100">Clientes</h1>
-            <p className="text-sm text-foreground-500 mt-1">Administra los clientes por almacen. Cada cliente agrupa usuarios y aplicaciones asignadas.</p>
+            <p className="text-sm text-foreground-500 mt-1">Administra los clientes en cascada: Pais → Tenant → Almacen → Cliente.</p>
           </div>
           {can('clients', 'create') && (
             <button onClick={openCreate} className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-sm font-medium whitespace-nowrap">
@@ -98,12 +180,13 @@ export default function ClientsPage() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           {[
             { label: 'Total clientes', value: clients.length, icon: 'ri-building-2-line', bg: 'bg-violet-500/10', text: 'text-violet-400' },
-            { label: 'Clientes activos', value: clients.filter((c) => c.status === 'active').length, icon: 'ri-checkbox-circle-line', bg: 'bg-emerald-500/10', text: 'text-emerald-400' },
-            { label: 'Almacenes', value: new Set(clients.map((c) => c.warehouse_id)).size, icon: 'ri-store-2-line', bg: 'bg-accent-500/10', text: 'text-accent-400' },
+            { label: 'Activos', value: clients.filter((c) => c.status === 'active').length, icon: 'ri-checkbox-circle-line', bg: 'bg-emerald-500/10', text: 'text-emerald-400' },
             { label: 'Paises', value: new Set(clients.map((c) => c.country_code)).size, icon: 'ri-global-line', bg: 'bg-primary-500/10', text: 'text-primary-400' },
+            { label: 'Tenants', value: new Set(clients.map((c) => c.tenant_id)).size, icon: 'ri-building-line', bg: 'bg-accent-500/10', text: 'text-accent-400' },
+            { label: 'Almacenes', value: new Set(clients.map((c) => c.warehouse_id)).size, icon: 'ri-store-2-line', bg: 'bg-amber-500/10', text: 'text-amber-400' },
           ].map((stat) => (
             <div key={stat.label} className="glass-panel rounded-xl p-4">
               <div className="flex items-center gap-3">
@@ -112,7 +195,7 @@ export default function ClientsPage() {
                 </div>
                 <div>
                   <div className="text-lg font-bold text-foreground-100">{stat.value}</div>
-                  <div className="text-2xs text-foreground-600">{stat.label}</div>
+                  <div className="text-2xs text-foreground-600 whitespace-nowrap">{stat.label}</div>
                 </div>
               </div>
             </div>
@@ -120,15 +203,28 @@ export default function ClientsPage() {
         </div>
 
         <div className="glass-panel rounded-2xl overflow-hidden">
+          {/* Filters */}
           <div className="p-4 border-b border-secondary-500/10 flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1 max-w-sm">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground-500 w-4 h-4 flex items-center justify-center"><i className="ri-search-line text-sm"></i></span>
               <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Buscar clientes..." className="w-full h-9 bg-background-100 border border-secondary-500/20 rounded-lg pl-9 pr-3 text-sm text-foreground-300 placeholder:text-foreground-600 outline-none focus:border-primary-500/40 transition-all" />
             </div>
-            <select value={filterWarehouse} onChange={(e) => setFilterWarehouse(e.target.value)} className="h-9 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-300 outline-none focus:border-primary-500/40 max-w-[200px]">
-              <option value="">Todos los almacenes</option>
-              {warehouses.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
+
+            <select value={filterCountry} onChange={(e) => handleFilterCountryChange(e.target.value)} className="h-9 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-300 outline-none focus:border-primary-500/40 max-w-[170px]">
+              <option value="">Todos los paises</option>
+              {filterCountryOptions.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
             </select>
+
+            <select value={filterTenant} onChange={(e) => handleFilterTenantChange(e.target.value)} className="h-9 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-300 outline-none focus:border-primary-500/40 max-w-[170px]">
+              <option value="">Todos los tenants</option>
+              {filterTenantOptions.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+
+            <select value={filterWarehouse} onChange={(e) => setFilterWarehouse(e.target.value)} className="h-9 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-300 outline-none focus:border-primary-500/40 max-w-[180px]">
+              <option value="">Todos los almacenes</option>
+              {filterWarehouseOptions.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
+            </select>
+
             <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="h-9 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-300 outline-none focus:border-primary-500/40">
               <option value="">Todos los estados</option>
               <option value="active">Activo</option>
@@ -143,6 +239,7 @@ export default function ClientsPage() {
                   <th className="text-left px-5 py-3 text-xs font-medium text-foreground-500 uppercase tracking-wider">Cliente</th>
                   <th className="text-left px-5 py-3 text-xs font-medium text-foreground-500 uppercase tracking-wider">Codigo</th>
                   <th className="text-left px-5 py-3 text-xs font-medium text-foreground-500 uppercase tracking-wider">Pais</th>
+                  <th className="text-left px-5 py-3 text-xs font-medium text-foreground-500 uppercase tracking-wider">Tenant</th>
                   <th className="text-left px-5 py-3 text-xs font-medium text-foreground-500 uppercase tracking-wider">Almacen</th>
                   <th className="text-left px-5 py-3 text-xs font-medium text-foreground-500 uppercase tracking-wider">Email</th>
                   <th className="text-left px-5 py-3 text-xs font-medium text-foreground-500 uppercase tracking-wider">Estado</th>
@@ -155,12 +252,11 @@ export default function ClientsPage() {
                   <tr key={c.id} className="border-b border-secondary-500/5 hover:bg-background-100/50 transition-colors">
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
+                        <div className="w-9 h-9 rounded-lg bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
                           <i className="ri-building-2-line text-violet-400 text-base"></i>
                         </div>
                         <div>
                           <p className="text-sm font-medium text-foreground-200">{c.name}</p>
-                          <p className="text-2xs text-foreground-600 mt-0.5">{c.tenant_name}</p>
                         </div>
                       </div>
                     </td>
@@ -171,6 +267,7 @@ export default function ClientsPage() {
                         <span className="text-2xs text-foreground-600">({c.country_code})</span>
                       </div>
                     </td>
+                    <td className="px-5 py-3.5"><span className="text-sm text-foreground-400">{c.tenant_name}</span></td>
                     <td className="px-5 py-3.5"><span className="text-xs text-foreground-400 max-w-[160px] line-clamp-1">{c.warehouse_name}</span></td>
                     <td className="px-5 py-3.5"><span className="text-xs text-foreground-400">{c.contact_email || '—'}</span></td>
                     <td className="px-5 py-3.5">
@@ -211,7 +308,7 @@ export default function ClientsPage() {
         </div>
       </div>
 
-      {/* Create/Edit Modal */}
+      {/* Create/Edit Modal — Cascada: País → Tenant → Almacén */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowModal(false)} />
@@ -229,21 +326,61 @@ export default function ClientsPage() {
             )}
 
             <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-foreground-400 mb-1.5">Almacen</label>
-                <select value={formData.warehouse_id} onChange={(e) => handleWarehouseChange(e.target.value)} className="w-full h-10 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-300 outline-none focus:border-primary-500/40">
-                  <option value="">Seleccionar almacen</option>
-                  {warehouses.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
-                </select>
+              {/* CASCADE: País → Tenant → Almacén */}
+              <div className="p-4 rounded-xl bg-background-100/70 border border-secondary-500/10 space-y-3">
+                <p className="text-xs font-medium text-foreground-500 flex items-center gap-1.5">
+                  <span className="w-3.5 h-3.5 flex items-center justify-center text-emerald-400"><i className="ri-stack-line text-xs"></i></span>
+                  Cascada: Pais → Tenant → Almacen
+                </p>
+
+                <div>
+                  <label className="block text-xs font-medium text-foreground-400 mb-1.5">
+                    <span className="w-3 h-3 inline-flex items-center justify-center mr-1 text-emerald-400"><i className="ri-global-line text-xs"></i></span>
+                    Pais
+                  </label>
+                  <select value={formData.country_id} onChange={(e) => handleCountryChange(e.target.value)} className="w-full h-10 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-300 outline-none focus:border-primary-500/40">
+                    <option value="">Seleccionar pais</option>
+                    {countries.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-foreground-400 mb-1.5">
+                    <span className="w-3 h-3 inline-flex items-center justify-center mr-1 text-primary-400"><i className="ri-building-line text-xs"></i></span>
+                    Tenant
+                  </label>
+                  <select value={formData.tenant_id} onChange={(e) => handleTenantChange(e.target.value)} disabled={!formData.country_id} className="w-full h-10 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-300 outline-none focus:border-primary-500/40 disabled:opacity-40">
+                    <option value="">Seleccionar tenant</option>
+                    {tenants.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  </select>
+                  {formData.country_id && tenants.length === 0 && (
+                    <p className="text-2xs text-amber-400 mt-1">No hay tenants en este pais</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-foreground-400 mb-1.5">
+                    <span className="w-3 h-3 inline-flex items-center justify-center mr-1 text-amber-400"><i className="ri-store-2-line text-xs"></i></span>
+                    Almacen
+                  </label>
+                  <select value={formData.warehouse_id} onChange={(e) => setFormData({ ...formData, warehouse_id: e.target.value })} disabled={!formData.tenant_id} className="w-full h-10 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-300 outline-none focus:border-primary-500/40 disabled:opacity-40">
+                    <option value="">Seleccionar almacen</option>
+                    {warehouses.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
+                  </select>
+                  {formData.tenant_id && warehouses.length === 0 && (
+                    <p className="text-2xs text-amber-400 mt-1">No hay almacenes en este tenant</p>
+                  )}
+                </div>
               </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-foreground-400 mb-1.5">Nombre comercial</label>
-                  <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full h-10 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-200 outline-none focus:border-primary-500/40 transition-all" placeholder="Ej: Distribuidora Del Valle S.A." />
+                  <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full h-10 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-200 outline-none focus:border-primary-500/40 transition-all" placeholder="Ej: COFERSA" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-foreground-400 mb-1.5">Codigo</label>
-                  <input type="text" value={formData.code} onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })} className="w-full h-10 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-200 outline-none focus:border-primary-500/40 transition-all font-mono" placeholder="DDV-CR" />
+                  <input type="text" value={formData.code} onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })} className="w-full h-10 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-200 outline-none focus:border-primary-500/40 transition-all font-mono" placeholder="COFERSA-CR" />
                 </div>
               </div>
               <div>

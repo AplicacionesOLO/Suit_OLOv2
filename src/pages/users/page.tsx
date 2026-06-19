@@ -41,13 +41,16 @@ export default function UsersPage() {
 
   const filteredCountries = useMemo(() => {
     if (!inviteForm.tenant_id) return [];
-    return countries.filter((c) => c.tenant_id === inviteForm.tenant_id);
-  }, [countries, inviteForm.tenant_id]);
+    const tenant = tenants.find((t) => t.id === inviteForm.tenant_id);
+    const tenantCountryId = tenant?.country_id;
+    if (!tenantCountryId) return [];
+    return countries.filter((c) => c.id === tenantCountryId);
+  }, [countries, tenants, inviteForm.tenant_id]);
 
   const filteredWarehouses = useMemo(() => {
-    if (!inviteForm.country_id) return [];
-    return warehouses.filter((w) => w.country_id === inviteForm.country_id);
-  }, [warehouses, inviteForm.country_id]);
+    if (!inviteForm.tenant_id) return [];
+    return warehouses.filter((w) => w.tenant_id === inviteForm.tenant_id);
+  }, [warehouses, inviteForm.tenant_id]);
 
   const filteredClients = useMemo(() => {
     if (!inviteForm.warehouse_id) return [];
@@ -673,6 +676,7 @@ export default function UsersPage() {
         tenants={tenants}
         roles={roles}
         countries={countries}
+        warehouses={warehouses}
         clients={clients}
       />
 

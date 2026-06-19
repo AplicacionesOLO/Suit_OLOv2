@@ -20,7 +20,7 @@ interface UseUsersReturn {
   tenants: { id: string; name: string; country_id: string | null }[];
   roles: { id: string; name: string; level: number }[];
   countries: { id: string; name: string; tenant_id: string }[];
-  warehouses: { id: string; name: string; country_id: string }[];
+  warehouses: { id: string; name: string; tenant_id: string; country_id: string }[];
   clients: { id: string; name: string; warehouse_id: string; tenant_id: string }[];
   loading: boolean;
   error: string | null;
@@ -37,7 +37,7 @@ export function useUsers(): UseUsersReturn {
   const [tenants, setTenants] = useState<{ id: string; name: string; country_id: string | null }[]>([]);
   const [roles, setRoles] = useState<{ id: string; name: string; level: number }[]>([]);
   const [countries, setCountries] = useState<{ id: string; name: string; tenant_id: string }[]>([]);
-  const [warehouses, setWarehouses] = useState<{ id: string; name: string; country_id: string }[]>([]);
+  const [warehouses, setWarehouses] = useState<{ id: string; name: string; tenant_id: string; country_id: string }[]>([]);
   const [clients, setClients] = useState<{ id: string; name: string; warehouse_id: string; tenant_id: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +53,7 @@ export function useUsers(): UseUsersReturn {
         supabase.from('tenants').select('id, name, country_id').order('name'),
         supabase.from('roles').select('id, name, level').order('level'),
         supabase.from('countries').select('id, name, tenant_id').order('name'),
-        supabase.from('warehouses').select('id, name, country_id').order('name'),
+        supabase.from('warehouses').select('id, name, tenant_id, country_id').order('name'),
         supabase.from('clients').select('id, name, warehouse_id, tenant_id').order('name'),
       ]);
 
@@ -70,8 +70,8 @@ export function useUsers(): UseUsersReturn {
       if (clientsResult.data) setClients(clientsResult.data);
 
       // Auditar integridad de cascada en desarrollo
-      if (tenantsResult.data && clientsResult.data) {
-        auditCascadeData(tenantsResult.data, clientsResult.data);
+      if (tenantsResult.data && warehousesResult.data && clientsResult.data) {
+        auditCascadeData(tenantsResult.data, warehousesResult.data, clientsResult.data);
       }
     } catch (e) {
       setError('Error al cargar datos');

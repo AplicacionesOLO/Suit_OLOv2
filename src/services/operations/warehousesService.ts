@@ -51,11 +51,13 @@ export async function fetchWarehouses(): Promise<{ data: WarehouseWithDetails[];
 
     const result: WarehouseWithDetails[] = warehouses.map((w) => {
       const country = countryMap.get(w.country_id);
+      // CORREGIDO: tenant_name se deriva de w.tenant_id (relación directa warehouses→tenants)
+      // NO de countries.tenant_id (que asumía incorrectamente 1 país = 1 tenant)
       return {
         ...w,
         country_name: country?.name || 'Desconocido',
         country_code: country?.code || '--',
-        tenant_name: country ? (tenantMap.get(country.tenant_id) || 'Desconocido') : 'Desconocido',
+        tenant_name: w.tenant_id ? (tenantMap.get(w.tenant_id) || 'Desconocido') : 'Desconocido',
         client_count: clientCountMap.get(w.id) || 0,
       };
     });

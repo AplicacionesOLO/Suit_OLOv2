@@ -20,6 +20,80 @@ export interface ClientWithDetails extends Client {
   tenant_name: string;
 }
 
+// ========== CASCADE FETCH HELPERS ==========
+
+export interface CountrySelectOption {
+  id: string;
+  name: string;
+  code: string;
+}
+
+export interface TenantSelectOption {
+  id: string;
+  name: string;
+  country_id: string;
+}
+
+export interface WarehouseSelectOption {
+  id: string;
+  name: string;
+  tenant_id: string;
+  country_id: string;
+}
+
+/**
+ * Obtiene todos los países activos para el selector cascada.
+ */
+export async function fetchCountriesForClientSelect(): Promise<{ data: CountrySelectOption[]; error: string | null }> {
+  try {
+    const { data, error } = await supabase
+      .from('countries')
+      .select('id, name, code')
+      .eq('status', 'active')
+      .order('name');
+    if (error) throw error;
+    return { data: (data || []) as CountrySelectOption[], error: null };
+  } catch (err: any) {
+    return { data: [], error: err.message || 'Error al cargar países' };
+  }
+}
+
+/**
+ * Obtiene los tenants de un país específico para el selector cascada.
+ */
+export async function fetchTenantsByCountry(countryId: string): Promise<{ data: TenantSelectOption[]; error: string | null }> {
+  try {
+    if (!countryId) return { data: [], error: null };
+    const { data, error } = await supabase
+      .from('tenants')
+      .select('id, name, country_id')
+      .eq('country_id', countryId)
+      .order('name');
+    if (error) throw error;
+    return { data: (data || []) as TenantSelectOption[], error: null };
+  } catch (err: any) {
+    return { data: [], error: err.message || 'Error al cargar tenants' };
+  }
+}
+
+/**
+ * Obtiene los almacenes de un tenant específico para el selector cascada.
+ */
+export async function fetchWarehousesByTenant(tenantId: string): Promise<{ data: WarehouseSelectOption[]; error: string | null }> {
+  try {
+    if (!tenantId) return { data: [], error: null };
+    const { data, error } = await supabase
+      .from('warehouses')
+      .select('id, name, tenant_id, country_id')
+      .eq('tenant_id', tenantId)
+      .order('name');
+    if (error) throw error;
+    return { data: (data || []) as WarehouseSelectOption[], error: null };
+  } catch (err: any) {
+    return { data: [], error: err.message || 'Error al cargar almacenes' };
+  }
+}
+
 export async function fetchClients(): Promise<{ data: ClientWithDetails[]; error: string | null }> {
   try {
     let query = supabase.from('clients').select('*').order('name');
