@@ -3,6 +3,7 @@ import AppLayout from '@/components/feature/AppLayout';
 import { useCountries } from '@/hooks/useCountries';
 import { useWorldCountries } from '@/hooks/useWorldCountries';
 import { useSuitePermissions } from '@/hooks/useSuitePermissions';
+import { useTenantContext } from '@/hooks/useTenantContext';
 import { supabase } from '@/services/supabase/client';
 import MultiSelect from '@/components/base/MultiSelect';
 import type { CountryWithCounts } from '@/services/operations/countriesService';
@@ -21,6 +22,7 @@ export default function CountriesPage() {
   } = useCountries();
   const world = useWorldCountries();
   const { can } = useSuitePermissions();
+  const ctx = useTenantContext();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterTenant, setFilterTenant] = useState('');
@@ -68,8 +70,17 @@ export default function CountriesPage() {
     setDropdownOpen(false);
   };
 
+  const contextParts = useMemo(() =>
+    [ctx.currentCountryName, ctx.currentTenantName, ctx.currentWarehouseName, ctx.currentClientName].filter(Boolean),
+    [ctx.currentCountryName, ctx.currentTenantName, ctx.currentWarehouseName, ctx.currentClientName]
+  );
+
   const filtered = useMemo(() => {
     let result = countries;
+    // Apply context filter
+    if (ctx.currentCountryId && ctx.currentCountryId !== 'all') {
+      result = result.filter((c) => c.id === ctx.currentCountryId);
+    }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       result = result.filter(
@@ -84,7 +95,12 @@ export default function CountriesPage() {
     }
     if (filterStatus) result = result.filter((c) => c.status === filterStatus);
     return result;
-  }, [countries, searchQuery, filterTenant, filterStatus]);
+  }, [countries, searchQuery, filterTenant, filterStatus, ctx.currentCountryId]);
+
+  // Context-aware stats
+  const contextCountries = ctx.currentCountryId && ctx.currentCountryId !== 'all'
+    ? countries.filter((c) => c.id === ctx.currentCountryId)
+    : countries;
 
   const openCreate = () => {
     resetForm();
@@ -249,6 +265,9 @@ export default function CountriesPage() {
             <h1 className="text-xl font-bold text-foreground-100">Países</h1>
             <p className="text-sm text-foreground-500 mt-1">
               Administra los paises. Cada pais puede asociarse a multiples tenants via el Catalogo Maestro ISO.
+              {contextParts.length > 0 && (
+                <span className="text-foreground-400"> · <span className="text-accent-400 font-medium">{contextParts.join(' › ')}</span></span>
+              )}
             </p>
           </div>
           {can('countries', 'create') && (
@@ -268,28 +287,28 @@ export default function CountriesPage() {
           {[
             {
               label: 'Total paises',
-              value: countries.length,
+              value: contextCountries.length,
               icon: 'ri-global-line',
               bg: 'bg-primary-500/10',
               text: 'text-primary-400',
             },
             {
               label: 'Paises activos',
-              value: countries.filter((c) => c.status === 'active').length,
+              value: contextCountries.filter((c) => c.status === 'active').length,
               icon: 'ri-checkbox-circle-line',
               bg: 'bg-emerald-500/10',
               text: 'text-emerald-400',
             },
             {
               label: 'Total almacenes',
-              value: countries.reduce((s, c) => s + c.warehouse_count, 0),
+              value: contextCountries.reduce((s, c) => s + c.warehouse_count, 0),
               icon: 'ri-store-2-line',
               bg: 'bg-accent-500/10',
               text: 'text-accent-400',
             },
             {
               label: 'Total clientes',
-              value: countries.reduce((s, c) => s + c.client_count, 0),
+              value: contextCountries.reduce((s, c) => s + c.client_count, 0),
               icon: 'ri-building-2-line',
               bg: 'bg-violet-500/10',
               text: 'text-violet-400',
@@ -538,7 +557,7 @@ export default function CountriesPage() {
           </div>
           <div className="p-4 border-t border-secondary-500/10 flex items-center justify-between">
             <span className="text-xs text-foreground-600">
-              {filtered.length} de {countries.length} paises
+              {filtered.length} de {contextCountries.length} paises
             </span>
           </div>
         </div>

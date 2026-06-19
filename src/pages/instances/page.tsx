@@ -21,6 +21,7 @@ import {
   type TenantCountryBrief,
 } from '@/services/applications/applicationsService';
 import { useSuitePermissions } from '@/hooks/useSuitePermissions';
+import { useTenantContext } from '@/hooks/useTenantContext';
 
 interface AppInstance {
   id: string;
@@ -61,6 +62,12 @@ export default function InstancesPage() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const { can } = useSuitePermissions();
+  const ctx = useTenantContext();
+
+  const contextParts = useMemo(() =>
+    [ctx.currentCountryName, ctx.currentTenantName, ctx.currentWarehouseName, ctx.currentClientName].filter(Boolean),
+    [ctx.currentCountryName, ctx.currentTenantName, ctx.currentWarehouseName, ctx.currentClientName]
+  );
 
   // Cascade data
   const [countries, setCountries] = useState<CountryBrief[]>([]);
@@ -126,6 +133,10 @@ export default function InstancesPage() {
   const initModalForCreate = useCallback(() => {
     setEditingInstance(null);
     resetCascade();
+    setModalCountry(ctx.currentCountryId || '');
+    setModalTenant(ctx.currentTenantId || '');
+    setModalWarehouse(ctx.currentWarehouseId || '');
+    setModalClient(ctx.currentClientId || '');
     setModalName('');
     setModalUrl('');
     setModalSso(true);
@@ -134,7 +145,7 @@ export default function InstancesPage() {
     setModalNewTab(false);
     setModalErrors({});
     setShowModal(true);
-  }, []);
+  }, [ctx.currentCountryId, ctx.currentTenantId, ctx.currentWarehouseId, ctx.currentClientId]);
 
   const initModalForEdit = useCallback((inst: AppInstance) => {
     setEditingInstance(inst);
@@ -262,11 +273,21 @@ export default function InstancesPage() {
 
   const filtered = useMemo(() => {
     let result = showDeleted ? instanceList : instanceList.filter((i) => !i.deletedAt);
+    // Apply context filter: Client → Warehouse → Tenant → Country
+    if (ctx.currentClientId && ctx.currentClientId !== 'all') {
+      result = result.filter((i) => i.clientId === ctx.currentClientId);
+    } else if (ctx.currentWarehouseId && ctx.currentWarehouseId !== 'all') {
+      result = result.filter((i) => i.warehouseName === ctx.currentWarehouseName);
+    } else if (ctx.currentTenantId && ctx.currentTenantId !== 'all') {
+      result = result.filter((i) => i.tenantId === ctx.currentTenantId);
+    } else if (ctx.currentCountryId && ctx.currentCountryId !== 'all') {
+      result = result.filter((i) => i.countryName === ctx.currentCountryName);
+    }
     if (searchQuery) { const q = searchQuery.toLowerCase(); result = result.filter((i) => i.instanceName.toLowerCase().includes(q) || i.applicationName.toLowerCase().includes(q) || i.clientName.toLowerCase().includes(q)); }
     if (filterTenant) result = result.filter((i) => i.tenantName === filterTenant);
     if (filterStatus) result = result.filter((i) => i.status === filterStatus);
     return result;
-  }, [searchQuery, filterTenant, filterStatus, instanceList, showDeleted]);
+  }, [searchQuery, filterTenant, filterStatus, instanceList, showDeleted, ctx.currentClientId, ctx.currentWarehouseId, ctx.currentTenantId, ctx.currentCountryId, ctx.currentWarehouseName, ctx.currentCountryName]);
 
   const tenantNames = [...new Set(instanceList.map((i) => i.tenantName))];
   const deletedCount = instanceList.filter((i) => i.deletedAt).length;
@@ -289,7 +310,11 @@ export default function InstancesPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-xl font-bold text-foreground-100">Instancias de Aplicación</h1>
-            <p className="text-sm text-foreground-500 mt-1">Gestiona las instancias de aplicaciones por cliente, con SSO y dominios.</p>
+            <p className="text-sm text-foreground-500 mt-1">Gestiona las instancias de aplicaciones por cliente, con SSO y dominios.
+              {contextParts.length > 0 && (
+                <span className="text-foreground-400"> · <span className="text-accent-400 font-medium">{contextParts.join(' › ')}</span></span>
+              )}
+            </p>
           </div>
           {can('instances', 'create') && (
             <button onClick={initModalForCreate} className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-sm font-medium whitespace-nowrap">

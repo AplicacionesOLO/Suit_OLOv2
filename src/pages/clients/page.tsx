@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import AppLayout from '@/components/feature/AppLayout';
 import { useClients } from '@/hooks/useClients';
 import { useSuitePermissions } from '@/hooks/useSuitePermissions';
+import { useTenantContext } from '@/hooks/useTenantContext';
 import type { ClientWithDetails } from '@/services/operations/clientsService';
 
 export default function ClientsPage() {
@@ -18,7 +19,12 @@ export default function ClientsPage() {
     toggleStatus,
   } = useClients();
   const { can } = useSuitePermissions();
+  const ctx = useTenantContext();
   const [searchQuery, setSearchQuery] = useState('');
+  const contextParts = useMemo(() =>
+    [ctx.currentCountryName, ctx.currentTenantName, ctx.currentWarehouseName, ctx.currentClientName].filter(Boolean),
+    [ctx.currentCountryName, ctx.currentTenantName, ctx.currentWarehouseName, ctx.currentClientName]
+  );
   const [filterCountry, setFilterCountry] = useState('');
   const [filterTenant, setFilterTenant] = useState('');
   const [filterWarehouse, setFilterWarehouse] = useState('');
@@ -72,6 +78,17 @@ export default function ClientsPage() {
 
   const filtered = useMemo(() => {
     let result = clients;
+    // Apply context filter: Client → Warehouse → Tenant → Country
+    if (ctx.currentClientId && ctx.currentClientId !== 'all') {
+      result = result.filter((c) => c.id === ctx.currentClientId);
+    } else if (ctx.currentWarehouseId && ctx.currentWarehouseId !== 'all') {
+      result = result.filter((c) => c.warehouse_id === ctx.currentWarehouseId);
+    } else if (ctx.currentTenantId && ctx.currentTenantId !== 'all') {
+      result = result.filter((c) => c.tenant_id === ctx.currentTenantId);
+    } else if (ctx.currentCountryId && ctx.currentCountryId !== 'all') {
+      const countryCode = ctx.accessibleCountries.find((co) => co.id === ctx.currentCountryId)?.name;
+      if (countryCode) result = result.filter((c) => c.country_name === countryCode);
+    }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       result = result.filter(
@@ -89,20 +106,22 @@ export default function ClientsPage() {
     if (filterWarehouse) result = result.filter((c) => c.warehouse_id === filterWarehouse);
     if (filterStatus) result = result.filter((c) => c.status === filterStatus);
     return result;
-  }, [clients, searchQuery, filterCountry, filterTenant, filterWarehouse, filterStatus]);
+  }, [clients, searchQuery, filterCountry, filterTenant, filterWarehouse, filterStatus, ctx.currentClientId, ctx.currentWarehouseId, ctx.currentTenantId, ctx.currentCountryId, ctx.accessibleCountries]);
 
   const openCreate = () => {
     setFormData({
       name: '',
       code: '',
       contact_email: '',
-      country_id: '',
-      tenant_id: '',
-      warehouse_id: '',
+      country_id: ctx.currentCountryId || '',
+      tenant_id: ctx.currentTenantId || '',
+      warehouse_id: ctx.currentWarehouseId || '',
     });
     setFormError('');
     setEditing(null);
     setShowModal(true);
+    if (ctx.currentCountryId) loadTenantsByCountry(ctx.currentCountryId);
+    if (ctx.currentTenantId) loadWarehousesByTenant(ctx.currentTenantId);
   };
 
   const openEdit = async (c: ClientWithDetails) => {
@@ -208,6 +227,9 @@ export default function ClientsPage() {
             <h1 className="text-xl font-bold text-foreground-100">Clientes</h1>
             <p className="text-sm text-foreground-500 mt-1">
               Administra los clientes en cascada: Pais → Tenant → Almacen → Cliente.
+              {contextParts.length > 0 && (
+                <span className="text-foreground-400"> · <span className="text-accent-400 font-medium">{contextParts.join(' › ')}</span></span>
+              )}
             </p>
           </div>
           {can('clients', 'create') && (

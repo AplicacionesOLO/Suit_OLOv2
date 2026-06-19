@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import AppLayout from '@/components/feature/AppLayout';
 import { useSuitePermissions } from '@/hooks/useSuitePermissions';
+import { useTenantContext } from '@/hooks/useTenantContext';
 import {
   fetchApplications,
   fetchCategories,
@@ -132,7 +133,13 @@ export default function ApplicationsPage() {
   const [showDeleted, setShowDeleted] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const { can } = useSuitePermissions();
+  const ctx = useTenantContext();
   const selectedAppId = searchParams.get('app');
+
+  const contextParts = useMemo(() =>
+    [ctx.currentCountryName, ctx.currentTenantName, ctx.currentWarehouseName, ctx.currentClientName].filter(Boolean),
+    [ctx.currentCountryName, ctx.currentTenantName, ctx.currentWarehouseName, ctx.currentClientName]
+  );
 
   // Cascade data
   const [countries, setCountries] = useState<CountryBrief[]>([]);
@@ -229,17 +236,33 @@ export default function ApplicationsPage() {
 
   const visibleApps = useMemo(() => {
     let result = showDeleted ? allApps : allApps.filter((a) => !a.deletedAt);
+    // Apply context filter: Client → Warehouse → Tenant → Country
+    if (ctx.currentClientId && ctx.currentClientId !== 'all') {
+      result = result.filter((a) => a.clientId === ctx.currentClientId);
+    } else if (ctx.currentWarehouseId && ctx.currentWarehouseId !== 'all') {
+      result = result.filter((a) => a.warehouseName === ctx.currentWarehouseName);
+    } else if (ctx.currentTenantId && ctx.currentTenantId !== 'all') {
+      result = result.filter((a) => a.tenantId === ctx.currentTenantId);
+    } else if (ctx.currentCountryId && ctx.currentCountryId !== 'all') {
+      result = result.filter((a) => a.countryName === ctx.currentCountryName);
+    }
     if (searchQuery) { const q = searchQuery.toLowerCase(); result = result.filter((a) => a.name.toLowerCase().includes(q) || a.code.toLowerCase().includes(q)); }
     if (filterCat) result = result.filter((a) => a.categoryId === filterCat);
     if (filterStatus) result = result.filter((a) => a.status === filterStatus);
     return result;
-  }, [searchQuery, filterCat, filterStatus, allApps, showDeleted]);
+  }, [searchQuery, filterCat, filterStatus, allApps, showDeleted, ctx.currentClientId, ctx.currentWarehouseId, ctx.currentTenantId, ctx.currentCountryId, ctx.currentWarehouseName, ctx.currentCountryName]);
 
   const selectedApp = selectedAppId ? allApps.find((a) => a.id === selectedAppId && !a.deletedAt) : null;
 
   const openCreateModal = () => {
     setEditingId(null);
-    setForm(emptyForm);
+    setForm({
+      ...emptyForm,
+      countryId: ctx.currentCountryId || '',
+      tenantId: ctx.currentTenantId || '',
+      warehouseId: ctx.currentWarehouseId || '',
+      clientId: ctx.currentClientId || '',
+    });
     setFormErrors({});
     setShowModal(true);
   };
@@ -372,7 +395,11 @@ export default function ApplicationsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-xl font-bold text-foreground-100">Aplicaciones</h1>
-            <p className="text-sm text-foreground-500 mt-1">Gestiona el catálogo de aplicaciones de la plataforma.</p>
+            <p className="text-sm text-foreground-500 mt-1">Gestiona el catálogo de aplicaciones de la plataforma.
+              {contextParts.length > 0 && (
+                <span className="text-foreground-400"> · <span className="text-accent-400 font-medium">{contextParts.join(' › ')}</span></span>
+              )}
+            </p>
           </div>
           {can('applications', 'create') && (
             <button onClick={openCreateModal} className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-sm font-medium whitespace-nowrap cursor-pointer">

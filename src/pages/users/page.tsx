@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback } from 'react';
 import AppLayout from '@/components/feature/AppLayout';
 import { useUsers } from '@/hooks/useUsers';
 import { useSuitePermissions } from '@/hooks/useSuitePermissions';
+import { useTenantContext } from '@/hooks/useTenantContext';
 import type { PlatformUserFull, CreateInvitationInput } from '@/services/auth/usersService';
 import MultiSelect from '@/components/base/MultiSelect';
 import EditUserModal from './components/EditUserModal';
@@ -11,7 +12,13 @@ type Tab = 'active' | 'invitations';
 export default function UsersPage() {
   const { users, invitations, tenants, roles, countries, warehouses, clients, tenantCountries, loading, error, sendInvitation, cancelInvitation, editUser, removeUser, refresh } = useUsers();
   const { can } = useSuitePermissions();
+  const ctx = useTenantContext();
   const [activeTab, setActiveTab] = useState<Tab>('active');
+
+  const contextParts = useMemo(() =>
+    [ctx.currentCountryName, ctx.currentTenantName, ctx.currentWarehouseName, ctx.currentClientName].filter(Boolean),
+    [ctx.currentCountryName, ctx.currentTenantName, ctx.currentWarehouseName, ctx.currentClientName]
+  );
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRole, setFilterRole] = useState('');
@@ -61,6 +68,20 @@ export default function UsersPage() {
 
   const filteredUsers = useMemo(() => {
     let result = users;
+    // Apply context filter: Client → Tenant → Country
+    if (ctx.currentClientId && ctx.currentClientId !== 'all') {
+      const clientName = ctx.currentClientName;
+      if (clientName) result = result.filter((u) => u.client_name === clientName);
+    } else if (ctx.currentWarehouseId && ctx.currentWarehouseId !== 'all') {
+      const whName = ctx.accessibleWarehouses.find((w) => w.id === ctx.currentWarehouseId)?.name;
+      if (whName) result = result.filter((u) => u.warehouse_name === whName);
+    } else if (ctx.currentTenantId && ctx.currentTenantId !== 'all') {
+      const tenantName = ctx.currentTenantName;
+      if (tenantName) result = result.filter((u) => u.tenant_name === tenantName);
+    } else if (ctx.currentCountryId && ctx.currentCountryId !== 'all') {
+      const countryName = ctx.currentCountryName;
+      if (countryName) result = result.filter((u) => u.country_name === countryName);
+    }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       result = result.filter((u) => (u.email || '').toLowerCase().includes(q) || (u.first_name || '').toLowerCase().includes(q) || (u.last_name || '').toLowerCase().includes(q));
@@ -68,7 +89,7 @@ export default function UsersPage() {
     if (filterRole) result = result.filter((u) => u.role_id === filterRole);
     if (filterStatus) result = result.filter((u) => u.status === filterStatus);
     return result;
-  }, [users, searchQuery, filterRole, filterStatus]);
+  }, [users, searchQuery, filterRole, filterStatus, ctx.currentClientId, ctx.currentClientName, ctx.currentWarehouseId, ctx.currentWarehouseName, ctx.currentTenantId, ctx.currentTenantName, ctx.currentCountryId, ctx.currentCountryName, ctx.accessibleWarehouses]);
 
   const filteredInvitations = useMemo(() => {
     if (!searchQuery) return invitations;
@@ -78,8 +99,8 @@ export default function UsersPage() {
 
   const resetInviteForm = () => {
     setInviteForm({
-      email: '', tenant_id: '', role_id: '',
-      country_id: '', warehouse_id: '', client_id: '',
+      email: '', tenant_id: ctx.currentTenantId || '', role_id: '',
+      country_id: ctx.currentCountryId || '', warehouse_id: ctx.currentWarehouseId || '', client_id: ctx.currentClientId || '',
       first_name: '', last_name: '',
       scope_tenants: [], scope_countries: [], scope_warehouses: [], scope_clients: [],
       scope_all_tenants: false, scope_all_countries: false,
@@ -98,7 +119,12 @@ export default function UsersPage() {
   };
 
   const handleInviteTenantChange = (tid: string) => {
-    setInviteForm({ ...inviteForm, tenant_id: tid, country_id: '', warehouse_id: '', client_id: '' });
+    const tenant = tenants.find((t) => t.id === tid);
+    const relevantCountries = tenant ? tenantCountries.filter((tc) => tc.tenant_id === tid) : [];
+    const defaultCountry = ctx.currentCountryId && relevantCountries.some((tc) => tc.country_id === ctx.currentCountryId)
+      ? ctx.currentCountryId
+      : relevantCountries[0]?.country_id || '';
+    setInviteForm({ ...inviteForm, tenant_id: tid, country_id: defaultCountry, warehouse_id: '', client_id: '' });
   };
   const handleInviteCountryChange = (cid: string) => {
     setInviteForm({ ...inviteForm, country_id: cid, warehouse_id: '', client_id: '' });
@@ -224,7 +250,11 @@ export default function UsersPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-xl font-bold text-foreground-100">Usuarios</h1>
-            <p className="text-sm text-foreground-500 mt-1">Gestiona usuarios activos e invitaciones pendientes.</p>
+            <p className="text-sm text-foreground-500 mt-1">Gestiona usuarios activos e invitaciones pendientes.
+              {contextParts.length > 0 && (
+                <span className="text-foreground-400"> · <span className="text-accent-400 font-medium">{contextParts.join(' › ')}</span></span>
+              )}
+            </p>
           </div>
           {can('users', 'create') && (
             <button onClick={openInvite} className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-sm font-medium whitespace-nowrap">

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/feature/AppLayout';
 import { useTenants } from '@/hooks/useTenants';
 import { useSuitePermissions } from '@/hooks/useSuitePermissions';
+import { useTenantContext } from '@/hooks/useTenantContext';
 import { supabase } from '@/services/supabase/client';
 import MultiSelect from '@/components/base/MultiSelect';
 import type {
@@ -82,6 +83,12 @@ export default function TenantsPage() {
     refresh,
   } = useTenants();
   const { can } = useSuitePermissions();
+  const ctx = useTenantContext();
+
+  const contextParts = useMemo(() =>
+    [ctx.currentCountryName, ctx.currentTenantName, ctx.currentWarehouseName, ctx.currentClientName].filter(Boolean),
+    [ctx.currentCountryName, ctx.currentTenantName, ctx.currentWarehouseName, ctx.currentClientName]
+  );
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('');
@@ -118,6 +125,14 @@ export default function TenantsPage() {
 
   const filtered = useMemo(() => {
     let result = tenants;
+    // Apply context filter: Country → Tenant
+    if (ctx.currentCountryId && ctx.currentCountryId !== 'all') {
+      const countryName = ctx.currentCountryName;
+      if (countryName) result = result.filter((t) => t.country_names.includes(countryName));
+    }
+    if (ctx.currentTenantId && ctx.currentTenantId !== 'all') {
+      result = result.filter((t) => t.id === ctx.currentTenantId);
+    }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       result = result.filter(
@@ -128,7 +143,7 @@ export default function TenantsPage() {
       result = result.filter((t) => t.status === filterStatus);
     }
     return result;
-  }, [tenants, searchQuery, filterStatus]);
+  }, [tenants, searchQuery, filterStatus, ctx.currentCountryId, ctx.currentCountryName, ctx.currentTenantId]);
 
   const activeTenants = tenants.filter((t) => t.status === 'active');
   const suspendedTenants = tenants.filter((t) => t.status === 'suspended');
@@ -139,7 +154,7 @@ export default function TenantsPage() {
     setEditing(null);
     setFormName('');
     setFormCode('');
-    setFormCountryId('');
+    setFormCountryId(ctx.currentCountryId || '');
     setSelectedCountryIds([]);
     setFormStatus('active');
     setFormSettings({ ...emptySettings });
@@ -302,6 +317,9 @@ export default function TenantsPage() {
             <p className="text-sm text-foreground-500 mt-1">
               Administra las empresas del sistema. Cada tenant puede operar en multiples
               paises.
+              {contextParts.length > 0 && (
+                <span className="text-foreground-400"> · <span className="text-accent-400 font-medium">{contextParts.join(' › ')}</span></span>
+              )}
             </p>
           </div>
           <div className="flex items-center gap-2">

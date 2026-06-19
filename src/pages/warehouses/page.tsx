@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import AppLayout from '@/components/feature/AppLayout';
 import { useWarehouses } from '@/hooks/useWarehouses';
 import { useSuitePermissions } from '@/hooks/useSuitePermissions';
+import { useTenantContext } from '@/hooks/useTenantContext';
 import type { WarehouseWithDetails } from '@/services/operations/warehousesService';
 
 export default function WarehousesPage() {
@@ -16,7 +17,14 @@ export default function WarehousesPage() {
     loadTenantsByCountry,
   } = useWarehouses();
   const { can } = useSuitePermissions();
+  const ctx = useTenantContext();
   const [searchQuery, setSearchQuery] = useState('');
+
+  const contextParts = useMemo(() =>
+    [ctx.currentCountryName, ctx.currentTenantName, ctx.currentWarehouseName, ctx.currentClientName].filter(Boolean),
+    [ctx.currentCountryName, ctx.currentTenantName, ctx.currentWarehouseName, ctx.currentClientName]
+  );
+
   const [filterCountry, setFilterCountry] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -34,6 +42,17 @@ export default function WarehousesPage() {
 
   const filtered = useMemo(() => {
     let result = warehouses;
+    // Apply context filter: Client → Warehouse → Tenant → Country
+    if (ctx.currentClientId && ctx.currentClientId !== 'all') {
+      const ctxClient = ctx.accessibleClients.find((c) => c.id === ctx.currentClientId);
+      if (ctxClient) result = result.filter((w) => w.id === ctxClient.warehouse_id);
+    } else if (ctx.currentWarehouseId && ctx.currentWarehouseId !== 'all') {
+      result = result.filter((w) => w.id === ctx.currentWarehouseId);
+    } else if (ctx.currentTenantId && ctx.currentTenantId !== 'all') {
+      result = result.filter((w) => w.tenant_id === ctx.currentTenantId);
+    } else if (ctx.currentCountryId && ctx.currentCountryId !== 'all') {
+      result = result.filter((w) => w.country_id === ctx.currentCountryId);
+    }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       result = result.filter(
@@ -47,13 +66,18 @@ export default function WarehousesPage() {
     if (filterCountry) result = result.filter((w) => w.country_id === filterCountry);
     if (filterStatus) result = result.filter((w) => w.status === filterStatus);
     return result;
-  }, [warehouses, searchQuery, filterCountry, filterStatus]);
+  }, [warehouses, searchQuery, filterCountry, filterStatus, ctx.currentClientId, ctx.currentWarehouseId, ctx.currentTenantId, ctx.currentCountryId, ctx.accessibleClients]);
 
   const openCreate = () => {
-    setFormData({ name: '', code: '', address: '', country_id: '', tenant_id: '' });
+    setFormData({
+      name: '', code: '', address: '',
+      country_id: ctx.currentCountryId || '',
+      tenant_id: ctx.currentTenantId || '',
+    });
     setFormError('');
     setEditing(null);
     setShowModal(true);
+    if (ctx.currentCountryId) loadTenantsByCountry(ctx.currentCountryId);
   };
 
   const openEdit = async (w: WarehouseWithDetails) => {
@@ -136,6 +160,9 @@ export default function WarehousesPage() {
             <p className="text-sm text-foreground-500 mt-1">
               Gestiona los almacenes en cascada: Pais → Tenant. Cada almacen pertenece a
               un pais y tenant especifico.
+              {contextParts.length > 0 && (
+                <span className="text-foreground-400"> · <span className="text-accent-400 font-medium">{contextParts.join(' › ')}</span></span>
+              )}
             </p>
           </div>
           {can('warehouses', 'create') && (
