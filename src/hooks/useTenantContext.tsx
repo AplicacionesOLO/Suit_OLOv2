@@ -453,6 +453,8 @@ export function TenantContextProvider({ children }: { children: ReactNode }) {
 
   const clearFullContext = useCallback(async () => {
     clearAllLS();
+    setShowAll(false);
+    try { localStorage.removeItem(LS_KEYS.showAll); } catch { /* */ }
     await clearCountryContextOverride();
     await clearTenantContextOverride();
     await supabase.rpc('clear_warehouse_context');

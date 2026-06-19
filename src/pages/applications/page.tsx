@@ -200,7 +200,7 @@ export default function ApplicationsPage() {
     } catch {
       // silently handle errors
     } finally { setLoading(false); }
-  }, []);
+  }, [ctx.currentClientId, ctx.currentWarehouseId, ctx.currentTenantId, ctx.currentCountryId, ctx.showAll]);
 
   useEffect(() => { loadData(); }, [loadData]);
 

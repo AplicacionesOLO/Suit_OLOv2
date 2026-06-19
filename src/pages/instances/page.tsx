@@ -266,7 +266,7 @@ export default function InstancesPage() {
       }
     } catch { /* silently handle */ }
     finally { setLoading(false); }
-  }, []);
+  }, [ctx.currentClientId, ctx.currentWarehouseId, ctx.currentTenantId, ctx.currentCountryId, ctx.showAll]);
 
   useEffect(() => { loadData(); }, [loadData]);
 

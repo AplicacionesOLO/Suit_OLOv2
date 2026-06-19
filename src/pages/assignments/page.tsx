@@ -76,7 +76,7 @@ export default function AssignmentsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [ctx.currentClientId, ctx.currentWarehouseId, ctx.currentTenantId, ctx.currentCountryId, ctx.showAll]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
