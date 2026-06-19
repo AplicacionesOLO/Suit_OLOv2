@@ -49,6 +49,7 @@ export default function DashboardPage() {
 
       // Helper: apply context filters
       const applyContext = (q: any) => {
+        if (ctx.showAll) return q;
         if (currentClientId && currentClientId !== 'all') q = q.eq('client_id', currentClientId);
         if (currentWarehouseId && currentWarehouseId !== 'all') q = q.eq('warehouse_id', currentWarehouseId);
         if (currentTenantId && currentTenantId !== 'all') q = q.eq('tenant_id', currentTenantId);
@@ -95,7 +96,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [ctx.currentTenantId, ctx.currentCountryId, ctx.currentWarehouseId, ctx.currentClientId]);
+  }, [ctx.currentTenantId, ctx.currentCountryId, ctx.currentWarehouseId, ctx.currentClientId, ctx.showAll]);
 
   useEffect(() => { loadData(); }, [loadData]);
 

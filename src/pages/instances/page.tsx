@@ -273,20 +273,22 @@ export default function InstancesPage() {
   const filtered = useMemo(() => {
     let result = showDeleted ? instanceList : instanceList.filter((i) => !i.deletedAt);
     // Apply context filter: Client → Warehouse → Tenant → Country (BY ID)
-    if (ctx.currentClientId && ctx.currentClientId !== 'all') {
-      result = result.filter((i) => i.clientId === ctx.currentClientId);
-    } else if (ctx.currentWarehouseId && ctx.currentWarehouseId !== 'all') {
-      result = result.filter((i) => i.warehouseId === ctx.currentWarehouseId);
-    } else if (ctx.currentTenantId && ctx.currentTenantId !== 'all') {
-      result = result.filter((i) => i.tenantId === ctx.currentTenantId);
-    } else if (ctx.currentCountryId && ctx.currentCountryId !== 'all') {
-      result = result.filter((i) => i.countryId === ctx.currentCountryId);
+    if (!ctx.showAll) {
+      if (ctx.currentClientId && ctx.currentClientId !== 'all') {
+        result = result.filter((i) => i.clientId === ctx.currentClientId);
+      } else if (ctx.currentWarehouseId && ctx.currentWarehouseId !== 'all') {
+        result = result.filter((i) => i.warehouseId === ctx.currentWarehouseId);
+      } else if (ctx.currentTenantId && ctx.currentTenantId !== 'all') {
+        result = result.filter((i) => i.tenantId === ctx.currentTenantId);
+      } else if (ctx.currentCountryId && ctx.currentCountryId !== 'all') {
+        result = result.filter((i) => i.countryId === ctx.currentCountryId);
+      }
     }
     if (searchQuery) { const q = searchQuery.toLowerCase(); result = result.filter((i) => i.instanceName.toLowerCase().includes(q) || i.applicationName.toLowerCase().includes(q) || i.clientName.toLowerCase().includes(q)); }
     if (filterTenant) result = result.filter((i) => i.tenantName === filterTenant);
     if (filterStatus) result = result.filter((i) => i.status === filterStatus);
     return result;
-  }, [searchQuery, filterTenant, filterStatus, instanceList, showDeleted, ctx.currentClientId, ctx.currentWarehouseId, ctx.currentTenantId, ctx.currentCountryId]);
+  }, [searchQuery, filterTenant, filterStatus, instanceList, showDeleted, ctx.currentClientId, ctx.currentWarehouseId, ctx.currentTenantId, ctx.currentCountryId, ctx.showAll]);
 
   const tenantNames = [...new Set(instanceList.map((i) => i.tenantName))];
   const deletedCount = instanceList.filter((i) => i.deletedAt).length;

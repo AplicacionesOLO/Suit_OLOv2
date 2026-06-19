@@ -64,14 +64,16 @@ export default function UsersPage() {
   const filteredUsers = useMemo(() => {
     let result = users;
     // Apply context filter: Client → Warehouse → Tenant → Country (BY ID)
-    if (ctx.currentClientId && ctx.currentClientId !== 'all') {
-      result = result.filter((u) => u.client_id === ctx.currentClientId);
-    } else if (ctx.currentWarehouseId && ctx.currentWarehouseId !== 'all') {
-      result = result.filter((u) => u.warehouse_id === ctx.currentWarehouseId);
-    } else if (ctx.currentTenantId && ctx.currentTenantId !== 'all') {
-      result = result.filter((u) => u.tenant_id === ctx.currentTenantId);
-    } else if (ctx.currentCountryId && ctx.currentCountryId !== 'all') {
-      result = result.filter((u) => u.country_id === ctx.currentCountryId);
+    if (!ctx.showAll) {
+      if (ctx.currentClientId && ctx.currentClientId !== 'all') {
+        result = result.filter((u) => u.client_id === ctx.currentClientId);
+      } else if (ctx.currentWarehouseId && ctx.currentWarehouseId !== 'all') {
+        result = result.filter((u) => u.warehouse_id === ctx.currentWarehouseId);
+      } else if (ctx.currentTenantId && ctx.currentTenantId !== 'all') {
+        result = result.filter((u) => u.tenant_id === ctx.currentTenantId);
+      } else if (ctx.currentCountryId && ctx.currentCountryId !== 'all') {
+        result = result.filter((u) => u.country_id === ctx.currentCountryId);
+      }
     }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -80,7 +82,7 @@ export default function UsersPage() {
     if (filterRole) result = result.filter((u) => u.role_id === filterRole);
     if (filterStatus) result = result.filter((u) => u.status === filterStatus);
     return result;
-  }, [users, searchQuery, filterRole, filterStatus, ctx.currentClientId, ctx.currentWarehouseId, ctx.currentTenantId, ctx.currentCountryId]);
+  }, [users, searchQuery, filterRole, filterStatus, ctx.currentClientId, ctx.currentWarehouseId, ctx.currentTenantId, ctx.currentCountryId, ctx.showAll]);
 
   const filteredInvitations = useMemo(() => {
     if (!searchQuery) return invitations;

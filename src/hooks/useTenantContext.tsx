@@ -69,6 +69,10 @@ export interface TenantContextValue {
   // Refresh
   refresh: () => Promise<void>;
 
+  // Show all (Super Admin only)
+  showAll: boolean;
+  toggleShowAll: () => void;
+
   // Legacy aliases (backward compat)
   effectiveTenantId: string | null;
   effectiveTenantName: string | null;
@@ -86,6 +90,7 @@ const LS_KEYS = {
   tenantId: 'suiteolo.currentTenantId',
   warehouseId: 'suiteolo.currentWarehouseId',
   clientId: 'suiteolo.currentClientId',
+  showAll: 'suiteolo.showAll',
 };
 
 function readLS(key: string): string | null {
@@ -109,6 +114,9 @@ export function TenantContextProvider({ children }: { children: ReactNode }) {
   const [accessibleWarehouses, setAccessibleWarehouses] = useState<WarehouseInfo[]>([]);
   const [accessibleClients, setAccessibleClients] = useState<ClientInfo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAll, setShowAll] = useState(() => {
+    try { return localStorage.getItem(LS_KEYS.showAll) === 'true'; } catch { return false; }
+  });
   const initialLoad = useRef(true);
 
   // ─── build accessible lists ───────────────────────────────────────────
@@ -457,6 +465,14 @@ export function TenantContextProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, [loadAccessibleLists]);
 
+  const toggleShowAll = useCallback(() => {
+    setShowAll((prev) => {
+      const next = !prev;
+      try { localStorage.setItem(LS_KEYS.showAll, String(next)); } catch { /* */ }
+      return next;
+    });
+  }, []);
+
   // ─── derive context value ─────────────────────────────────────────────
 
   const value: TenantContextValue = {
@@ -498,6 +514,8 @@ export function TenantContextProvider({ children }: { children: ReactNode }) {
     clearClient,
     clearFullContext,
     refresh,
+    showAll,
+    toggleShowAll,
 
     // Legacy backward-compat aliases
     effectiveTenantId: ctx?.tenant_id || null,

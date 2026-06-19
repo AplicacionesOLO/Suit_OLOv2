@@ -114,14 +114,16 @@ export default function AssignmentsPage() {
 
       // Filter by context (Client > Warehouse > Tenant > Country)
       let contextFilteredApps = activeApps;
-      if (ctx.currentClientId && ctx.currentClientId !== 'all') {
-        contextFilteredApps = activeApps.filter((a) => a.client_id === ctx.currentClientId);
-      } else if (ctx.currentWarehouseId && ctx.currentWarehouseId !== 'all') {
-        contextFilteredApps = activeApps.filter((a) => a.warehouse_id === ctx.currentWarehouseId);
-      } else if (ctx.currentTenantId && ctx.currentTenantId !== 'all') {
-        contextFilteredApps = activeApps.filter((a) => a.tenant_id === ctx.currentTenantId);
-      } else if (ctx.currentCountryId && ctx.currentCountryId !== 'all') {
-        contextFilteredApps = activeApps.filter((a) => a.country_id === ctx.currentCountryId);
+      if (!ctx.showAll) {
+        if (ctx.currentClientId && ctx.currentClientId !== 'all') {
+          contextFilteredApps = activeApps.filter((a) => a.client_id === ctx.currentClientId);
+        } else if (ctx.currentWarehouseId && ctx.currentWarehouseId !== 'all') {
+          contextFilteredApps = activeApps.filter((a) => a.warehouse_id === ctx.currentWarehouseId);
+        } else if (ctx.currentTenantId && ctx.currentTenantId !== 'all') {
+          contextFilteredApps = activeApps.filter((a) => a.tenant_id === ctx.currentTenantId);
+        } else if (ctx.currentCountryId && ctx.currentCountryId !== 'all') {
+          contextFilteredApps = activeApps.filter((a) => a.country_id === ctx.currentCountryId);
+        }
       }
 
       if (hasAllClients) {

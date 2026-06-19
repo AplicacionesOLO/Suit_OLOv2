@@ -75,14 +75,16 @@ export default function ClientsPage() {
   const filtered = useMemo(() => {
     let result = clients;
     // Apply context filter: Client → Warehouse → Tenant → Country (BY ID)
-    if (ctx.currentClientId && ctx.currentClientId !== 'all') {
-      result = result.filter((c) => c.id === ctx.currentClientId);
-    } else if (ctx.currentWarehouseId && ctx.currentWarehouseId !== 'all') {
-      result = result.filter((c) => c.warehouse_id === ctx.currentWarehouseId);
-    } else if (ctx.currentTenantId && ctx.currentTenantId !== 'all') {
-      result = result.filter((c) => c.tenant_id === ctx.currentTenantId);
-    } else if (ctx.currentCountryId && ctx.currentCountryId !== 'all') {
-      result = result.filter((c) => c.country_id === ctx.currentCountryId);
+    if (!ctx.showAll) {
+      if (ctx.currentClientId && ctx.currentClientId !== 'all') {
+        result = result.filter((c) => c.id === ctx.currentClientId);
+      } else if (ctx.currentWarehouseId && ctx.currentWarehouseId !== 'all') {
+        result = result.filter((c) => c.warehouse_id === ctx.currentWarehouseId);
+      } else if (ctx.currentTenantId && ctx.currentTenantId !== 'all') {
+        result = result.filter((c) => c.tenant_id === ctx.currentTenantId);
+      } else if (ctx.currentCountryId && ctx.currentCountryId !== 'all') {
+        result = result.filter((c) => c.country_id === ctx.currentCountryId);
+      }
     }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -101,7 +103,7 @@ export default function ClientsPage() {
     if (filterWarehouse) result = result.filter((c) => c.warehouse_id === filterWarehouse);
     if (filterStatus) result = result.filter((c) => c.status === filterStatus);
     return result;
-  }, [clients, searchQuery, filterCountry, filterTenant, filterWarehouse, filterStatus, ctx.currentClientId, ctx.currentWarehouseId, ctx.currentTenantId, ctx.currentCountryId]);
+  }, [clients, searchQuery, filterCountry, filterTenant, filterWarehouse, filterStatus, ctx.currentClientId, ctx.currentWarehouseId, ctx.currentTenantId, ctx.currentCountryId, ctx.showAll]);
 
   const openCreate = () => {
     setFormData({

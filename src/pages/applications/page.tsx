@@ -235,20 +235,22 @@ export default function ApplicationsPage() {
   const visibleApps = useMemo(() => {
     let result = showDeleted ? allApps : allApps.filter((a) => !a.deletedAt);
     // Apply context filter: Client → Warehouse → Tenant → Country (BY ID)
-    if (ctx.currentClientId && ctx.currentClientId !== 'all') {
-      result = result.filter((a) => a.clientId === ctx.currentClientId);
-    } else if (ctx.currentWarehouseId && ctx.currentWarehouseId !== 'all') {
-      result = result.filter((a) => a.warehouseId === ctx.currentWarehouseId);
-    } else if (ctx.currentTenantId && ctx.currentTenantId !== 'all') {
-      result = result.filter((a) => a.tenantId === ctx.currentTenantId);
-    } else if (ctx.currentCountryId && ctx.currentCountryId !== 'all') {
-      result = result.filter((a) => a.countryId === ctx.currentCountryId);
+    if (!ctx.showAll) {
+      if (ctx.currentClientId && ctx.currentClientId !== 'all') {
+        result = result.filter((a) => a.clientId === ctx.currentClientId);
+      } else if (ctx.currentWarehouseId && ctx.currentWarehouseId !== 'all') {
+        result = result.filter((a) => a.warehouseId === ctx.currentWarehouseId);
+      } else if (ctx.currentTenantId && ctx.currentTenantId !== 'all') {
+        result = result.filter((a) => a.tenantId === ctx.currentTenantId);
+      } else if (ctx.currentCountryId && ctx.currentCountryId !== 'all') {
+        result = result.filter((a) => a.countryId === ctx.currentCountryId);
+      }
     }
     if (searchQuery) { const q = searchQuery.toLowerCase(); result = result.filter((a) => a.name.toLowerCase().includes(q) || a.code.toLowerCase().includes(q)); }
     if (filterCat) result = result.filter((a) => a.categoryId === filterCat);
     if (filterStatus) result = result.filter((a) => a.status === filterStatus);
     return result;
-  }, [searchQuery, filterCat, filterStatus, allApps, showDeleted, ctx.currentClientId, ctx.currentWarehouseId, ctx.currentTenantId, ctx.currentCountryId]);
+  }, [searchQuery, filterCat, filterStatus, allApps, showDeleted, ctx.currentClientId, ctx.currentWarehouseId, ctx.currentTenantId, ctx.currentCountryId, ctx.showAll]);
 
   const selectedApp = selectedAppId ? allApps.find((a) => a.id === selectedAppId && !a.deletedAt) : null;
 

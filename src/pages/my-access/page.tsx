@@ -106,6 +106,7 @@ export default function MyAccessPage() {
 
   // Apply context filter
   const contextFiltered = (() => {
+    if (ctx.showAll) return filtered;
     if (ctx.currentClientId && ctx.currentClientId !== 'all') {
       return filtered.filter((a: any) => a.client_id === ctx.currentClientId);
     }

@@ -280,6 +280,35 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
                     </div>
                   </div>
 
+                  {/* Super Admin: Show All toggle */}
+                  {ctx.isSuperAdmin && (
+                    <div className="border-t border-accent-500/10 pt-2 mt-1 px-4 py-2">
+                      <label className="flex items-center gap-3 cursor-pointer group">
+                        <div className="relative">
+                          <input
+                            type="checkbox"
+                            checked={ctx.showAll}
+                            onChange={ctx.toggleShowAll}
+                            className="sr-only peer"
+                          />
+                          <div className="w-9 h-5 rounded-full bg-secondary-400/30 peer-checked:bg-accent-500 transition-colors duration-200"></div>
+                          <div className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm peer-checked:translate-x-4 transition-transform duration-200"></div>
+                        </div>
+                        <span className={`text-sm transition-colors ${ctx.showAll ? 'text-accent-400 font-medium' : 'text-foreground-400 group-hover:text-foreground-200'}`}>
+                          <span className="w-3.5 h-3.5 inline-flex items-center justify-center mr-1.5">
+                            <i className={`${ctx.showAll ? 'ri-eye-fill text-accent-400' : 'ri-eye-line'} text-xs`}></i>
+                          </span>
+                          Mostrar todo
+                        </span>
+                      </label>
+                      {ctx.showAll && (
+                        <p className="text-2xs text-accent-400/70 mt-1.5 ml-10">
+                          Viendo todos los registros. El contexto solo aplica en formularios.
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   {/* Clear context */}
                   {hasContext && (
                     <div className="border-t border-secondary-500/10 p-2">
