@@ -274,9 +274,7 @@ export default function AssignmentsPage() {
             <h1 className="text-xl font-bold text-foreground-100">Asignación de Aplicaciones</h1>
             <p className="text-sm text-foreground-500 mt-1">
               Selecciona un usuario para gestionar sus aplicaciones e instancias asignadas.
-              {ctx.currentClientName && (
-                <span className="text-foreground-400"> · Cliente activo: <span className="text-accent-400 font-medium">{ctx.currentClientName}</span></span>
-              )}
+
             </p>
           </div>
           {error && (

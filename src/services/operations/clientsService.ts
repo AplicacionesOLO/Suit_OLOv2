@@ -5,6 +5,7 @@ export interface Client {
   id: string;
   warehouse_id: string;
   tenant_id: string;
+  country_id: string;
   name: string;
   code: string;
   contact_email: string;

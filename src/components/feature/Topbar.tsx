@@ -19,72 +19,6 @@ const severityIcons: Record<string, { icon: string; color: string; bg: string }>
   critical: { icon: 'ri-alert-fill', color: 'text-red-400', bg: 'bg-red-500/10' },
 };
 
-// ─── Dropdown helpers ───────────────────────────────────────────────────
-
-function ContextDropdown({
-  refEl,
-  open,
-  label,
-  currentName,
-  currentId,
-  options,
-  onSelect,
-  onClear,
-  overrideActive,
-  loading,
-  activeColor,
-}: {
-  refEl: React.RefObject<HTMLDivElement | null>;
-  open: boolean;
-  label: string;
-  currentName: string;
-  currentId: string | null;
-  options: { id: string; label: string }[];
-  onSelect: (id: string) => void;
-  onClear?: () => void;
-  overrideActive?: boolean;
-  loading?: string | null;
-  activeColor?: string;
-}) {
-  return open ? (
-    <div className="absolute left-0 top-full mt-2 w-56 glass-panel-strong rounded-xl animate-scale-in overflow-hidden z-50">
-      <div className="px-4 py-3 border-b border-secondary-500/10">
-        <p className="text-xs font-medium text-foreground-400 mb-1">{label}</p>
-        <p className="text-sm font-semibold text-foreground-200">{currentName || '—'}</p>
-      </div>
-      <div className="max-h-56 overflow-y-auto py-1">
-        {options.map((opt) => {
-          const isCurrent = opt.id === currentId;
-          return (
-            <button
-              key={opt.id}
-              onClick={() => onSelect(opt.id)}
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-background-200/50 transition-colors"
-            >
-              <span className={`w-2 h-2 rounded-full shrink-0 ${isCurrent ? (activeColor || 'bg-emerald-400') : 'bg-secondary-500/40'}`}></span>
-              <span className={`flex-1 ${isCurrent ? 'text-foreground-200 font-medium' : 'text-foreground-500'}`}>{opt.label}</span>
-              {isCurrent && <span className="text-2xs text-emerald-400 font-medium">Activo</span>}
-            </button>
-          );
-        })}
-        {options.length === 0 && (
-          <p className="px-4 py-4 text-xs text-foreground-600 italic text-center">Sin opciones disponibles</p>
-        )}
-      </div>
-      {overrideActive && onClear && (
-        <div className="border-t border-secondary-500/10 p-2">
-          <button onClick={onClear} className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-foreground-400 hover:text-foreground-200 hover:bg-background-200/50 transition-colors">
-            <span className="w-3.5 h-3.5 flex items-center justify-center"><i className="ri-arrow-go-back-line"></i></span>
-            Limpiar contexto
-          </button>
-        </div>
-      )}
-    </div>
-  ) : null;
-}
-
-// ─── Main component ─────────────────────────────────────────────────────
-
 export default function Topbar({ sidebarCollapsed }: TopbarProps) {
   const navigate = useNavigate();
   const ctx = useTenantContext();
@@ -93,23 +27,14 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showCountry, setShowCountry] = useState(false);
-  const [showTenant, setShowTenant] = useState(false);
-  const [showWarehouse, setShowWarehouse] = useState(false);
-  const [showClient, setShowClient] = useState(false);
-  const [switching, setSwitching] = useState<string | null>(null);
+  const [showContextPanel, setShowContextPanel] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifLoading, setNotifLoading] = useState(false);
-  const [mobileContextOpen, setMobileContextOpen] = useState(false);
 
-  const countryRef = useRef<HTMLDivElement>(null);
-  const tenantRef = useRef<HTMLDivElement>(null);
-  const warehouseRef = useRef<HTMLDivElement>(null);
-  const clientRef = useRef<HTMLDivElement>(null);
+  const contextPanelRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
-  const mobileRef = useRef<HTMLDivElement>(null);
 
   const loadNotifications = useCallback(async () => {
     if (!platformUser?.id) return;
@@ -130,17 +55,12 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
 
   useEffect(() => { loadNotifications(); }, [loadNotifications]);
 
-  // Click-outside
   useEffect(() => {
     const handle = (e: MouseEvent) => {
       const refs = [
-        { ref: countryRef, set: setShowCountry },
-        { ref: tenantRef, set: setShowTenant },
-        { ref: warehouseRef, set: setShowWarehouse },
-        { ref: clientRef, set: setShowClient },
+        { ref: contextPanelRef, set: setShowContextPanel },
         { ref: notifRef, set: setShowNotifications },
         { ref: userRef, set: setShowUserMenu },
-        { ref: mobileRef, set: setMobileContextOpen },
       ];
       refs.forEach(({ ref, set }) => {
         if (ref.current && !ref.current.contains(e.target as Node)) set(false);
@@ -163,6 +83,16 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
     setUnreadCount(0);
   };
 
+  const timeAgo = (dateStr: string) => {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'Ahora';
+    if (mins < 60) return `${mins} min`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h`;
+    return `${Math.floor(hrs / 24)}d`;
+  };
+
   // ─── Cascade option builders ──────────────────────────────────────────
 
   const countryOptions = useMemo(() =>
@@ -173,7 +103,6 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
     if (!ctx.currentCountryId || ctx.currentCountryId === 'all') {
       return ctx.accessibleTenants.map((t) => ({ id: t.tenant_id, label: t.tenant_name }));
     }
-    // Filter tenants associated with current country
     const whForCountry = ctx.accessibleWarehouses.filter((w) => w.country_id === ctx.currentCountryId);
     const tenantIds = new Set(whForCountry.map((w) => w.tenant_id));
     return ctx.accessibleTenants.filter((t) => tenantIds.has(t.tenant_id)).map((t) => ({ id: t.tenant_id, label: t.tenant_name }));
@@ -201,121 +130,24 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
     return cls.map((c) => ({ id: c.id, label: c.name }));
   }, [ctx.currentTenantId, ctx.currentWarehouseId, ctx.accessibleClients]);
 
-  // ─── Handlers ─────────────────────────────────────────────────────────
+  // ─── Context path for the enterprise button ───────────────────────────
 
-  const wrapSwitch = (fn: (id: string) => Promise<boolean>, id: string, menuClose: () => void) => {
-    setSwitching(id);
-    menuClose();
-    fn(id).finally(() => setSwitching(null));
-  };
-
-  const timeAgo = (dateStr: string) => {
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'Ahora';
-    if (mins < 60) return `${mins} min`;
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}h`;
-    return `${Math.floor(hrs / 24)}d`;
-  };
-
-  const showAllSelectors = ctx.accessibleCountries.length > 0;
-
-  // ─── Dropdown contents (reusable) ─────────────────────────────────────
-
-  const countryDropdown = (
-    <ContextDropdown
-      refEl={countryRef} open={showCountry} label="País activo"
-      currentName={ctx.currentCountryName || 'Sin país'} currentId={ctx.currentCountryId}
-      options={countryOptions}
-      onSelect={(id) => wrapSwitch(ctx.switchCountry, id, () => setShowCountry(false))}
-      onClear={ctx.countryOverrideActive ? () => { setShowCountry(false); ctx.clearCountry(); } : undefined}
-      overrideActive={ctx.countryOverrideActive} loading={switching} activeColor="bg-emerald-400"
-    />
+  const contextPath = useMemo(() =>
+    [
+      ctx.currentCountryName,
+      ctx.currentTenantName,
+      ctx.currentWarehouseName,
+      ctx.currentClientName,
+    ].filter(Boolean).join(' / ') || 'Sin contexto',
+    [ctx.currentCountryName, ctx.currentTenantName, ctx.currentWarehouseName, ctx.currentClientName]
   );
 
-  const tenantDropdown = (
-    <ContextDropdown
-      refEl={tenantRef} open={showTenant} label={ctx.tenantOverrideActive ? 'Contexto anulado' : 'Tenant activo'}
-      currentName={ctx.currentTenantName || 'Sin tenant'} currentId={ctx.currentTenantId}
-      options={tenantOptions}
-      onSelect={(id) => wrapSwitch(ctx.switchTenant, id, () => setShowTenant(false))}
-      onClear={ctx.tenantOverrideActive ? () => { setShowTenant(false); ctx.clearTenant(); } : undefined}
-      overrideActive={ctx.tenantOverrideActive} loading={switching} activeColor="bg-primary-400"
-    />
-  );
+  const hasContext = ctx.currentCountryName || ctx.currentTenantName || ctx.currentWarehouseName || ctx.currentClientName;
+  const showContextButton = ctx.accessibleCountries.length > 0;
 
-  const warehouseDropdown = (
-    <ContextDropdown
-      refEl={warehouseRef} open={showWarehouse} label="Almacén activo"
-      currentName={ctx.currentWarehouseName || 'Sin almacén'} currentId={ctx.currentWarehouseId}
-      options={warehouseOptions}
-      onSelect={(id) => wrapSwitch(ctx.switchWarehouse, id, () => setShowWarehouse(false))}
-      onClear={ctx.warehouseOverrideActive ? () => { setShowWarehouse(false); ctx.clearWarehouse(); } : undefined}
-      overrideActive={ctx.warehouseOverrideActive} loading={switching} activeColor="bg-amber-400"
-    />
-  );
+  // ─── Select helpers ───────────────────────────────────────────────────
 
-  const clientDropdown = (
-    <ContextDropdown
-      refEl={clientRef} open={showClient} label="Cliente activo"
-      currentName={ctx.currentClientName || 'Sin cliente'} currentId={ctx.currentClientId}
-      options={clientOptions}
-      onSelect={(id) => wrapSwitch(ctx.switchClient, id, () => setShowClient(false))}
-      onClear={ctx.clientOverrideActive ? () => { setShowClient(false); ctx.clearClient(); } : undefined}
-      overrideActive={ctx.clientOverrideActive} loading={switching} activeColor="bg-violet-400"
-    />
-  );
-
-  // ─── Mobile context drawer ────────────────────────────────────────────
-
-  const mobileContextDrawer = mobileContextOpen ? (
-    <div className="fixed inset-0 z-50 lg:hidden" ref={mobileRef}>
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setMobileContextOpen(false)} />
-      <div className="absolute bottom-0 left-0 right-0 bg-background-50 rounded-t-2xl p-5 animate-slide-up max-h-[80vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-foreground-200">Contexto operativo</h3>
-          <button onClick={() => setMobileContextOpen(false)} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500">
-            <i className="ri-close-line text-lg"></i>
-          </button>
-        </div>
-        <div className="space-y-3">
-          {[
-            { label: 'País', value: ctx.currentCountryName || '—', options: countryOptions, current: ctx.currentCountryId, fn: ctx.switchCountry, clr: ctx.clearCountry, active: ctx.countryOverrideActive, color: 'emerald' },
-            { label: 'Tenant', value: ctx.currentTenantName || '—', options: tenantOptions, current: ctx.currentTenantId, fn: ctx.switchTenant, clr: ctx.clearTenant, active: ctx.tenantOverrideActive, color: 'primary' },
-            { label: 'Almacén', value: ctx.currentWarehouseName || '—', options: warehouseOptions, current: ctx.currentWarehouseId, fn: ctx.switchWarehouse, clr: ctx.clearWarehouse, active: ctx.warehouseOverrideActive, color: 'amber' },
-            { label: 'Cliente', value: ctx.currentClientName || '—', options: clientOptions, current: ctx.currentClientId, fn: ctx.switchClient, clr: ctx.clearClient, active: ctx.clientOverrideActive, color: 'violet' },
-          ].map(({ label, value, options, current, fn, clr, active, color }) => (
-            <div key={label}>
-              <p className="text-2xs font-medium text-foreground-500 uppercase mb-1.5">{label}</p>
-              <div className="flex flex-wrap gap-1.5">
-                {options.map((opt) => (
-                  <button
-                    key={opt.id}
-                    onClick={() => { fn(opt.id); setMobileContextOpen(false); }}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
-                      opt.id === current
-                        ? `bg-${color}-500/15 text-${color}-400 border border-${color}-500/20`
-                        : 'bg-background-100 text-foreground-500 border border-secondary-500/10 hover:border-secondary-500/20'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-              {active && (
-                <button onClick={() => { clr(); setMobileContextOpen(false); }} className="mt-1.5 text-2xs text-foreground-500 hover:text-foreground-300">
-                  <i className="ri-arrow-go-back-line text-xs mr-1"></i>Limpiar
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  ) : null;
-
-  // ─── Render ───────────────────────────────────────────────────────────
+  const selectClass = "w-full h-9 bg-background-100 border border-secondary-500/20 rounded-lg px-2.5 text-sm text-foreground-300 outline-none focus:border-primary-500/40 disabled:opacity-40 cursor-pointer";
 
   return (
     <>
@@ -328,84 +160,13 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
           ${sidebarCollapsed ? 'left-[68px]' : 'left-[260px]'}
         `}
       >
-        {/* Left: Context selectors */}
-        <div className="flex items-center gap-1.5 overflow-x-auto">
-          {showAllSelectors && (
-            <>
-              {/* Desktop: 4 selectors in a row */}
-              <div className="hidden lg:flex items-center gap-1">
-                {/* País */}
-                <div className="relative" ref={countryRef}>
-                  <button
-                    onClick={() => { setShowCountry(!showCountry); setShowTenant(false); setShowWarehouse(false); setShowClient(false); }}
-                    className="flex items-center gap-1.5 h-8 px-2 rounded-lg border border-secondary-500/20 bg-background-100 hover:border-secondary-500/40 transition-all text-xs whitespace-nowrap"
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>
-                    <span className="text-foreground-300 max-w-[70px] truncate">{ctx.currentCountryName || 'País'}</span>
-                    <span className="w-3 h-3 flex items-center justify-center text-foreground-500"><i className="ri-arrow-down-s-line text-xs"></i></span>
-                  </button>
-                  {countryDropdown}
-                </div>
+        {/* Left: empty — context is now on the right */}
+        <div />
 
-                {/* Tenant */}
-                <div className="relative" ref={tenantRef}>
-                  <button
-                    onClick={() => { setShowTenant(!showTenant); setShowCountry(false); setShowWarehouse(false); setShowClient(false); }}
-                    className="flex items-center gap-1.5 h-8 px-2 rounded-lg border border-secondary-500/20 bg-background-100 hover:border-secondary-500/40 transition-all text-xs whitespace-nowrap"
-                  >
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${ctx.tenantOverrideActive ? 'bg-amber-400' : 'bg-primary-400'}`}></span>
-                    <span className="text-foreground-300 max-w-[70px] truncate">{ctx.currentTenantName || 'Tenant'}</span>
-                    <span className="w-3 h-3 flex items-center justify-center text-foreground-500"><i className="ri-arrow-down-s-line text-xs"></i></span>
-                  </button>
-                  {tenantDropdown}
-                </div>
-
-                {/* Almacén */}
-                <div className="relative" ref={warehouseRef}>
-                  <button
-                    onClick={() => { setShowWarehouse(!showWarehouse); setShowCountry(false); setShowTenant(false); setShowClient(false); }}
-                    disabled={!ctx.currentTenantId || tenantOptions.length === 0}
-                    className="flex items-center gap-1.5 h-8 px-2 rounded-lg border border-secondary-500/20 bg-background-100 hover:border-secondary-500/40 transition-all text-xs whitespace-nowrap disabled:opacity-30 disabled:cursor-not-allowed"
-                  >
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${ctx.warehouseOverrideActive ? 'bg-amber-400' : 'bg-amber-400'}`}></span>
-                    <span className="text-foreground-300 max-w-[70px] truncate">{ctx.currentWarehouseName || 'Almacén'}</span>
-                    <span className="w-3 h-3 flex items-center justify-center text-foreground-500"><i className="ri-arrow-down-s-line text-xs"></i></span>
-                  </button>
-                  {warehouseDropdown}
-                </div>
-
-                {/* Cliente */}
-                <div className="relative" ref={clientRef}>
-                  <button
-                    onClick={() => { setShowClient(!showClient); setShowCountry(false); setShowTenant(false); setShowWarehouse(false); }}
-                    disabled={!ctx.currentTenantId || clientOptions.length === 0}
-                    className="flex items-center gap-1.5 h-8 px-2 rounded-lg border border-secondary-500/20 bg-background-100 hover:border-secondary-500/40 transition-all text-xs whitespace-nowrap disabled:opacity-30 disabled:cursor-not-allowed"
-                  >
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${ctx.clientOverrideActive ? 'bg-amber-400' : 'bg-violet-400'}`}></span>
-                    <span className="text-foreground-300 max-w-[70px] truncate">{ctx.currentClientName || 'Cliente'}</span>
-                    <span className="w-3 h-3 flex items-center justify-center text-foreground-500"><i className="ri-arrow-down-s-line text-xs"></i></span>
-                  </button>
-                  {clientDropdown}
-                </div>
-              </div>
-
-              {/* Mobile: single context button */}
-              <button
-                onClick={() => setMobileContextOpen(true)}
-                className="lg:hidden flex items-center gap-1.5 h-8 px-2.5 rounded-lg border border-secondary-500/20 bg-background-100 hover:border-secondary-500/40 transition-all text-xs whitespace-nowrap"
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>
-                <span className="text-foreground-300 max-w-[80px] truncate">{ctx.currentCountryName || ctx.currentTenantName || 'Contexto'}</span>
-                <span className="text-foreground-600">▼</span>
-              </button>
-            </>
-          )}
-        </div>
-
-        {/* Right: Search + Notifications + User */}
-        <div className="flex items-center gap-1.5 ml-2">
+        {/* Right: Context + Search + Notifications + User */}
+        <div className="flex items-center gap-1.5">
           {/* Search (desktop) */}
-          <div className="hidden sm:block relative max-w-[180px]">
+          <div className="hidden sm:block relative max-w-[160px]">
             <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-foreground-500 w-4 h-4 flex items-center justify-center">
               <i className="ri-search-line text-xs"></i>
             </span>
@@ -415,11 +176,132 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
             />
           </div>
 
+          {/* ─── Enterprise Context Button ─── */}
+          {showContextButton && (
+            <div className="relative" ref={contextPanelRef}>
+              <button
+                onClick={() => setShowContextPanel(!showContextPanel)}
+                className="flex items-center gap-2 h-8 px-2.5 rounded-lg border border-secondary-500/20 bg-background-100 hover:border-secondary-500/40 transition-all text-xs whitespace-nowrap cursor-pointer"
+                title="Contexto organizacional"
+              >
+                <span className="w-3.5 h-3.5 flex items-center justify-center text-foreground-500">
+                  <i className="ri-stack-line"></i>
+                </span>
+                <span className={`max-w-[140px] truncate ${hasContext ? 'text-foreground-300 font-medium' : 'text-foreground-600'}`}>
+                  {contextPath}
+                </span>
+                <span className="w-3 h-3 flex items-center justify-center text-foreground-500">
+                  <i className="ri-arrow-down-s-line text-xs"></i>
+                </span>
+              </button>
+
+              {/* Context Panel Dropdown — like AWS/Azure org selector */}
+              {showContextPanel && (
+                <div className="absolute right-0 top-full mt-2 w-72 glass-panel-strong rounded-xl animate-scale-in overflow-hidden z-50 shadow-2xl">
+                  <div className="px-4 py-3 border-b border-secondary-500/10">
+                    <p className="text-xs font-medium text-foreground-400">Contexto Organizacional</p>
+                    <p className="text-sm font-semibold text-foreground-200 mt-0.5 truncate">{contextPath}</p>
+                  </div>
+
+                  <div className="max-h-80 overflow-y-auto py-1 space-y-1">
+                    {/* País */}
+                    <div className="px-4 py-2">
+                      <label className="block text-2xs font-semibold text-foreground-500 uppercase tracking-wider mb-1.5">
+                        <span className="w-3 h-3 inline-flex items-center justify-center mr-1 text-emerald-400"><i className="ri-global-line text-xs"></i></span>
+                        País
+                      </label>
+                      <select
+                        value={ctx.currentCountryId || ''}
+                        onChange={(e) => { ctx.switchCountry(e.target.value); }}
+                        className={selectClass}
+                      >
+                        <option value="">Todos los países</option>
+                        {countryOptions.map((opt) => (
+                          <option key={opt.id} value={opt.id}>{opt.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Tenant */}
+                    <div className="px-4 py-2">
+                      <label className="block text-2xs font-semibold text-foreground-500 uppercase tracking-wider mb-1.5">
+                        <span className="w-3 h-3 inline-flex items-center justify-center mr-1 text-primary-400"><i className="ri-building-line text-xs"></i></span>
+                        Tenant
+                      </label>
+                      <select
+                        value={ctx.currentTenantId || ''}
+                        onChange={(e) => { ctx.switchTenant(e.target.value); }}
+                        disabled={!ctx.currentCountryId || tenantOptions.length === 0}
+                        className={selectClass}
+                      >
+                        <option value="">Todos los tenants</option>
+                        {tenantOptions.map((opt) => (
+                          <option key={opt.id} value={opt.id}>{opt.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Almacén */}
+                    <div className="px-4 py-2">
+                      <label className="block text-2xs font-semibold text-foreground-500 uppercase tracking-wider mb-1.5">
+                        <span className="w-3 h-3 inline-flex items-center justify-center mr-1 text-amber-400"><i className="ri-store-2-line text-xs"></i></span>
+                        Almacén
+                      </label>
+                      <select
+                        value={ctx.currentWarehouseId || ''}
+                        onChange={(e) => { ctx.switchWarehouse(e.target.value); }}
+                        disabled={!ctx.currentTenantId || warehouseOptions.length === 0}
+                        className={selectClass}
+                      >
+                        <option value="">Todos los almacenes</option>
+                        {warehouseOptions.map((opt) => (
+                          <option key={opt.id} value={opt.id}>{opt.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Cliente */}
+                    <div className="px-4 py-2">
+                      <label className="block text-2xs font-semibold text-foreground-500 uppercase tracking-wider mb-1.5">
+                        <span className="w-3 h-3 inline-flex items-center justify-center mr-1 text-violet-400"><i className="ri-building-2-line text-xs"></i></span>
+                        Cliente
+                      </label>
+                      <select
+                        value={ctx.currentClientId || ''}
+                        onChange={(e) => { ctx.switchClient(e.target.value); }}
+                        disabled={!ctx.currentTenantId || clientOptions.length === 0}
+                        className={selectClass}
+                      >
+                        <option value="">Todos los clientes</option>
+                        {clientOptions.map((opt) => (
+                          <option key={opt.id} value={opt.id}>{opt.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Clear context */}
+                  {hasContext && (
+                    <div className="border-t border-secondary-500/10 p-2">
+                      <button
+                        onClick={() => { ctx.clearFullContext(); setShowContextPanel(false); }}
+                        className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-foreground-400 hover:text-foreground-200 hover:bg-background-200/50 transition-colors cursor-pointer"
+                      >
+                        <span className="w-3.5 h-3.5 flex items-center justify-center"><i className="ri-arrow-go-back-line"></i></span>
+                        Limpiar contexto
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Notifications */}
           <div className="relative" ref={notifRef}>
             <button
               onClick={() => { setShowNotifications(!showNotifications); if (!showNotifications) loadNotifications(); }}
-              className="relative w-8 h-8 flex items-center justify-center rounded-lg text-foreground-500 hover:text-foreground-200 hover:bg-background-200/50 transition-all"
+              className="relative w-8 h-8 flex items-center justify-center rounded-lg text-foreground-500 hover:text-foreground-200 hover:bg-background-200/50 transition-all cursor-pointer"
             >
               <i className="ri-notification-3-line text-base"></i>
               {unreadCount > 0 && (
@@ -434,7 +316,7 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
                 <div className="flex items-center justify-between px-4 py-3 border-b border-secondary-500/10">
                   <p className="text-sm font-medium text-foreground-200">Notificaciones</p>
                   {unreadCount > 0 && (
-                    <button onClick={markAllAsRead} className="text-2xs text-primary-400 hover:text-primary-300 font-medium whitespace-nowrap">Marcar todas</button>
+                    <button onClick={markAllAsRead} className="text-2xs text-primary-400 hover:text-primary-300 font-medium whitespace-nowrap cursor-pointer">Marcar todas</button>
                   )}
                 </div>
                 {notifLoading ? (
@@ -468,7 +350,7 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
 
           {/* User menu */}
           <div className="relative" ref={userRef}>
-            <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-1.5 h-8 px-1.5 rounded-lg hover:bg-background-200/50 transition-all">
+            <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-1.5 h-8 px-1.5 rounded-lg hover:bg-background-200/50 transition-all cursor-pointer">
               <div className="w-6 h-6 rounded-full bg-accent-500/20 border border-accent-500/25 flex items-center justify-center">
                 <span className="text-accent-400 text-2xs font-semibold">
                   {platformUser?.first_name?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}
@@ -522,9 +404,6 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
           </div>
         </div>
       </header>
-
-      {/* Mobile context drawer */}
-      {mobileContextDrawer}
     </>
   );
 }

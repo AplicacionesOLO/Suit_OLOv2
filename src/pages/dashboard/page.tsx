@@ -129,14 +129,6 @@ export default function DashboardPage() {
     return `Hace ${Math.floor(hrs / 24)}d`;
   };
 
-  // Build context breadcrumb for header
-  const contextParts = [
-    ctx.currentCountryName,
-    ctx.currentTenantName,
-    ctx.currentWarehouseName,
-    ctx.currentClientName,
-  ].filter(Boolean);
-
   if (loading) {
     return (
       <AppLayout>
@@ -162,9 +154,7 @@ export default function DashboardPage() {
             <p className="text-sm text-foreground-500 mt-1">
               Resumen operativo de la plataforma{' '}
               <span className="text-primary-400 font-medium">Suite OLO</span>
-              {contextParts.length > 0 && (
-                <span className="text-foreground-400"> · <span className="text-accent-400 font-medium">{contextParts.join(' › ')}</span></span>
-              )}
+
             </p>
           </div>
           {error && (

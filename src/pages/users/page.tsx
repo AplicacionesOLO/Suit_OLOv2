@@ -15,11 +15,6 @@ export default function UsersPage() {
   const ctx = useTenantContext();
   const [activeTab, setActiveTab] = useState<Tab>('active');
 
-  const contextParts = useMemo(() =>
-    [ctx.currentCountryName, ctx.currentTenantName, ctx.currentWarehouseName, ctx.currentClientName].filter(Boolean),
-    [ctx.currentCountryName, ctx.currentTenantName, ctx.currentWarehouseName, ctx.currentClientName]
-  );
-
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRole, setFilterRole] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -68,19 +63,15 @@ export default function UsersPage() {
 
   const filteredUsers = useMemo(() => {
     let result = users;
-    // Apply context filter: Client → Tenant → Country
+    // Apply context filter: Client → Warehouse → Tenant → Country (BY ID)
     if (ctx.currentClientId && ctx.currentClientId !== 'all') {
-      const clientName = ctx.currentClientName;
-      if (clientName) result = result.filter((u) => u.client_name === clientName);
+      result = result.filter((u) => u.client_id === ctx.currentClientId);
     } else if (ctx.currentWarehouseId && ctx.currentWarehouseId !== 'all') {
-      const whName = ctx.accessibleWarehouses.find((w) => w.id === ctx.currentWarehouseId)?.name;
-      if (whName) result = result.filter((u) => u.warehouse_name === whName);
+      result = result.filter((u) => u.warehouse_id === ctx.currentWarehouseId);
     } else if (ctx.currentTenantId && ctx.currentTenantId !== 'all') {
-      const tenantName = ctx.currentTenantName;
-      if (tenantName) result = result.filter((u) => u.tenant_name === tenantName);
+      result = result.filter((u) => u.tenant_id === ctx.currentTenantId);
     } else if (ctx.currentCountryId && ctx.currentCountryId !== 'all') {
-      const countryName = ctx.currentCountryName;
-      if (countryName) result = result.filter((u) => u.country_name === countryName);
+      result = result.filter((u) => u.country_id === ctx.currentCountryId);
     }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -89,7 +80,7 @@ export default function UsersPage() {
     if (filterRole) result = result.filter((u) => u.role_id === filterRole);
     if (filterStatus) result = result.filter((u) => u.status === filterStatus);
     return result;
-  }, [users, searchQuery, filterRole, filterStatus, ctx.currentClientId, ctx.currentClientName, ctx.currentWarehouseId, ctx.currentWarehouseName, ctx.currentTenantId, ctx.currentTenantName, ctx.currentCountryId, ctx.currentCountryName, ctx.accessibleWarehouses]);
+  }, [users, searchQuery, filterRole, filterStatus, ctx.currentClientId, ctx.currentWarehouseId, ctx.currentTenantId, ctx.currentCountryId]);
 
   const filteredInvitations = useMemo(() => {
     if (!searchQuery) return invitations;
@@ -251,9 +242,7 @@ export default function UsersPage() {
           <div>
             <h1 className="text-xl font-bold text-foreground-100">Usuarios</h1>
             <p className="text-sm text-foreground-500 mt-1">Gestiona usuarios activos e invitaciones pendientes.
-              {contextParts.length > 0 && (
-                <span className="text-foreground-400"> · <span className="text-accent-400 font-medium">{contextParts.join(' › ')}</span></span>
-              )}
+
             </p>
           </div>
           {can('users', 'create') && (

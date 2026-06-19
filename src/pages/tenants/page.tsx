@@ -85,11 +85,6 @@ export default function TenantsPage() {
   const { can } = useSuitePermissions();
   const ctx = useTenantContext();
 
-  const contextParts = useMemo(() =>
-    [ctx.currentCountryName, ctx.currentTenantName, ctx.currentWarehouseName, ctx.currentClientName].filter(Boolean),
-    [ctx.currentCountryName, ctx.currentTenantName, ctx.currentWarehouseName, ctx.currentClientName]
-  );
-
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('');
 
@@ -114,6 +109,22 @@ export default function TenantsPage() {
   // Delete modal
   const [deleteTarget, setDeleteTarget] = useState<TenantWithCounts | null>(null);
 
+  const [tenantCountriesMap, setTenantCountriesMap] = useState<Map<string, Set<string>>>(new Map());
+
+  // Cargar tenant_countries para filtrar por país
+  const loadTenantCountriesMap = useCallback(async () => {
+    const { data } = await supabase.from('tenant_countries').select('tenant_id, country_id');
+    const map = new Map<string, Set<string>>();
+    (data || []).forEach((tc) => {
+      const existing = map.get(tc.country_id) || new Set<string>();
+      existing.add(tc.tenant_id);
+      map.set(tc.country_id, existing);
+    });
+    setTenantCountriesMap(map);
+  }, []);
+
+  useEffect(() => { loadTenantCountriesMap(); }, [loadTenantCountriesMap]);
+
   // Cargar tenant_countries actuales al editar
   const loadTenantCountries = useCallback(async (tenantId: string): Promise<string[]> => {
     const { data } = await supabase
@@ -125,14 +136,6 @@ export default function TenantsPage() {
 
   const filtered = useMemo(() => {
     let result = tenants;
-    // Apply context filter: Country → Tenant
-    if (ctx.currentCountryId && ctx.currentCountryId !== 'all') {
-      const countryName = ctx.currentCountryName;
-      if (countryName) result = result.filter((t) => t.country_names.includes(countryName));
-    }
-    if (ctx.currentTenantId && ctx.currentTenantId !== 'all') {
-      result = result.filter((t) => t.id === ctx.currentTenantId);
-    }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       result = result.filter(
@@ -143,7 +146,7 @@ export default function TenantsPage() {
       result = result.filter((t) => t.status === filterStatus);
     }
     return result;
-  }, [tenants, searchQuery, filterStatus, ctx.currentCountryId, ctx.currentCountryName, ctx.currentTenantId]);
+  }, [tenants, searchQuery, filterStatus]);
 
   const activeTenants = tenants.filter((t) => t.status === 'active');
   const suspendedTenants = tenants.filter((t) => t.status === 'suspended');
@@ -317,9 +320,7 @@ export default function TenantsPage() {
             <p className="text-sm text-foreground-500 mt-1">
               Administra las empresas del sistema. Cada tenant puede operar en multiples
               paises.
-              {contextParts.length > 0 && (
-                <span className="text-foreground-400"> · <span className="text-accent-400 font-medium">{contextParts.join(' › ')}</span></span>
-              )}
+
             </p>
           </div>
           <div className="flex items-center gap-2">

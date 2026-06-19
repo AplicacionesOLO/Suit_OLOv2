@@ -70,17 +70,8 @@ export default function CountriesPage() {
     setDropdownOpen(false);
   };
 
-  const contextParts = useMemo(() =>
-    [ctx.currentCountryName, ctx.currentTenantName, ctx.currentWarehouseName, ctx.currentClientName].filter(Boolean),
-    [ctx.currentCountryName, ctx.currentTenantName, ctx.currentWarehouseName, ctx.currentClientName]
-  );
-
   const filtered = useMemo(() => {
     let result = countries;
-    // Apply context filter
-    if (ctx.currentCountryId && ctx.currentCountryId !== 'all') {
-      result = result.filter((c) => c.id === ctx.currentCountryId);
-    }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       result = result.filter(
@@ -95,7 +86,7 @@ export default function CountriesPage() {
     }
     if (filterStatus) result = result.filter((c) => c.status === filterStatus);
     return result;
-  }, [countries, searchQuery, filterTenant, filterStatus, ctx.currentCountryId]);
+  }, [countries, searchQuery, filterTenant, filterStatus]);
 
   // Context-aware stats
   const contextCountries = ctx.currentCountryId && ctx.currentCountryId !== 'all'
@@ -265,9 +256,7 @@ export default function CountriesPage() {
             <h1 className="text-xl font-bold text-foreground-100">Países</h1>
             <p className="text-sm text-foreground-500 mt-1">
               Administra los paises. Cada pais puede asociarse a multiples tenants via el Catalogo Maestro ISO.
-              {contextParts.length > 0 && (
-                <span className="text-foreground-400"> · <span className="text-accent-400 font-medium">{contextParts.join(' › ')}</span></span>
-              )}
+
             </p>
           </div>
           {can('countries', 'create') && (

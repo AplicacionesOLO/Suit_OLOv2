@@ -43,7 +43,9 @@ interface AppItem {
   tenantName: string;
   clientId: string;
   clientName: string;
+  countryId: string;
   countryName: string;
+  warehouseId: string;
   warehouseName: string;
   categoryId: string;
   categoryName: string;
@@ -136,11 +138,6 @@ export default function ApplicationsPage() {
   const ctx = useTenantContext();
   const selectedAppId = searchParams.get('app');
 
-  const contextParts = useMemo(() =>
-    [ctx.currentCountryName, ctx.currentTenantName, ctx.currentWarehouseName, ctx.currentClientName].filter(Boolean),
-    [ctx.currentCountryName, ctx.currentTenantName, ctx.currentWarehouseName, ctx.currentClientName]
-  );
-
   // Cascade data
   const [countries, setCountries] = useState<CountryBrief[]>([]);
   const [tenants, setTenants] = useState<TenantBrief[]>([]);
@@ -186,7 +183,8 @@ export default function ApplicationsPage() {
             id: a.id, name: a.name, code: a.code, description: a.description || '',
             tenantId: a.tenant_id, tenantName: a.tenant_name || '',
             clientId: a.client_id || '', clientName: a.client_name || '',
-            countryName: a.country_name || '', warehouseName: a.warehouse_name || '',
+            countryId: a.country_id || '', countryName: a.country_name || '',
+            warehouseId: a.warehouse_id || '', warehouseName: a.warehouse_name || '',
             categoryId: a.category_id || '', categoryName: cat?.name || 'Sin categoría',
             icon: a.icon, color: a.color, bgColor: colors.bgColor, textColor: colors.textColor, borderColor: colors.borderColor,
             baseUrl: a.base_url || '', status: (a.status as AppItem['status']) || 'active', version: a.version,
@@ -236,21 +234,21 @@ export default function ApplicationsPage() {
 
   const visibleApps = useMemo(() => {
     let result = showDeleted ? allApps : allApps.filter((a) => !a.deletedAt);
-    // Apply context filter: Client → Warehouse → Tenant → Country
+    // Apply context filter: Client → Warehouse → Tenant → Country (BY ID)
     if (ctx.currentClientId && ctx.currentClientId !== 'all') {
       result = result.filter((a) => a.clientId === ctx.currentClientId);
     } else if (ctx.currentWarehouseId && ctx.currentWarehouseId !== 'all') {
-      result = result.filter((a) => a.warehouseName === ctx.currentWarehouseName);
+      result = result.filter((a) => a.warehouseId === ctx.currentWarehouseId);
     } else if (ctx.currentTenantId && ctx.currentTenantId !== 'all') {
       result = result.filter((a) => a.tenantId === ctx.currentTenantId);
     } else if (ctx.currentCountryId && ctx.currentCountryId !== 'all') {
-      result = result.filter((a) => a.countryName === ctx.currentCountryName);
+      result = result.filter((a) => a.countryId === ctx.currentCountryId);
     }
     if (searchQuery) { const q = searchQuery.toLowerCase(); result = result.filter((a) => a.name.toLowerCase().includes(q) || a.code.toLowerCase().includes(q)); }
     if (filterCat) result = result.filter((a) => a.categoryId === filterCat);
     if (filterStatus) result = result.filter((a) => a.status === filterStatus);
     return result;
-  }, [searchQuery, filterCat, filterStatus, allApps, showDeleted, ctx.currentClientId, ctx.currentWarehouseId, ctx.currentTenantId, ctx.currentCountryId, ctx.currentWarehouseName, ctx.currentCountryName]);
+  }, [searchQuery, filterCat, filterStatus, allApps, showDeleted, ctx.currentClientId, ctx.currentWarehouseId, ctx.currentTenantId, ctx.currentCountryId]);
 
   const selectedApp = selectedAppId ? allApps.find((a) => a.id === selectedAppId && !a.deletedAt) : null;
 
@@ -396,9 +394,7 @@ export default function ApplicationsPage() {
           <div>
             <h1 className="text-xl font-bold text-foreground-100">Aplicaciones</h1>
             <p className="text-sm text-foreground-500 mt-1">Gestiona el catálogo de aplicaciones de la plataforma.
-              {contextParts.length > 0 && (
-                <span className="text-foreground-400"> · <span className="text-accent-400 font-medium">{contextParts.join(' › ')}</span></span>
-              )}
+
             </p>
           </div>
           {can('applications', 'create') && (

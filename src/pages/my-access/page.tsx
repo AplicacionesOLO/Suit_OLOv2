@@ -124,13 +124,6 @@ export default function MyAccessPage() {
   const activeAccesses = contextFiltered.filter((a) => a.access_status === 'assigned');
   const pendingAccesses = contextFiltered.filter((a) => a.access_status === 'pending');
 
-  const contextParts = [
-    ctx.currentCountryName,
-    ctx.currentTenantName,
-    ctx.currentWarehouseName,
-    ctx.currentClientName,
-  ].filter(Boolean);
-
   if (myLoading) {
     return (
       <AppLayout>
@@ -157,9 +150,7 @@ export default function MyAccessPage() {
             <h1 className="text-xl font-bold text-foreground-100">Mis Accesos</h1>
             <p className="text-sm text-foreground-500 mt-1">
               Aplicaciones e instancias autorizadas para tu usuario.
-              {contextParts.length > 0 && (
-                <span className="text-foreground-400"> · Contexto: <span className="text-accent-400 font-medium">{contextParts.join(' › ')}</span></span>
-              )}
+
             </p>
           </div>
         </div>
