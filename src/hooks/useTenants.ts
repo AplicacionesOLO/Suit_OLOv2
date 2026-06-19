@@ -8,6 +8,7 @@ import {
   type CreateTenantInput,
   type UpdateTenantInput,
 } from '@/services/operations/tenantsService';
+import { syncTenantCountries } from '@/services/operations/countriesService';
 
 interface UseTenantsReturn {
   tenants: TenantWithCounts[];
@@ -19,10 +20,16 @@ interface UseTenantsReturn {
   suspendTenant: (id: string) => Promise<{ error: string | null }>;
   activateTenant: (id: string) => Promise<{ error: string | null }>;
   softDeleteTenant: (id: string) => Promise<{ error: string | null }>;
+  syncTenantCountries: (
+    tenantId: string,
+    countryIds: string[],
+  ) => Promise<{ error: string | null }>;
+  countries: { id: string; name: string }[];
 }
 
 export function useTenants(): UseTenantsReturn {
   const [tenants, setTenants] = useState<TenantWithCounts[]>([]);
+  const [countries, setCountries] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,9 +37,18 @@ export function useTenants(): UseTenantsReturn {
     setLoading(true);
     setError(null);
     try {
-      const result = await fetchTenants();
+      const [result, { data: allCountries }] = await Promise.all([
+        fetchTenants(),
+        (async () => {
+          const { data } = await import('@/services/supabase/client').then((m) =>
+            m.supabase.from('countries').select('id, name').order('name'),
+          );
+          return { data };
+        })(),
+      ]);
       if (result.error) setError(result.error);
       setTenants(result.data);
+      if (allCountries) setCountries(allCountries);
     } catch (err: any) {
       setError(err.message || 'Error al cargar tenants');
     } finally {
@@ -40,37 +56,63 @@ export function useTenants(): UseTenantsReturn {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
-
-  const addTenant = useCallback(async (input: CreateTenantInput) => {
-    const result = await createTenant(input);
-    if (!result.error) await load();
-    return result;
+  useEffect(() => {
+    load();
   }, [load]);
 
-  const editTenant = useCallback(async (id: string, input: UpdateTenantInput) => {
-    const result = await updateTenant(id, input);
-    if (!result.error) await load();
-    return result;
-  }, [load]);
+  const addTenant = useCallback(
+    async (input: CreateTenantInput) => {
+      const result = await createTenant(input);
+      if (!result.error) await load();
+      return result;
+    },
+    [load],
+  );
 
-  const suspendTenant = useCallback(async (id: string) => {
-    const result = await changeTenantStatus(id, 'suspended');
-    if (!result.error) await load();
-    return result;
-  }, [load]);
+  const editTenant = useCallback(
+    async (id: string, input: UpdateTenantInput) => {
+      const result = await updateTenant(id, input);
+      if (!result.error) await load();
+      return result;
+    },
+    [load],
+  );
 
-  const activateTenant = useCallback(async (id: string) => {
-    const result = await changeTenantStatus(id, 'active');
-    if (!result.error) await load();
-    return result;
-  }, [load]);
+  const suspendTenant = useCallback(
+    async (id: string) => {
+      const result = await changeTenantStatus(id, 'suspended');
+      if (!result.error) await load();
+      return result;
+    },
+    [load],
+  );
 
-  const softDeleteTenant = useCallback(async (id: string) => {
-    const result = await changeTenantStatus(id, 'deleted');
-    if (!result.error) await load();
-    return result;
-  }, [load]);
+  const activateTenant = useCallback(
+    async (id: string) => {
+      const result = await changeTenantStatus(id, 'active');
+      if (!result.error) await load();
+      return result;
+    },
+    [load],
+  );
+
+  const softDeleteTenant = useCallback(
+    async (id: string) => {
+      const result = await changeTenantStatus(id, 'deleted');
+      if (!result.error) await load();
+      return result;
+    },
+    [load],
+  );
+
+  const syncTenants = useCallback(
+    async (tenantId: string, countryIds: string[]) => {
+      const result = await syncTenantCountries(tenantId, countryIds);
+      if (!result.error) await load();
+      return result;
+    },
+    [load],
+  );
 
   return {
     tenants,
@@ -82,5 +124,7 @@ export function useTenants(): UseTenantsReturn {
     suspendTenant,
     activateTenant,
     softDeleteTenant,
+    syncTenantCountries: syncTenants,
+    countries,
   };
 }

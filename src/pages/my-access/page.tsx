@@ -29,14 +29,38 @@ export default function MyAccessPage() {
   const navigate = useNavigate();
   const { platformUser, user } = useAuth();
   const { myAccesses, myLoading, loadMyAccesses } = useApplicationAccess();
-  const { accessibleCountries, accessibleTenants, accessibleClients, effectiveCountryName, effectiveTenantName } = useTenantContext();
+  const ctx = useTenantContext();
   const [searchQuery, setSearchQuery] = useState('');
+  const [filteredByContext, setFilteredByContext] = useState(false);
 
   useEffect(() => {
     if (platformUser?.id) {
       loadMyAccesses(platformUser.id);
     }
   }, [platformUser, loadMyAccesses]);
+
+  // Filter accesses by context (Client > Warehouse > Tenant > Country)
+  useEffect(() => {
+    let result = myAccesses;
+    let filtered = false;
+
+    if (ctx.currentClientId && ctx.currentClientId !== 'all') {
+      result = result.filter((a: any) => a.client_id === ctx.currentClientId);
+      filtered = true;
+    } else if (ctx.currentWarehouseId && ctx.currentWarehouseId !== 'all') {
+      result = result.filter((a: any) => a.warehouse_id === ctx.currentWarehouseId);
+      filtered = true;
+    } else if (ctx.currentTenantId && ctx.currentTenantId !== 'all') {
+      result = result.filter((a: any) => a.tenant_id === ctx.currentTenantId);
+      filtered = true;
+    } else if (ctx.currentCountryId && ctx.currentCountryId !== 'all') {
+      result = result.filter((a: any) => a.country_id === ctx.currentCountryId);
+      filtered = true;
+    }
+
+    setFilteredByContext(filtered);
+    // We don't set filtered accesses here since the filtering happens in the render
+  }, [myAccesses, ctx.currentClientId, ctx.currentWarehouseId, ctx.currentTenantId, ctx.currentCountryId]);
 
   const handleOpenApp = (acc: any) => {
     const openMode = acc.instance_open_mode || 'external';
@@ -80,8 +104,32 @@ export default function MyAccessPage() {
     return (a.application_name || '').toLowerCase().includes(q) || (a.application_code || '').toLowerCase().includes(q);
   });
 
-  const activeAccesses = myAccesses.filter((a) => a.access_status === 'assigned');
-  const pendingAccesses = myAccesses.filter((a) => a.access_status === 'pending');
+  // Apply context filter
+  const contextFiltered = (() => {
+    if (ctx.currentClientId && ctx.currentClientId !== 'all') {
+      return filtered.filter((a: any) => a.client_id === ctx.currentClientId);
+    }
+    if (ctx.currentWarehouseId && ctx.currentWarehouseId !== 'all') {
+      return filtered.filter((a: any) => a.warehouse_id === ctx.currentWarehouseId);
+    }
+    if (ctx.currentTenantId && ctx.currentTenantId !== 'all') {
+      return filtered.filter((a: any) => a.tenant_id === ctx.currentTenantId);
+    }
+    if (ctx.currentCountryId && ctx.currentCountryId !== 'all') {
+      return filtered.filter((a: any) => a.country_id === ctx.currentCountryId);
+    }
+    return filtered;
+  })();
+
+  const activeAccesses = contextFiltered.filter((a) => a.access_status === 'assigned');
+  const pendingAccesses = contextFiltered.filter((a) => a.access_status === 'pending');
+
+  const contextParts = [
+    ctx.currentCountryName,
+    ctx.currentTenantName,
+    ctx.currentWarehouseName,
+    ctx.currentClientName,
+  ].filter(Boolean);
 
   if (myLoading) {
     return (
@@ -109,7 +157,9 @@ export default function MyAccessPage() {
             <h1 className="text-xl font-bold text-foreground-100">Mis Accesos</h1>
             <p className="text-sm text-foreground-500 mt-1">
               Aplicaciones e instancias autorizadas para tu usuario.
-              {platformUser && <span className="text-foreground-400"> Conectado como <span className="text-primary-400 font-medium">{platformUser.first_name || platformUser.last_name ? `${platformUser.first_name || ''} ${platformUser.last_name || ''}`.trim() : (platformUser.email || user?.email || 'Usuario')}</span></span>}
+              {contextParts.length > 0 && (
+                <span className="text-foreground-400"> · Contexto: <span className="text-accent-400 font-medium">{contextParts.join(' › ')}</span></span>
+              )}
             </p>
           </div>
         </div>
@@ -129,13 +179,13 @@ export default function MyAccessPage() {
                 <span className="w-3 h-3 flex items-center justify-center text-emerald-400"><i className="ri-global-line text-xs"></i></span>
                 Paises
               </p>
-              {accessibleCountries.length === 0 ? (
+              {ctx.accessibleCountries.length === 0 ? (
                 <p className="text-xs text-foreground-600 italic">Sin paises asignados</p>
               ) : (
                 <ul className="space-y-1">
-                  {accessibleCountries.map((c) => (
+                  {ctx.accessibleCountries.map((c) => (
                     <li key={c.id} className="flex items-center gap-2 text-xs text-foreground-300">
-                      <span className={`w-1.5 h-1.5 rounded-full ${c.id === effectiveCountryName ? 'bg-emerald-400' : 'bg-emerald-400/40'}`}></span>
+                      <span className={`w-1.5 h-1.5 rounded-full ${c.id === ctx.currentCountryId ? 'bg-emerald-400' : 'bg-emerald-400/40'}`}></span>
                       {c.name}
                     </li>
                   ))}
@@ -147,13 +197,13 @@ export default function MyAccessPage() {
                 <span className="w-3 h-3 flex items-center justify-center text-primary-400"><i className="ri-building-line text-xs"></i></span>
                 Tenants
               </p>
-              {accessibleTenants.length === 0 ? (
+              {ctx.accessibleTenants.length === 0 ? (
                 <p className="text-xs text-foreground-600 italic">Sin tenants asignados</p>
               ) : (
                 <ul className="space-y-1">
-                  {accessibleTenants.map((t) => (
+                  {ctx.accessibleTenants.map((t) => (
                     <li key={t.tenant_id} className="flex items-center gap-2 text-xs text-foreground-300">
-                      <span className={`w-1.5 h-1.5 rounded-full ${t.tenant_name === effectiveTenantName ? 'bg-primary-400' : 'bg-primary-400/40'}`}></span>
+                      <span className={`w-1.5 h-1.5 rounded-full ${t.tenant_name === ctx.currentTenantName ? 'bg-primary-400' : 'bg-primary-400/40'}`}></span>
                       {t.tenant_name}
                     </li>
                   ))}
@@ -165,13 +215,13 @@ export default function MyAccessPage() {
                 <span className="w-3 h-3 flex items-center justify-center text-amber-400"><i className="ri-building-2-line text-xs"></i></span>
                 Clientes
               </p>
-              {accessibleClients.length === 0 ? (
+              {ctx.accessibleClients.length === 0 ? (
                 <p className="text-xs text-foreground-600 italic">Sin clientes asignados</p>
               ) : (
                 <ul className="space-y-1">
-                  {accessibleClients.map((cl) => (
+                  {ctx.accessibleClients.map((cl) => (
                     <li key={cl.id} className="flex items-center gap-2 text-xs text-foreground-300">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400/40"></span>
+                      <span className={`w-1.5 h-1.5 rounded-full ${cl.id === ctx.currentClientId ? 'bg-violet-400' : 'bg-amber-400/40'}`}></span>
                       {cl.name}
                     </li>
                   ))}
@@ -185,7 +235,7 @@ export default function MyAccessPage() {
           {[
             { label: 'Apps autorizadas', value: activeAccesses.length, icon: 'ri-check-double-line', bg: 'bg-emerald-500/10', text: 'text-emerald-400' },
             { label: 'Pendientes', value: pendingAccesses.length, icon: 'ri-time-line', bg: 'bg-amber-500/10', text: 'text-amber-400' },
-            { label: 'Total accesos', value: myAccesses.length, icon: 'ri-key-2-line', bg: 'bg-primary-500/10', text: 'text-primary-400' },
+            { label: 'Total accesos', value: contextFiltered.length, icon: 'ri-key-2-line', bg: 'bg-primary-500/10', text: 'text-primary-400' },
           ].map((stat) => (
             <div key={stat.label} className="glass-panel rounded-xl p-4">
               <div className="flex items-center gap-3">
@@ -211,13 +261,21 @@ export default function MyAccessPage() {
             <div className="w-16 h-16 rounded-2xl bg-secondary-500/10 border border-secondary-500/20 flex items-center justify-center mx-auto mb-5">
               <i className="ri-shield-keyhole-line text-foreground-500 text-2xl"></i>
             </div>
-            <h3 className="text-sm font-semibold text-foreground-300 mb-2">Sin accesos asignados</h3>
+            <h3 className="text-sm font-semibold text-foreground-300 mb-2">No tienes aplicaciones asignadas para este contexto</h3>
             <p className="text-xs text-foreground-500 max-w-sm mx-auto mb-6">
-              No tienes aplicaciones autorizadas. Contacta a tu administrador o solicita acceso desde el catalogo.
+              No hay aplicaciones autorizadas para el país, tenant o cliente seleccionado. Cambia de contexto o contacta a tu administrador.
             </p>
             <button className="h-9 px-4 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-sm font-medium whitespace-nowrap">
               Ir al catalogo
             </button>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="glass-panel rounded-2xl p-12 text-center">
+            <div className="w-12 h-12 rounded-xl bg-secondary-500/10 border border-secondary-500/20 flex items-center justify-center mx-auto mb-3">
+              <i className="ri-search-line text-foreground-500 text-lg"></i>
+            </div>
+            <p className="text-sm text-foreground-500">No se encontraron aplicaciones con "{searchQuery}"</p>
+            <button onClick={() => setSearchQuery('')} className="mt-3 text-xs text-primary-400 hover:text-primary-300 transition-colors cursor-pointer">Limpiar búsqueda</button>
           </div>
         ) : (
           <div className="space-y-4">
@@ -248,7 +306,14 @@ export default function MyAccessPage() {
                           </span>
                         </div>
                         <h3 className="text-sm font-semibold text-foreground-200 mb-1.5">{acc.application_name}</h3>
-                        {acc.instance_name && <p className="text-xs text-foreground-500 mb-2">Instancia: {acc.instance_name}</p>}
+                        {acc.instance_name && <p className="text-xs text-foreground-500 mb-1">Instancia: {acc.instance_name}</p>}
+                        {acc.client_name && (
+                          <div className="flex flex-wrap items-center gap-1 mb-1">
+                            <span className="text-2xs text-foreground-500">{acc.client_name}</span>
+                            {acc.warehouse_name && <><span className="text-foreground-700">·</span><span className="text-2xs text-foreground-600">{acc.warehouse_name}</span></>}
+                            {acc.country_name && <><span className="text-foreground-700">·</span><span className="text-2xs text-foreground-600">{acc.country_name}</span></>}
+                          </div>
+                        )}
                         {grantedDate && <p className="text-2xs text-foreground-600 mb-3">Desde {grantedDate}</p>}
                         <button
                           onClick={() => handleOpenApp(acc)}

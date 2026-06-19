@@ -20,7 +20,10 @@ export interface WarehouseWithDetails extends Warehouse {
   client_count: number;
 }
 
-export async function fetchWarehouses(): Promise<{ data: WarehouseWithDetails[]; error: string | null }> {
+export async function fetchWarehouses(): Promise<{
+  data: WarehouseWithDetails[];
+  error: string | null;
+}> {
   try {
     let query = supabase.from('warehouses').select('*').order('name');
 
@@ -34,12 +37,13 @@ export async function fetchWarehouses(): Promise<{ data: WarehouseWithDetails[];
     if (!warehouses || warehouses.length === 0) return { data: [], error: null };
 
     const countryIds = [...new Set(warehouses.map((w) => w.country_id))];
+    const tenantIds = [...new Set(warehouses.map((w) => w.tenant_id))];
     const warehouseIds = warehouses.map((w) => w.id);
 
     const [{ data: countries }, { data: clients }, { data: tenants }] = await Promise.all([
-      supabase.from('countries').select('id, name, code, tenant_id').in('id', countryIds),
+      supabase.from('countries').select('id, name, code').in('id', countryIds),
       supabase.from('clients').select('id, warehouse_id').in('warehouse_id', warehouseIds),
-      supabase.from('tenants').select('id, name, country_id'),
+      supabase.from('tenants').select('id, name').in('id', tenantIds),
     ]);
 
     const countryMap = new Map((countries || []).map((c) => [c.id, c]));
@@ -51,13 +55,11 @@ export async function fetchWarehouses(): Promise<{ data: WarehouseWithDetails[];
 
     const result: WarehouseWithDetails[] = warehouses.map((w) => {
       const country = countryMap.get(w.country_id);
-      // CORREGIDO: tenant_name se deriva de w.tenant_id (relación directa warehouses→tenants)
-      // NO de countries.tenant_id (que asumía incorrectamente 1 país = 1 tenant)
       return {
         ...w,
         country_name: country?.name || 'Desconocido',
         country_code: country?.code || '--',
-        tenant_name: w.tenant_id ? (tenantMap.get(w.tenant_id) || 'Desconocido') : 'Desconocido',
+        tenant_name: tenantMap.get(w.tenant_id) || 'Desconocido',
         client_count: clientCountMap.get(w.id) || 0,
       };
     });
@@ -68,20 +70,55 @@ export async function fetchWarehouses(): Promise<{ data: WarehouseWithDetails[];
   }
 }
 
-export async function fetchCountriesForSelect(): Promise<{ data: { id: string; name: string; tenant_id: string }[]; error: string | null }> {
+/**
+ * Carga todos los países activos (sin filtrar por tenant).
+ * Para usar en selectores donde se necesita cascada País → Tenant → Almacén.
+ */
+export async function fetchCountriesForSelect(): Promise<{
+  data: { id: string; name: string }[];
+  error: string | null;
+}> {
   try {
-    let query = supabase.from('countries').select('id, name, tenant_id').order('name');
-
-    const tenantId = await getEffectiveTenantId();
-    if (tenantId) {
-      query = query.eq('tenant_id', tenantId);
-    }
-
-    const { data, error } = await query;
+    const { data, error } = await supabase
+      .from('countries')
+      .select('id, name')
+      .eq('status', 'active')
+      .order('name');
     if (error) throw error;
     return { data: data || [], error: null };
   } catch (err: any) {
     return { data: [], error: err.message || 'Error al cargar paises' };
+  }
+}
+
+/**
+ * Carga tenants asociados a un país vía tenant_countries.
+ */
+export async function fetchTenantsByCountryForWarehouse(
+  countryId: string,
+): Promise<{
+  data: { id: string; name: string }[];
+  error: string | null;
+}> {
+  try {
+    if (!countryId) return { data: [], error: null };
+    const { data: tcData, error } = await supabase
+      .from('tenant_countries')
+      .select('tenant_id')
+      .eq('country_id', countryId);
+    if (error) throw error;
+    if (!tcData || tcData.length === 0) return { data: [], error: null };
+
+    const tenantIds = tcData.map((tc) => tc.tenant_id);
+    const { data: tenants, error: tErr } = await supabase
+      .from('tenants')
+      .select('id, name')
+      .in('id', tenantIds)
+      .order('name');
+    if (tErr) throw tErr;
+    return { data: tenants || [], error: null };
+  } catch (err: any) {
+    return { data: [], error: err.message || 'Error al cargar tenants' };
   }
 }
 
@@ -105,7 +142,6 @@ export async function createWarehouse(data: {
       })
       .select()
       .single();
-
     if (error) throw error;
     return { data: result, error: null };
   } catch (err: any) {
@@ -115,14 +151,16 @@ export async function createWarehouse(data: {
 
 export async function updateWarehouse(
   id: string,
-  data: { name?: string; code?: string; address?: string; country_id?: string; tenant_id?: string }
+  data: {
+    name?: string;
+    code?: string;
+    address?: string;
+    country_id?: string;
+    tenant_id?: string;
+  },
 ): Promise<{ error: string | null }> {
   try {
-    const { error } = await supabase
-      .from('warehouses')
-      .update(data)
-      .eq('id', id);
-
+    const { error } = await supabase.from('warehouses').update(data).eq('id', id);
     if (error) throw error;
     return { error: null };
   } catch (err: any) {
@@ -132,7 +170,7 @@ export async function updateWarehouse(
 
 export async function toggleWarehouseStatus(
   id: string,
-  currentStatus: string
+  currentStatus: string,
 ): Promise<{ error: string | null }> {
   try {
     const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
@@ -140,7 +178,6 @@ export async function toggleWarehouseStatus(
       .from('warehouses')
       .update({ status: newStatus })
       .eq('id', id);
-
     if (error) throw error;
     return { error: null };
   } catch (err: any) {

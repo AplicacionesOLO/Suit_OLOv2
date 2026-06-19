@@ -9,7 +9,7 @@ import EditUserModal from './components/EditUserModal';
 type Tab = 'active' | 'invitations';
 
 export default function UsersPage() {
-  const { users, invitations, tenants, roles, countries, warehouses, clients, loading, error, sendInvitation, cancelInvitation, editUser, removeUser, refresh } = useUsers();
+  const { users, invitations, tenants, roles, countries, warehouses, clients, tenantCountries, loading, error, sendInvitation, cancelInvitation, editUser, removeUser, refresh } = useUsers();
   const { can } = useSuitePermissions();
   const [activeTab, setActiveTab] = useState<Tab>('active');
 
@@ -41,11 +41,13 @@ export default function UsersPage() {
 
   const filteredCountries = useMemo(() => {
     if (!inviteForm.tenant_id) return [];
-    const tenant = tenants.find((t) => t.id === inviteForm.tenant_id);
-    const tenantCountryId = tenant?.country_id;
-    if (!tenantCountryId) return [];
-    return countries.filter((c) => c.id === tenantCountryId);
-  }, [countries, tenants, inviteForm.tenant_id]);
+    const countryIds = new Set(
+      tenantCountries
+        .filter((tc) => tc.tenant_id === inviteForm.tenant_id)
+        .map((tc) => tc.country_id),
+    );
+    return countries.filter((c) => countryIds.has(c.id));
+  }, [countries, tenantCountries, inviteForm.tenant_id]);
 
   const filteredWarehouses = useMemo(() => {
     if (!inviteForm.tenant_id) return [];
@@ -109,8 +111,13 @@ export default function UsersPage() {
   const tenantOptions = tenants.map((t) => ({ id: t.id, label: t.name }));
   const countryOptions = useMemo(() => {
     if (!inviteForm.tenant_id) return [];
-    return countries.filter((c) => c.tenant_id === inviteForm.tenant_id).map((c) => ({ id: c.id, label: c.name }));
-  }, [countries, inviteForm.tenant_id]);
+    const countryIds = new Set(
+      tenantCountries
+        .filter((tc) => tc.tenant_id === inviteForm.tenant_id)
+        .map((tc) => tc.country_id),
+    );
+    return countries.filter((c) => countryIds.has(c.id)).map((c) => ({ id: c.id, label: c.name }));
+  }, [countries, tenantCountries, inviteForm.tenant_id]);
   const warehouseOptions = useMemo(() => {
     if (!inviteForm.tenant_id) return [];
     const countrySet = new Set<string>([inviteForm.country_id, ...(inviteForm.scope_countries || [])].filter(Boolean));
@@ -678,6 +685,7 @@ export default function UsersPage() {
         countries={countries}
         warehouses={warehouses}
         clients={clients}
+        tenantCountries={tenantCountries}
       />
 
       {/* Delete User Modal */}

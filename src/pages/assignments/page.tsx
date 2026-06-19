@@ -1,16 +1,18 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/feature/AppLayout';
 import { useSuitePermissions } from '@/hooks/useSuitePermissions';
+import { useTenantContext } from '@/hooks/useTenantContext';
 import {
   fetchUserAccesses,
   fetchPlatformUsers,
   createUserAccess,
   revokeUserAccess,
   reactivateUserAccess,
+  validateUserClientAccess,
   type AccessWithDetails,
   type PlatformUserBrief,
 } from '@/services/security/accessService';
-import { fetchApplications, fetchInstances, type Application, type AppInstance } from '@/services/applications/applicationsService';
+import { fetchApplications, fetchInstances, fetchClients, type Application, type AppInstance, type ClientBrief } from '@/services/applications/applicationsService';
 import { supabase } from '@/services/supabase/client';
 
 const statusCfg: Record<string, { label: string; dot: string; bg: string; text: string }> = {
@@ -36,6 +38,7 @@ export default function AssignmentsPage() {
   const [tenants, setTenants] = useState<{ id: string; name: string }[]>([]);
   const [roles, setRoles] = useState<{ id: string; name: string }[]>([]);
   const { can } = useSuitePermissions();
+  const ctx = useTenantContext();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,6 +55,9 @@ export default function AssignmentsPage() {
   const [assignError, setAssignError] = useState('');
   const [assignSuccess, setAssignSuccess] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [authorizedClientIds, setAuthorizedClientIds] = useState<Set<string> | null>(null);
+  const [allClients, setAllClients] = useState<ClientBrief[]>([]);
+  const [authorizedClientNames, setAuthorizedClientNames] = useState<string[]>([]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -82,16 +88,62 @@ export default function AssignmentsPage() {
     setAssignSuccess('');
 
     try {
-      const [accResult, appsRes, instRes] = await Promise.all([
+      const [accResult, appsRes, instRes, userClientsRes, clientsRes] = await Promise.all([
         fetchUserAccesses(),
         fetchApplications(),
         fetchInstances(),
+        supabase.from('user_clients').select('client_id').eq('user_id', user.id),
+        fetchClients(),
       ]);
 
       const userAccs = accResult.data.filter((a: AccessWithDetails) => a.user_id === user.id);
       setUserAccesses(userAccs);
-      setApplications(appsRes.data.filter((a) => a.deleted_at === null && a.status === 'active'));
+
+      // Filter apps by user's authorized clients
+      const userClientIds = new Set((userClientsRes.data || []).map((r: any) => r.client_id));
+
+      // Check if user has scope_all_clients (super admin)
+      const { data: puData } = await supabase.from('platform_users').select('role_id, scope_all_clients').eq('id', user.id).maybeSingle();
+      let hasAllClients = puData?.scope_all_clients === true;
+      if (!hasAllClients && puData?.role_id) {
+        const { data: roleData } = await supabase.from('roles').select('level').eq('id', puData.role_id).maybeSingle();
+        hasAllClients = (roleData?.level || 0) >= 100;
+      }
+
+      const activeApps = appsRes.data.filter((a) => a.deleted_at === null && a.status === 'active');
+
+      // Filter by context (Client > Warehouse > Tenant > Country)
+      let contextFilteredApps = activeApps;
+      if (ctx.currentClientId && ctx.currentClientId !== 'all') {
+        contextFilteredApps = activeApps.filter((a) => a.client_id === ctx.currentClientId);
+      } else if (ctx.currentWarehouseId && ctx.currentWarehouseId !== 'all') {
+        contextFilteredApps = activeApps.filter((a) => a.warehouse_id === ctx.currentWarehouseId);
+      } else if (ctx.currentTenantId && ctx.currentTenantId !== 'all') {
+        contextFilteredApps = activeApps.filter((a) => a.tenant_id === ctx.currentTenantId);
+      } else if (ctx.currentCountryId && ctx.currentCountryId !== 'all') {
+        contextFilteredApps = activeApps.filter((a) => a.country_id === ctx.currentCountryId);
+      }
+
+      if (hasAllClients) {
+        setApplications(contextFilteredApps);
+        setAuthorizedClientIds(null); // null = show all
+      } else {
+        const filteredApps = contextFilteredApps.filter((a) => !a.client_id || userClientIds.has(a.client_id));
+        setApplications(filteredApps);
+        setAuthorizedClientIds(userClientIds);
+      }
+
       setInstances(instRes.data.filter((i) => i.deleted_at === null && i.status === 'active'));
+
+      // Compute authorized client names for display
+      const allClientsData = clientsRes.data || [];
+      setAllClients(allClientsData);
+      if (userClientIds.size > 0) {
+        const names = allClientsData.filter((c) => userClientIds.has(c.id)).map((c) => c.name);
+        setAuthorizedClientNames(names);
+      } else {
+        setAuthorizedClientNames([]);
+      }
     } catch {
       // silent
     }
@@ -101,6 +153,8 @@ export default function AssignmentsPage() {
   const closeUserDetail = () => {
     setSelectedUser(null);
     setUserAccesses([]);
+    setAuthorizedClientIds(null);
+    setAuthorizedClientNames([]);
   };
 
   const filteredInstances = useMemo(() => {
@@ -128,11 +182,22 @@ export default function AssignmentsPage() {
 
   const handleAssign = async () => {
     if (!assignForm.application_id) {
-      setAssignError('Selecciona una aplicacion');
+      setAssignError('Selecciona una aplicación');
       return;
     }
     setAssignError('');
     setAssignSaving(true);
+
+    // Validate client access
+    const selectedApp = applications.find((a) => a.id === assignForm.application_id);
+    if (selectedApp?.client_id) {
+      const clientCheck = await validateUserClientAccess(selectedUser!.id, selectedApp.client_id);
+      if (!clientCheck.hasAccess) {
+        setAssignError(clientCheck.error || 'El usuario no tiene acceso al cliente asociado a esta aplicación.');
+        setAssignSaving(false);
+        return;
+      }
+    }
 
     const result = await createUserAccess({
       user_id: selectedUser!.id,
@@ -206,8 +271,13 @@ export default function AssignmentsPage() {
       <div className="animate-fade-in space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold text-foreground-100">Asignacion de Aplicaciones</h1>
-            <p className="text-sm text-foreground-500 mt-1">Selecciona un usuario para gestionar sus aplicaciones e instancias asignadas.</p>
+            <h1 className="text-xl font-bold text-foreground-100">Asignación de Aplicaciones</h1>
+            <p className="text-sm text-foreground-500 mt-1">
+              Selecciona un usuario para gestionar sus aplicaciones e instancias asignadas.
+              {ctx.currentClientName && (
+                <span className="text-foreground-400"> · Cliente activo: <span className="text-accent-400 font-medium">{ctx.currentClientName}</span></span>
+              )}
+            </p>
           </div>
           {error && (
             <button onClick={loadData} className="flex items-center gap-2 h-9 px-4 rounded-lg border border-secondary-500/20 text-sm text-foreground-400 hover:text-foreground-200 transition-all whitespace-nowrap">
@@ -372,6 +442,25 @@ export default function AssignmentsPage() {
             </div>
 
             <div className="px-6 py-6 space-y-6">
+              {/* Authorized clients info */}
+              {authorizedClientIds !== null && (
+                <div className="p-3 rounded-xl bg-accent-500/5 border border-accent-500/10">
+                  <p className="text-xs font-medium text-accent-400 mb-2 flex items-center gap-1.5">
+                    <span className="w-3.5 h-3.5 flex items-center justify-center"><i className="ri-building-2-line"></i></span>
+                    Clientes autorizados
+                  </p>
+                  {authorizedClientNames.length === 0 ? (
+                    <p className="text-xs text-foreground-500 italic">Sin clientes asignados</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5">
+                      {authorizedClientNames.map((name) => (
+                        <span key={name} className="px-2 py-0.5 rounded text-2xs font-medium bg-accent-500/10 text-accent-400 border border-accent-500/20">{name}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Assign New Application */}
               <div className="glass-panel rounded-2xl p-5">
                 <h3 className="text-sm font-semibold text-foreground-200 mb-4 flex items-center gap-2">

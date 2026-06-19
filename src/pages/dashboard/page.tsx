@@ -31,7 +31,7 @@ interface AuditEvent {
 export default function DashboardPage() {
   const navigate = useNavigate();
   const { platformUser } = useAuth();
-  const { effectiveTenantId, effectiveTenantName, roleLevel } = useTenantContext();
+  const ctx = useTenantContext();
   const [stats, setStats] = useState<DashboardStats>({
     activeTenants: 0, activeCountries: 0, activeWarehouses: 0, activeClients: 0,
     activeUsers: 0, activeApplications: 0, activeInstances: 0,
@@ -45,10 +45,16 @@ export default function DashboardPage() {
     setLoading(true);
     setError(null);
     try {
-      const tid = effectiveTenantId;
+      const { currentTenantId, currentCountryId, currentWarehouseId, currentClientId } = ctx;
 
-      // Helper: adds tenant_id filter only when tid is set
-      const tf = (q: any) => tid ? q.eq('tenant_id', tid) : q;
+      // Helper: apply context filters
+      const applyContext = (q: any) => {
+        if (currentClientId && currentClientId !== 'all') q = q.eq('client_id', currentClientId);
+        if (currentWarehouseId && currentWarehouseId !== 'all') q = q.eq('warehouse_id', currentWarehouseId);
+        if (currentTenantId && currentTenantId !== 'all') q = q.eq('tenant_id', currentTenantId);
+        if (currentCountryId && currentCountryId !== 'all') q = q.eq('country_id', currentCountryId);
+        return q;
+      };
 
       const [
         { count: tCount }, { count: cCount }, { count: wCount }, { count: clCount },
@@ -56,19 +62,18 @@ export default function DashboardPage() {
         { count: aaCount }, { count: raCount }, { count: piCount },
         { data: alerts }, { data: audit },
       ] = await Promise.all([
-        // tenants: filter by id when tenant context is active
-        (tid ? supabase.from('tenants').select('*', { count: 'exact', head: true }).eq('id', tid) : supabase.from('tenants').select('*', { count: 'exact', head: true })).eq('status', 'active'),
-        tf(supabase.from('countries').select('*', { count: 'exact', head: true })).eq('status', 'active'),
-        tf(supabase.from('warehouses').select('*', { count: 'exact', head: true })).eq('status', 'active'),
-        tf(supabase.from('clients').select('*', { count: 'exact', head: true })).eq('status', 'active'),
-        tf(supabase.from('platform_users').select('*', { count: 'exact', head: true })).eq('status', 'active'),
-        tf(supabase.from('applications').select('*', { count: 'exact', head: true })).is('deleted_at', null).eq('status', 'active'),
-        tf(supabase.from('application_instances').select('*', { count: 'exact', head: true })).is('deleted_at', null).eq('status', 'active'),
-        tf(supabase.from('user_application_access').select('*', { count: 'exact', head: true })).eq('access_status', 'assigned'),
-        tf(supabase.from('user_application_access').select('*', { count: 'exact', head: true })).eq('access_status', 'revoked'),
-        tf(supabase.from('user_invitations').select('*', { count: 'exact', head: true })).eq('status', 'pending'),
-        tf(supabase.from('audit_logs').select('id, action, entity_type, severity, created_at')).eq('severity', 'critical').order('created_at', { ascending: false }).limit(10),
-        tf(supabase.from('audit_logs').select('id, action, entity_type, severity, created_at, details')).order('created_at', { ascending: false }).limit(10),
+        applyContext(supabase.from('tenants').select('*', { count: 'exact', head: true })).eq('status', 'active'),
+        applyContext(supabase.from('countries').select('*', { count: 'exact', head: true })).eq('status', 'active'),
+        applyContext(supabase.from('warehouses').select('*', { count: 'exact', head: true })).eq('status', 'active'),
+        applyContext(supabase.from('clients').select('*', { count: 'exact', head: true })).eq('status', 'active'),
+        applyContext(supabase.from('platform_users').select('*', { count: 'exact', head: true })).eq('status', 'active'),
+        applyContext(supabase.from('applications').select('*', { count: 'exact', head: true })).is('deleted_at', null).eq('status', 'active'),
+        applyContext(supabase.from('application_instances').select('*', { count: 'exact', head: true })).is('deleted_at', null).eq('status', 'active'),
+        applyContext(supabase.from('user_application_access').select('*', { count: 'exact', head: true })).eq('access_status', 'assigned'),
+        applyContext(supabase.from('user_application_access').select('*', { count: 'exact', head: true })).eq('access_status', 'revoked'),
+        applyContext(supabase.from('user_invitations').select('*', { count: 'exact', head: true })).eq('status', 'pending'),
+        applyContext(supabase.from('audit_logs').select('id, action, entity_type, severity, created_at')).eq('severity', 'critical').order('created_at', { ascending: false }).limit(10),
+        applyContext(supabase.from('audit_logs').select('id, action, entity_type, severity, created_at, details')).order('created_at', { ascending: false }).limit(10),
       ]);
 
       setStats({
@@ -85,18 +90,18 @@ export default function DashboardPage() {
         recentAlerts: (alerts || []).length,
       });
       setRecentAudit((audit || []) as AuditEvent[]);
-    } catch (err) {
+    } catch {
       setError('Error al cargar datos del dashboard');
     } finally {
       setLoading(false);
     }
-  }, [effectiveTenantId]);
+  }, [ctx.currentTenantId, ctx.currentCountryId, ctx.currentWarehouseId, ctx.currentClientId]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
   const statCards = [
     { label: 'Tenants activos', value: stats.activeTenants, icon: 'ri-building-4-line', bg: 'bg-primary-500/10', text: 'text-primary-400', path: '/tenants' },
-    { label: 'Paises activos', value: stats.activeCountries, icon: 'ri-global-line', bg: 'bg-violet-500/10', text: 'text-violet-400', path: '/countries' },
+    { label: 'Países activos', value: stats.activeCountries, icon: 'ri-global-line', bg: 'bg-violet-500/10', text: 'text-violet-400', path: '/countries' },
     { label: 'Almacenes', value: stats.activeWarehouses, icon: 'ri-store-2-line', bg: 'bg-cyan-500/10', text: 'text-cyan-400', path: '/warehouses' },
     { label: 'Clientes', value: stats.activeClients, icon: 'ri-building-2-line', bg: 'bg-rose-500/10', text: 'text-rose-400', path: '/clients' },
     { label: 'Usuarios activos', value: stats.activeUsers, icon: 'ri-team-line', bg: 'bg-emerald-500/10', text: 'text-emerald-400', path: '/users' },
@@ -124,6 +129,14 @@ export default function DashboardPage() {
     return `Hace ${Math.floor(hrs / 24)}d`;
   };
 
+  // Build context breadcrumb for header
+  const contextParts = [
+    ctx.currentCountryName,
+    ctx.currentTenantName,
+    ctx.currentWarehouseName,
+    ctx.currentClientName,
+  ].filter(Boolean);
+
   if (loading) {
     return (
       <AppLayout>
@@ -149,8 +162,8 @@ export default function DashboardPage() {
             <p className="text-sm text-foreground-500 mt-1">
               Resumen operativo de la plataforma{' '}
               <span className="text-primary-400 font-medium">Suite OLO</span>
-              {effectiveTenantName && (
-                <span className="text-foreground-400"> · Tenant activo: <span className="text-accent-400 font-medium">{effectiveTenantName}</span></span>
+              {contextParts.length > 0 && (
+                <span className="text-foreground-400"> · <span className="text-accent-400 font-medium">{contextParts.join(' › ')}</span></span>
               )}
             </p>
           </div>
@@ -209,30 +222,26 @@ export default function DashboardPage() {
             </div>
             <div>
               <div className="text-lg font-bold text-foreground-100">{stats.recentAlerts}</div>
-              <div className="text-2xs text-foreground-600">Alertas criticas</div>
+              <div className="text-2xs text-foreground-600">Alertas críticas</div>
             </div>
           </div>
         </div>
 
         {/* Quick Actions + Recent Audit */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Quick Actions */}
           <div className="lg:col-span-1">
             <div className="glass-panel rounded-2xl p-5">
-              <h2 className="text-sm font-semibold text-foreground-200 mb-4">Acciones rapidas</h2>
+              <h2 className="text-sm font-semibold text-foreground-200 mb-4">Acciones rápidas</h2>
               <div className="space-y-2">
                 {[
                   { label: 'Usuarios', desc: 'Gestionar e invitar', icon: 'ri-user-add-line', path: '/users', color: 'text-primary-400', bg: 'bg-primary-500/10' },
-                  { label: 'Aplicaciones', desc: 'Catalogo de apps', icon: 'ri-apps-2-line', path: '/applications', color: 'text-accent-400', bg: 'bg-accent-500/10' },
+                  { label: 'Aplicaciones', desc: 'Catálogo de apps', icon: 'ri-apps-2-line', path: '/applications', color: 'text-accent-400', bg: 'bg-accent-500/10' },
                   { label: 'Apps Asignadas', desc: 'Gestionar accesos', icon: 'ri-shield-keyhole-line', path: '/app-access', color: 'text-violet-400', bg: 'bg-violet-500/10' },
                   { label: 'Roles y Permisos', desc: 'Configurar seguridad', icon: 'ri-shield-user-line', path: '/roles', color: 'text-amber-400', bg: 'bg-amber-500/10' },
-                  { label: 'Auditoria', desc: 'Registros del sistema', icon: 'ri-file-search-line', path: '/audit', color: 'text-rose-400', bg: 'bg-rose-500/10' },
+                  { label: 'Auditoría', desc: 'Registros del sistema', icon: 'ri-file-search-line', path: '/audit', color: 'text-rose-400', bg: 'bg-rose-500/10' },
                 ].map((action) => (
-                  <button
-                    key={action.path}
-                    onClick={() => navigate(action.path)}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl border border-secondary-500/10 bg-background-100 hover:border-secondary-500/20 hover:bg-background-200/40 transition-all text-left"
-                  >
+                  <button key={action.path} onClick={() => navigate(action.path)}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl border border-secondary-500/10 bg-background-100 hover:border-secondary-500/20 hover:bg-background-200/40 transition-all text-left">
                     <div className={`w-9 h-9 rounded-lg ${action.bg} flex items-center justify-center shrink-0`}>
                       <i className={`${action.icon} ${action.color} text-base`}></i>
                     </div>
@@ -240,23 +249,18 @@ export default function DashboardPage() {
                       <p className="text-sm font-medium text-foreground-200">{action.label}</p>
                       <p className="text-2xs text-foreground-600">{action.desc}</p>
                     </div>
-                    <span className="ml-auto w-4 h-4 flex items-center justify-center text-foreground-500">
-                      <i className="ri-arrow-right-s-line"></i>
-                    </span>
+                    <span className="ml-auto w-4 h-4 flex items-center justify-center text-foreground-500"><i className="ri-arrow-right-s-line"></i></span>
                   </button>
                 ))}
               </div>
             </div>
           </div>
 
-          {/* Recent Audit Logs */}
           <div className="lg:col-span-2">
             <div className="glass-panel rounded-2xl overflow-hidden">
               <div className="flex items-center justify-between p-5 border-b border-secondary-500/10">
                 <h2 className="text-sm font-semibold text-foreground-200">Actividad reciente</h2>
-                <button onClick={() => navigate('/audit')} className="text-xs text-primary-400 hover:text-primary-300 transition-colors font-medium">
-                  Ver auditoria
-                </button>
+                <button onClick={() => navigate('/audit')} className="text-xs text-primary-400 hover:text-primary-300 transition-colors font-medium">Ver auditoría</button>
               </div>
 
               {recentAudit.length === 0 ? (
@@ -265,27 +269,21 @@ export default function DashboardPage() {
                     <i className="ri-file-search-line text-foreground-500 text-xl"></i>
                   </div>
                   <p className="text-sm text-foreground-500">Sin actividad registrada</p>
-                  <p className="text-xs text-foreground-600 mt-1">Los eventos del sistema apareceran aqui.</p>
+                  <p className="text-xs text-foreground-600 mt-1">Los eventos del sistema aparecerán aquí.</p>
                 </div>
               ) : (
                 <div className="divide-y divide-secondary-500/5">
                   {recentAudit.map((event) => (
                     <div key={event.id} className="px-5 py-3 hover:bg-background-100/30 transition-colors flex items-center gap-3">
                       <div className={`w-8 h-8 rounded-lg ${severityBadge(event.severity)} border flex items-center justify-center shrink-0`}>
-                        {event.severity === 'critical' ? (
-                          <i className="ri-alert-fill text-sm"></i>
-                        ) : event.severity === 'warning' ? (
-                          <i className="ri-error-warning-line text-sm"></i>
-                        ) : (
-                          <i className="ri-information-line text-sm"></i>
-                        )}
+                        {event.severity === 'critical' ? <i className="ri-alert-fill text-sm"></i>
+                          : event.severity === 'warning' ? <i className="ri-error-warning-line text-sm"></i>
+                          : <i className="ri-information-line text-sm"></i>}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium text-foreground-200">{event.action}</span>
-                          <span className={`px-1.5 py-0.5 rounded text-2xs font-medium border ${severityBadge(event.severity)}`}>
-                            {event.severity}
-                          </span>
+                          <span className={`px-1.5 py-0.5 rounded text-2xs font-medium border ${severityBadge(event.severity)}`}>{event.severity}</span>
                         </div>
                         <p className="text-xs text-foreground-500 mt-0.5">{event.entity_type}</p>
                       </div>

@@ -1,10 +1,13 @@
 // ================================================================
 // Tipos compartidos para la cascada organizacional Suite OLO
 //
-// Jerarquía: PAÍS → TENANT → ALMACÉN → CLIENTE → USUARIO → APLICACIONES
+// Jerarquía: PAÍS ↔ TENANT → ALMACÉN → CLIENTE → USUARIO → APLICACIONES
 //
 // SINGLE SOURCE OF TRUTH: Este archivo define los tipos canónicos
 // que toda la aplicación debe usar para la jerarquía organizacional.
+//
+// ⚠️  La relación País ↔ Tenant es N:M vía tenant_countries.
+//     NO usar tenants.country_id ni countries.tenant_id como fuente.
 // ================================================================
 
 export interface CountryOption {
@@ -12,6 +15,8 @@ export interface CountryOption {
   id: string;
   /** Nombre del país (ej: "Costa Rica") */
   name: string;
+  /** Código ISO Alpha-2 (ej: "CR") */
+  code?: string;
 }
 
 export interface TenantOption {
@@ -19,8 +24,31 @@ export interface TenantOption {
   id: string;
   /** Nombre del tenant (ej: "OLO") */
   name: string;
-  /** UUID del país al que pertenece este tenant. Campo OBLIGATORIO para la cascada. */
-  country_id: string | null;
+  /** Código del tenant (ej: "OLO") */
+  code?: string;
+  /**
+   * @deprecated La relación País ↔ Tenant ahora es N:M vía tenant_countries.
+   * Usar TenantCountryRelation en su lugar. Este campo se mantiene solo por
+   * compatibilidad con código legacy.
+   */
+  country_id?: string | null;
+}
+
+/**
+ * Relación N:M entre Tenant y País.
+ * Fuente oficial: tabla tenant_countries.
+ */
+export interface TenantCountryRelation {
+  /** UUID de tenant_countries */
+  id: string;
+  /** UUID del tenant */
+  tenant_id: string;
+  /** UUID del país */
+  country_id: string;
+  /** Nombre del tenant (join) */
+  tenant_name?: string;
+  /** Nombre del país (join) */
+  country_name?: string;
 }
 
 export interface WarehouseOption {
@@ -28,10 +56,12 @@ export interface WarehouseOption {
   id: string;
   /** Nombre del almacén (ej: "Almacén OLO") */
   name: string;
+  /** Código del almacén */
+  code?: string;
   /** UUID del tenant al que pertenece este almacén. Campo OBLIGATORIO para la cascada. */
   tenant_id: string;
-  /** UUID del país al que pertenece este almacén (vía tenant) */
-  country_id?: string;
+  /** UUID del país al que pertenece este almacén */
+  country_id: string;
 }
 
 export interface ClientOption {
@@ -39,6 +69,10 @@ export interface ClientOption {
   id: string;
   /** Nombre del cliente (ej: "COFERSA") */
   name: string;
+  /** Código del cliente */
+  code?: string;
+  /** UUID del país al que pertenece este cliente */
+  country_id: string;
   /** UUID del tenant al que pertenece este cliente. Campo OBLIGATORIO para la cascada. */
   tenant_id: string;
   /** UUID del warehouse al que pertenece este cliente. Campo OBLIGATORIO para la cascada. */

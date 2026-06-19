@@ -9,7 +9,7 @@ import {
 import { revokeUserAccess } from '@/services/security/accessService';
 import MultiSelect from '@/components/base/MultiSelect';
 import { validateFullCascade } from '@/utils/organizationCascade';
-import type { TenantOption, WarehouseOption, ClientOption } from '@/types/organization';
+import type { TenantOption, WarehouseOption, ClientOption, TenantCountryRelation } from '@/types/organization';
 
 interface EditUserModalProps {
   user: PlatformUserFull;
@@ -22,6 +22,7 @@ interface EditUserModalProps {
   countries: { id: string; name: string; tenant_id: string }[];
   warehouses: { id: string; name: string; tenant_id: string; country_id: string }[];
   clients: { id: string; name: string; warehouse_id: string; tenant_id: string }[];
+  tenantCountries: { id: string; tenant_id: string; country_id: string }[];
 }
 
 type EditFormState = {
@@ -43,7 +44,7 @@ type EditFormState = {
   scope_all_clients: boolean;
 };
 
-export default function EditUserModal({ user, isOpen, onClose, onSaved, onEditUser, tenants, roles, countries, warehouses, clients }: EditUserModalProps) {
+export default function EditUserModal({ user, isOpen, onClose, onSaved, onEditUser, tenants, roles, countries, warehouses, clients, tenantCountries }: EditUserModalProps) {
   const [editForm, setEditForm] = useState<EditFormState>({
     first_name: '', last_name: '', role_id: '', status: 'active',
     tenant_id: '', country_id: '', warehouse_id: '', client_id: '',
@@ -66,14 +67,19 @@ export default function EditUserModal({ user, isOpen, onClose, onSaved, onEditUs
   // All active countries (for the root selector)
   const allCountryOptions = useMemo(() => countries.map((c) => ({ id: c.id, label: c.name })), [countries]);
 
-  // Tenants filtered by selected countries
+  // Tenants filtered by selected countries (N:M via tenant_countries)
   const tenantOptionsByCountry = useMemo(() => {
     const selectedCountrySet = new Set([editForm.country_id, ...editForm.scope_countries].filter(Boolean));
     if (selectedCountrySet.size === 0) return tenants.map((t) => ({ id: t.id, label: t.name }));
+    const eligibleTenantIds = new Set(
+      tenantCountries
+        .filter((tc) => selectedCountrySet.has(tc.country_id))
+        .map((tc) => tc.tenant_id),
+    );
     return tenants
-      .filter((t) => t.country_id && selectedCountrySet.has(t.country_id))
+      .filter((t) => eligibleTenantIds.has(t.id))
       .map((t) => ({ id: t.id, label: t.name }));
-  }, [tenants, editForm.country_id, editForm.scope_countries]);
+  }, [tenants, tenantCountries, editForm.country_id, editForm.scope_countries]);
 
   // All tenant options
   const allTenantOptions = useMemo(() => tenants.map((t) => ({ id: t.id, label: t.name })), [tenants]);
@@ -96,14 +102,17 @@ export default function EditUserModal({ user, isOpen, onClose, onSaved, onEditUs
       .map((c) => ({ id: c.id, label: c.name }));
   }, [clients, editForm.warehouse_id, editForm.scope_warehouses]);
 
-  // Countries filtered by selected tenant (for the tenant's country lookup)
+  // Countries filtered by selected tenant (via tenant_countries N:M)
   const countriesByTenant = useMemo(() => {
     if (!editForm.tenant_id) return [];
-    const tenant = tenants.find((t) => t.id === editForm.tenant_id);
-    const tenantCountryId = tenant?.country_id;
-    if (!tenantCountryId) return countries;
-    return countries.filter((c) => c.id === tenantCountryId);
-  }, [countries, tenants, editForm.tenant_id]);
+    const countryIds = new Set(
+      tenantCountries
+        .filter((tc) => tc.tenant_id === editForm.tenant_id)
+        .map((tc) => tc.country_id),
+    );
+    if (countryIds.size === 0) return countries;
+    return countries.filter((c) => countryIds.has(c.id));
+  }, [countries, tenantCountries, editForm.tenant_id]);
 
   // Warehouses filtered by selected tenant only (for context warehouse dropdown)
   const warehousesByTenantOnly = useMemo(() => {
@@ -246,6 +255,7 @@ export default function EditUserModal({ user, isOpen, onClose, onSaved, onEditUs
       scopeAllTenants: editForm.scope_all_tenants,
       scopeAllWarehouses: editForm.scope_all_warehouses,
       scopeAllClients: editForm.scope_all_clients,
+      tenantCountries: tenantCountries as TenantCountryRelation[],
       tenants: tenants as TenantOption[],
       warehouses: warehouses as WarehouseOption[],
       clients: clients as ClientOption[],
@@ -569,7 +579,7 @@ export default function EditUserModal({ user, isOpen, onClose, onSaved, onEditUs
                       <>Contexto: <span className="text-emerald-400 font-medium">{countries.find(c => c.id === editForm.country_id)?.name}</span> → <span className="text-primary-400 font-medium">{tenants.find(t => t.id === editForm.tenant_id)?.name}</span> → <span className="text-foreground-600">sin almacen</span></>
                     )
                   ) : (
-                    <>Contexto: <span className="text-emerald-400 font-medium">{countries.find(c => c.id === editForm.country_id)?.name}</span> → <span className="text-foreground-600">sin tenant</span></>
+                    <>Contexto: <span className="text-emerald-400 font-medium">{countries.find(c => c.id === editForm.country_id)?.name}</span> → <span className="text-primary-400 font-medium">{tenants.find(t => t.id === editForm.tenant_id)?.name}</span> → <span className="text-foreground-600">sin tenant</span></>
                   )
                 ) : (
                   'Selecciona un pais para comenzar la cascada'

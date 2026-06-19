@@ -18,15 +18,17 @@ interface NavGroup {
 
 const navGroups: NavGroup[] = [
   {
-    title: 'Plataforma',
+    title: 'Principal',
     items: [
-      { label: 'Tenants', path: '/tenants', icon: 'ri-building-4-line', module: 'tenants' },
+      { label: 'Dashboard', path: '/dashboard', icon: 'ri-dashboard-line', module: 'dashboard' },
+      { label: 'Mis Accesos', path: '/my-access', icon: 'ri-user-received-line', module: 'my-access' },
     ],
   },
   {
-    title: 'Administración',
+    title: 'Organización',
     items: [
       { label: 'Países', path: '/countries', icon: 'ri-global-line', module: 'countries' },
+      { label: 'Tenants', path: '/tenants', icon: 'ri-building-4-line', module: 'tenants' },
       { label: 'Almacenes', path: '/warehouses', icon: 'ri-store-2-line', module: 'warehouses' },
       { label: 'Clientes', path: '/clients', icon: 'ri-building-2-line', module: 'clients' },
       { label: 'Usuarios', path: '/users', icon: 'ri-team-line', module: 'users' },
@@ -50,9 +52,7 @@ const navGroups: NavGroup[] = [
   },
 ];
 
-const alwaysVisibleItems: NavItem[] = [
-  { label: 'Mis Accesos', path: '/my-access', icon: 'ri-user-received-line', module: 'my-access', alwaysVisible: true },
-];
+const alwaysVisibleItems: NavItem[] = [];
 
 interface SidebarProps {
   collapsed: boolean;
@@ -117,57 +117,6 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto overflow-x-hidden py-4 px-2 space-y-1">
-        {/* Conditional Dashboard */}
-        {showDashboard && (
-          <button
-            onClick={() => navigate('/dashboard')}
-            className={`
-              flex items-center gap-3 w-full rounded-lg transition-all duration-150 text-sm
-              ${collapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2'}
-              ${isActive('/dashboard')
-                ? 'bg-primary-500/10 text-primary-400 font-medium'
-                : 'text-foreground-500 hover:text-foreground-200 hover:bg-background-200/50'
-              }
-            `}
-            title={collapsed ? 'Dashboard' : undefined}
-          >
-            <span className={`w-5 h-5 flex items-center justify-center shrink-0 ${isActive('/dashboard') ? 'text-primary-400' : ''}`}>
-              <i className="ri-dashboard-line text-lg"></i>
-            </span>
-            {!collapsed && <span className="whitespace-nowrap">Dashboard</span>}
-            {!collapsed && isActive('/dashboard') && (
-              <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-400"></span>
-            )}
-          </button>
-        )}
-
-        {/* Always visible items */}
-        <div className="space-y-0.5">
-          {alwaysVisibleItems.map((item) => (
-            <button
-              key={item.path}
-              onClick={() => navigate(item.path)}
-              className={`
-                flex items-center gap-3 w-full rounded-lg transition-all duration-150 text-sm
-                ${collapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2'}
-                ${isActive(item.path)
-                  ? 'bg-primary-500/10 text-primary-400 font-medium'
-                  : 'text-foreground-500 hover:text-foreground-200 hover:bg-background-200/50'
-                }
-              `}
-              title={collapsed ? item.label : undefined}
-            >
-              <span className={`w-5 h-5 flex items-center justify-center shrink-0 ${isActive(item.path) ? 'text-primary-400' : ''}`}>
-                <i className={`${item.icon} text-lg`}></i>
-              </span>
-              {!collapsed && <span className="whitespace-nowrap">{item.label}</span>}
-              {!collapsed && isActive(item.path) && (
-                <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-400"></span>
-              )}
-            </button>
-          ))}
-        </div>
-
         {/* Divider */}
         {visibleGroups.length > 0 && (
           <div className="px-3 py-1">

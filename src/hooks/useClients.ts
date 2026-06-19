@@ -12,7 +12,6 @@ import {
   type TenantSelectOption,
   type WarehouseSelectOption,
 } from '@/services/operations/clientsService';
-import type { WarehouseOption } from '@/types/organization';
 
 interface UseClientsReturn {
   clients: ClientWithDetails[];
@@ -24,8 +23,25 @@ interface UseClientsReturn {
   refresh: () => void;
   loadTenantsByCountry: (countryId: string) => Promise<TenantSelectOption[]>;
   loadWarehousesByTenant: (tenantId: string) => Promise<WarehouseSelectOption[]>;
-  addClient: (data: { name: string; code: string; contact_email: string; warehouse_id: string; tenant_id: string }) => Promise<{ error: string | null }>;
-  editClient: (id: string, data: { name?: string; code?: string; contact_email?: string; warehouse_id?: string; tenant_id?: string }) => Promise<{ error: string | null }>;
+  addClient: (data: {
+    name: string;
+    code: string;
+    contact_email: string;
+    warehouse_id: string;
+    tenant_id: string;
+    country_id: string;
+  }) => Promise<{ error: string | null }>;
+  editClient: (
+    id: string,
+    data: {
+      name?: string;
+      code?: string;
+      contact_email?: string;
+      warehouse_id?: string;
+      tenant_id?: string;
+      country_id?: string;
+    },
+  ) => Promise<{ error: string | null }>;
   toggleStatus: (id: string, currentStatus: string) => Promise<{ error: string | null }>;
 }
 
@@ -54,39 +70,92 @@ export function useClients(): UseClientsReturn {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
-
-  const loadTenantsByCountry = useCallback(async (countryId: string): Promise<TenantSelectOption[]> => {
-    if (!countryId) { setTenants([]); return []; }
-    const { data } = await fetchTenantsByCountry(countryId);
-    setTenants(data);
-    return data;
-  }, []);
-
-  const loadWarehousesByTenant = useCallback(async (tenantId: string): Promise<WarehouseSelectOption[]> => {
-    if (!tenantId) { setWarehouses([]); return []; }
-    const { data } = await fetchWarehousesByTenant(tenantId);
-    setWarehouses(data);
-    return data;
-  }, []);
-
-  const addClient = useCallback(async (data: { name: string; code: string; contact_email: string; warehouse_id: string; tenant_id: string }) => {
-    const result = await createClient(data);
-    if (!result.error) await load();
-    return result;
+  useEffect(() => {
+    load();
   }, [load]);
 
-  const editClient = useCallback(async (id: string, data: { name?: string; code?: string; contact_email?: string; warehouse_id?: string; tenant_id?: string }) => {
-    const result = await updateClient(id, data);
-    if (!result.error) await load();
-    return result;
-  }, [load]);
+  const loadTenantsByCountry = useCallback(
+    async (countryId: string): Promise<TenantSelectOption[]> => {
+      if (!countryId) {
+        setTenants([]);
+        return [];
+      }
+      const { data } = await fetchTenantsByCountry(countryId);
+      setTenants(data);
+      return data;
+    },
+    [],
+  );
 
-  const toggleStatus = useCallback(async (id: string, currentStatus: string) => {
-    const result = await toggleClientStatus(id, currentStatus);
-    if (!result.error) await load();
-    return result;
-  }, [load]);
+  const loadWarehousesByTenant = useCallback(
+    async (tenantId: string): Promise<WarehouseSelectOption[]> => {
+      if (!tenantId) {
+        setWarehouses([]);
+        return [];
+      }
+      const { data } = await fetchWarehousesByTenant(tenantId);
+      setWarehouses(data);
+      return data;
+    },
+    [],
+  );
 
-  return { clients, countries, tenants, warehouses, loading, error, refresh: load, loadTenantsByCountry, loadWarehousesByTenant, addClient, editClient, toggleStatus };
+  const addClient = useCallback(
+    async (data: {
+      name: string;
+      code: string;
+      contact_email: string;
+      warehouse_id: string;
+      tenant_id: string;
+      country_id: string;
+    }) => {
+      const result = await createClient(data);
+      if (!result.error) await load();
+      return result;
+    },
+    [load],
+  );
+
+  const editClient = useCallback(
+    async (
+      id: string,
+      data: {
+        name?: string;
+        code?: string;
+        contact_email?: string;
+        warehouse_id?: string;
+        tenant_id?: string;
+        country_id?: string;
+      },
+    ) => {
+      const result = await updateClient(id, data);
+      if (!result.error) await load();
+      return result;
+    },
+    [load],
+  );
+
+  const toggleStatus = useCallback(
+    async (id: string, currentStatus: string) => {
+      const result = await toggleClientStatus(id, currentStatus);
+      if (!result.error) await load();
+      return result;
+    },
+    [load],
+  );
+
+  return {
+    clients,
+    countries,
+    tenants,
+    warehouses,
+    loading,
+    error,
+    refresh: load,
+    loadTenantsByCountry,
+    loadWarehousesByTenant,
+    addClient,
+    editClient,
+    toggleStatus,
+  };
 }

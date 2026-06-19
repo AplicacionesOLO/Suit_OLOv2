@@ -1,5 +1,5 @@
 import { supabase } from '@/services/supabase/client';
-import { getEffectiveTenantId } from '@/utils/tenant';
+import type { TenantCountryRelation } from '@/types/organization';
 
 export interface Country {
   id: string;
@@ -20,53 +20,166 @@ export interface Country {
 }
 
 export interface CountryWithCounts extends Country {
+  tenant_count: number;
   warehouse_count: number;
   client_count: number;
-  tenant_name?: string;
+  user_count: number;
+  tenant_names: string[];
 }
 
-export async function fetchCountries(): Promise<{ data: CountryWithCounts[]; error: string | null }> {
+/**
+ * Carga centralizada de tenant_countries con nombres resueltos.
+ * Esta es la fuente oficial para la relación País ↔ Tenant.
+ */
+export async function fetchTenantCountries(): Promise<{
+  data: TenantCountryRelation[];
+  error: string | null;
+}> {
   try {
-    let query = supabase.from('countries').select('*').order('name');
+    const { data, error } = await supabase
+      .from('tenant_countries')
+      .select('id, tenant_id, country_id');
+    if (error) throw error;
+    if (!data || data.length === 0) return { data: [], error: null };
 
-    const tenantId = await getEffectiveTenantId();
-    if (tenantId) {
-      query = query.eq('tenant_id', tenantId);
+    const tenantIds = [...new Set(data.map((tc) => tc.tenant_id))];
+    const countryIds = [...new Set(data.map((tc) => tc.country_id))];
+
+    const [{ data: tenants }, { data: countries }] = await Promise.all([
+      supabase.from('tenants').select('id, name').in('id', tenantIds),
+      supabase.from('countries').select('id, name').in('id', countryIds),
+    ]);
+
+    const tenantMap = new Map((tenants || []).map((t) => [t.id, t.name]));
+    const countryMap = new Map((countries || []).map((c) => [c.id, c.name]));
+
+    const result: TenantCountryRelation[] = data.map((tc) => ({
+      id: tc.id,
+      tenant_id: tc.tenant_id,
+      country_id: tc.country_id,
+      tenant_name: tenantMap.get(tc.tenant_id),
+      country_name: countryMap.get(tc.country_id),
+    }));
+
+    return { data: result, error: null };
+  } catch (err: any) {
+    return { data: [], error: err.message || 'Error al cargar tenant_countries' };
+  }
+}
+
+/**
+ * Guarda (reemplaza) las relaciones tenant_countries para un país.
+ */
+export async function syncCountryTenants(
+  countryId: string,
+  tenantIds: string[],
+): Promise<{ error: string | null }> {
+  try {
+    await supabase.from('tenant_countries').delete().eq('country_id', countryId);
+    if (tenantIds.length > 0) {
+      const rows = tenantIds.map((tid) => ({ country_id: countryId, tenant_id: tid }));
+      const { error } = await supabase.from('tenant_countries').insert(rows);
+      if (error) throw error;
     }
+    return { error: null };
+  } catch (err: any) {
+    return { error: err.message || 'Error al sincronizar tenant_countries' };
+  }
+}
 
-    const { data: countries, error } = await query;
+/**
+ * Guarda (reemplaza) las relaciones tenant_countries para un tenant.
+ */
+export async function syncTenantCountries(
+  tenantId: string,
+  countryIds: string[],
+): Promise<{ error: string | null }> {
+  try {
+    await supabase.from('tenant_countries').delete().eq('tenant_id', tenantId);
+    if (countryIds.length > 0) {
+      const rows = countryIds.map((cid) => ({ tenant_id: tenantId, country_id: cid }));
+      const { error } = await supabase.from('tenant_countries').insert(rows);
+      if (error) throw error;
+    }
+    return { error: null };
+  } catch (err: any) {
+    return { error: err.message || 'Error al sincronizar tenant_countries' };
+  }
+}
+
+export async function fetchCountries(): Promise<{
+  data: CountryWithCounts[];
+  error: string | null;
+}> {
+  try {
+    const { data: countries, error } = await supabase
+      .from('countries')
+      .select('*')
+      .order('name');
     if (error) throw error;
     if (!countries || countries.length === 0) return { data: [], error: null };
 
     const countryIds = countries.map((c) => c.id);
 
-    const [{ data: warehouses }, { data: clients }, { data: tenants }] = await Promise.all([
+    const [
+      { data: tcData },
+      { data: warehouses },
+      { data: clients },
+      { data: platformUsers },
+    ] = await Promise.all([
+      supabase.from('tenant_countries').select('tenant_id, country_id').in('country_id', countryIds),
       supabase.from('warehouses').select('id, country_id').in('country_id', countryIds),
-      supabase.from('clients').select('id, warehouse_id').in('warehouse_id', countryIds),
-      supabase.from('tenants').select('id, name, country_id'),
+      supabase.from('clients').select('id, country_id').in('country_id', countryIds),
+      supabase.from('platform_users').select('id, country_id').in('country_id', countryIds),
     ]);
 
-    const warehouseCountMap = new Map<string, number>();
-    (warehouses || []).forEach((w) => {
-      warehouseCountMap.set(w.country_id, (warehouseCountMap.get(w.country_id) || 0) + 1);
-    });
-
-    const whIds = (warehouses || []).map((w) => w.id);
-    const clientCountByCountry = new Map<string, number>();
-    (clients || []).forEach((cl) => {
-      const wh = (warehouses || []).find((w) => w.id === cl.warehouse_id);
-      if (wh) {
-        clientCountByCountry.set(wh.country_id, (clientCountByCountry.get(wh.country_id) || 0) + 1);
+    const tcCountMap = new Map<string, number>();
+    const tcTenantIdsByCountry = new Map<string, Set<string>>();
+    (tcData || []).forEach((tc) => {
+      tcCountMap.set(tc.country_id, (tcCountMap.get(tc.country_id) || 0) + 1);
+      if (!tcTenantIdsByCountry.has(tc.country_id)) {
+        tcTenantIdsByCountry.set(tc.country_id, new Set());
       }
+      tcTenantIdsByCountry.get(tc.country_id)!.add(tc.tenant_id);
     });
 
-    const tenantMap = new Map((tenants || []).map((t) => [t.id, t.name]));
+    const whCountMap = new Map<string, number>();
+    (warehouses || []).forEach((w) => {
+      whCountMap.set(w.country_id, (whCountMap.get(w.country_id) || 0) + 1);
+    });
+
+    const clientCountMap = new Map<string, number>();
+    (clients || []).forEach((c) => {
+      clientCountMap.set(c.country_id, (clientCountMap.get(c.country_id) || 0) + 1);
+    });
+
+    const userCountMap = new Map<string, number>();
+    (platformUsers || []).forEach((u) => {
+      userCountMap.set(u.country_id, (userCountMap.get(u.country_id) || 0) + 1);
+    });
+
+    // Cargar nombres de tenants para cada país
+    const allTenantIds = [...new Set(
+      Array.from(tcTenantIdsByCountry.values()).flatMap((s) => [...s]),
+    )];
+    let tenantNameMap = new Map<string, string>();
+    if (allTenantIds.length > 0) {
+      const { data: tenants } = await supabase
+        .from('tenants')
+        .select('id, name')
+        .in('id', allTenantIds);
+      (tenants || []).forEach((t) => tenantNameMap.set(t.id, t.name));
+    }
 
     const result: CountryWithCounts[] = countries.map((c) => ({
       ...c,
-      warehouse_count: warehouseCountMap.get(c.id) || 0,
-      client_count: clientCountByCountry.get(c.id) || 0,
-      tenant_name: tenantMap.get(c.tenant_id) || 'Desconocido',
+      tenant_count: tcCountMap.get(c.id) || 0,
+      warehouse_count: whCountMap.get(c.id) || 0,
+      client_count: clientCountMap.get(c.id) || 0,
+      user_count: userCountMap.get(c.id) || 0,
+      tenant_names: [...(tcTenantIdsByCountry.get(c.id) || new Set())]
+        .map((tid) => tenantNameMap.get(tid) || 'Desconocido')
+        .sort(),
     }));
 
     return { data: result, error: null };
@@ -92,12 +205,11 @@ export async function createCountry(data: {
     const existing = await supabase
       .from('countries')
       .select('id')
-      .eq('tenant_id', data.tenant_id)
       .eq('iso_code', data.iso_code)
       .maybeSingle();
 
     if (existing.data) {
-      return { data: null, error: 'Ya existe un pais con ese codigo ISO en este tenant' };
+      return { data: null, error: 'Ya existe un pais con ese codigo ISO' };
     }
 
     const { data: result, error } = await supabase
@@ -128,14 +240,23 @@ export async function createCountry(data: {
 
 export async function updateCountry(
   id: string,
-  data: { name?: string; code?: string; iso_code?: string; tenant_id?: string; currency?: string; currency_name?: string; timezone?: string; language?: string; phone_prefix?: string; continent?: string; flag_url?: string; status?: string }
+  data: {
+    name?: string;
+    code?: string;
+    iso_code?: string;
+    tenant_id?: string;
+    currency?: string;
+    currency_name?: string;
+    timezone?: string;
+    language?: string;
+    phone_prefix?: string;
+    continent?: string;
+    flag_url?: string;
+    status?: string;
+  },
 ): Promise<{ error: string | null }> {
   try {
-    const { error } = await supabase
-      .from('countries')
-      .update(data)
-      .eq('id', id);
-
+    const { error } = await supabase.from('countries').update(data).eq('id', id);
     if (error) throw error;
     return { error: null };
   } catch (err: any) {
@@ -145,7 +266,7 @@ export async function updateCountry(
 
 export async function toggleCountryStatus(
   id: string,
-  currentStatus: string
+  currentStatus: string,
 ): Promise<{ error: string | null }> {
   try {
     const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
@@ -153,7 +274,6 @@ export async function toggleCountryStatus(
       .from('countries')
       .update({ status: newStatus })
       .eq('id', id);
-
     if (error) throw error;
     return { error: null };
   } catch (err: any) {
@@ -161,9 +281,15 @@ export async function toggleCountryStatus(
   }
 }
 
-export async function fetchTenants(): Promise<{ data: { id: string; name: string }[]; error: string | null }> {
+export async function fetchAllTenants(): Promise<{
+  data: { id: string; name: string }[];
+  error: string | null;
+}> {
   try {
-    const { data, error } = await supabase.from('tenants').select('id, name, country_id').order('name');
+    const { data, error } = await supabase
+      .from('tenants')
+      .select('id, name')
+      .order('name');
     if (error) throw error;
     return { data: data || [], error: null };
   } catch (err: any) {

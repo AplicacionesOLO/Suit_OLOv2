@@ -4,19 +4,48 @@ import {
   createCountry,
   updateCountry,
   toggleCountryStatus,
-  fetchTenants,
+  fetchAllTenants,
+  syncCountryTenants,
   type CountryWithCounts,
 } from '@/services/operations/countriesService';
 
 interface UseCountriesReturn {
   countries: CountryWithCounts[];
-  tenants: { id: string; name: string; country_id: string | null }[];
+  tenants: { id: string; name: string }[];
   loading: boolean;
   error: string | null;
   refresh: () => void;
-  addCountry: (data: { name: string; code: string; iso_code: string; tenant_id: string; currency?: string; currency_name?: string; timezone?: string; language?: string; phone_prefix?: string; continent?: string; flag_url?: string }) => Promise<{ error: string | null }>;
-  editCountry: (id: string, data: { name?: string; code?: string; iso_code?: string; tenant_id?: string; currency?: string; currency_name?: string; timezone?: string; language?: string; phone_prefix?: string; continent?: string; flag_url?: string }) => Promise<{ error: string | null }>;
+  addCountry: (data: {
+    name: string;
+    code: string;
+    iso_code: string;
+    tenant_id: string;
+    currency?: string;
+    currency_name?: string;
+    timezone?: string;
+    language?: string;
+    phone_prefix?: string;
+    continent?: string;
+    flag_url?: string;
+  }) => Promise<{ error: string | null }>;
+  editCountry: (
+    id: string,
+    data: {
+      name?: string;
+      code?: string;
+      iso_code?: string;
+      tenant_id?: string;
+      currency?: string;
+      currency_name?: string;
+      timezone?: string;
+      language?: string;
+      phone_prefix?: string;
+      continent?: string;
+      flag_url?: string;
+    },
+  ) => Promise<{ error: string | null }>;
   toggleStatus: (id: string, currentStatus: string) => Promise<{ error: string | null }>;
+  syncCountryTenants: (countryId: string, tenantIds: string[]) => Promise<{ error: string | null }>;
 }
 
 export function useCountries(): UseCountriesReturn {
@@ -28,7 +57,10 @@ export function useCountries(): UseCountriesReturn {
   const load = useCallback(async () => {
     try {
       setError(null);
-      const [cResult, tResult] = await Promise.all([fetchCountries(), fetchTenants()]);
+      const [cResult, tResult] = await Promise.all([
+        fetchCountries(),
+        fetchAllTenants(),
+      ]);
       if (cResult.error) setError(cResult.error);
       setCountries(cResult.data);
       if (!tResult.error) setTenants(tResult.data);
@@ -39,25 +71,82 @@ export function useCountries(): UseCountriesReturn {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
-
-  const addCountry = useCallback(async (data: { name: string; code: string; iso_code: string; tenant_id: string; currency?: string; currency_name?: string; timezone?: string; language?: string; phone_prefix?: string; continent?: string; flag_url?: string }) => {
-    const result = await createCountry(data);
-    if (!result.error) await load();
-    return result;
+  useEffect(() => {
+    load();
   }, [load]);
 
-  const editCountry = useCallback(async (id: string, data: { name?: string; code?: string; iso_code?: string; tenant_id?: string; currency?: string; currency_name?: string; timezone?: string; language?: string; phone_prefix?: string; continent?: string; flag_url?: string }) => {
-    const result = await updateCountry(id, data);
-    if (!result.error) await load();
-    return result;
-  }, [load]);
+  const addCountry = useCallback(
+    async (data: {
+      name: string;
+      code: string;
+      iso_code: string;
+      tenant_id: string;
+      currency?: string;
+      currency_name?: string;
+      timezone?: string;
+      language?: string;
+      phone_prefix?: string;
+      continent?: string;
+      flag_url?: string;
+    }) => {
+      const result = await createCountry(data);
+      if (!result.error) await load();
+      return result;
+    },
+    [load],
+  );
 
-  const toggleStatus = useCallback(async (id: string, currentStatus: string) => {
-    const result = await toggleCountryStatus(id, currentStatus);
-    if (!result.error) await load();
-    return result;
-  }, [load]);
+  const editCountry = useCallback(
+    async (
+      id: string,
+      data: {
+        name?: string;
+        code?: string;
+        iso_code?: string;
+        tenant_id?: string;
+        currency?: string;
+        currency_name?: string;
+        timezone?: string;
+        language?: string;
+        phone_prefix?: string;
+        continent?: string;
+        flag_url?: string;
+      },
+    ) => {
+      const result = await updateCountry(id, data);
+      if (!result.error) await load();
+      return result;
+    },
+    [load],
+  );
 
-  return { countries, tenants, loading, error, refresh: load, addCountry, editCountry, toggleStatus };
+  const toggleStatus = useCallback(
+    async (id: string, currentStatus: string) => {
+      const result = await toggleCountryStatus(id, currentStatus);
+      if (!result.error) await load();
+      return result;
+    },
+    [load],
+  );
+
+  const syncTenants = useCallback(
+    async (countryId: string, tenantIds: string[]) => {
+      const result = await syncCountryTenants(countryId, tenantIds);
+      if (!result.error) await load();
+      return result;
+    },
+    [load],
+  );
+
+  return {
+    countries,
+    tenants,
+    loading,
+    error,
+    refresh: load,
+    addCountry,
+    editCountry,
+    toggleStatus,
+    syncCountryTenants: syncTenants,
+  };
 }

@@ -25,10 +25,15 @@ export interface AccessWithDetails extends UserAppAccess {
   application_icon?: string;
   application_color?: string;
   application_base_url?: string;
+  application_client_id?: string;
   instance_name?: string;
   instance_url?: string;
   instance_open_mode?: string;
   instance_allows_iframe?: boolean;
+  instance_client_id?: string;
+  client_name?: string;
+  country_name?: string;
+  warehouse_name?: string;
   role_name?: string;
 }
 
@@ -159,7 +164,7 @@ export async function fetchMyAccesses(userId: string): Promise<{ data: AccessWit
     const instanceIds = [...new Set(data.map((a) => a.instance_id).filter(Boolean))] as string[];
 
     const [appsRes, instancesRes] = await Promise.all([
-      supabase.from('applications').select('id, name, code, icon, color, base_url, status, version').in('id', appIds),
+      supabase.from('applications').select('id, name, code, icon, color, base_url, status, version, client_id').in('id', appIds),
       instanceIds.length > 0 ? supabase.from('application_instances').select('*').in('id', instanceIds) : Promise.resolve({ data: [] }),
     ]);
 
@@ -169,19 +174,57 @@ export async function fetchMyAccesses(userId: string): Promise<{ data: AccessWit
     const instMap: Record<string, any> = {};
     (instancesRes.data || []).forEach((i) => { instMap[i.id] = i; });
 
+    // Collect client IDs from apps and instances
+    const appClientIds = [...new Set((appsRes.data || []).map((a: any) => a.client_id).filter(Boolean))] as string[];
+    const instClientIds = [...new Set((instancesRes.data || []).map((i: any) => i.client_id).filter(Boolean))] as string[];
+    const allClientIds = [...new Set([...appClientIds, ...instClientIds])];
+
+    let clientMap: Record<string, any> = {};
+    let coMap: Record<string, string> = {};
+    let whMap: Record<string, string> = {};
+
+    if (allClientIds.length > 0) {
+      const clRes = await supabase.from('clients').select('id, name, country_id, warehouse_id').in('id', allClientIds);
+      (clRes.data || []).forEach((c: any) => { clientMap[c.id] = c; });
+
+      const countryIds = [...new Set((clRes.data || []).map((c: any) => c.country_id).filter(Boolean))] as string[];
+      const whIds = [...new Set((clRes.data || []).map((c: any) => c.warehouse_id).filter(Boolean))] as string[];
+
+      if (countryIds.length > 0) {
+        const coRes = await supabase.from('countries').select('id, name').in('id', countryIds);
+        (coRes.data || []).forEach((c: any) => { coMap[c.id] = c.name; });
+      }
+      if (whIds.length > 0) {
+        const whRes = await supabase.from('warehouses').select('id, name').in('id', whIds);
+        (whRes.data || []).forEach((w: any) => { whMap[w.id] = w.name; });
+      }
+    }
+
     return {
-      data: data.map((a) => ({
-        ...a,
-        application_name: appMap[a.application_id]?.name,
-        application_code: appMap[a.application_id]?.code,
-        application_icon: appMap[a.application_id]?.icon,
-        application_color: appMap[a.application_id]?.color,
-        application_base_url: appMap[a.application_id]?.base_url,
-        instance_name: a.instance_id ? instMap[a.instance_id]?.instance_name : undefined,
-        instance_url: a.instance_id ? instMap[a.instance_id]?.url : undefined,
-        instance_open_mode: a.instance_id ? instMap[a.instance_id]?.open_mode : undefined,
-        instance_allows_iframe: a.instance_id ? instMap[a.instance_id]?.allows_iframe : undefined,
-      })),
+      data: data.map((a) => {
+        const app = appMap[a.application_id];
+        const inst = a.instance_id ? instMap[a.instance_id] : null;
+        const appClient = app?.client_id ? clientMap[app.client_id] : null;
+        const instClient = inst?.client_id ? clientMap[inst.client_id] : null;
+        const effectiveClient = instClient || appClient;
+        return {
+          ...a,
+          application_name: app?.name,
+          application_code: app?.code,
+          application_icon: app?.icon,
+          application_color: app?.color,
+          application_base_url: app?.base_url,
+          application_client_id: app?.client_id,
+          instance_name: inst?.instance_name,
+          instance_url: inst?.url,
+          instance_open_mode: inst?.open_mode,
+          instance_allows_iframe: inst?.allows_iframe,
+          instance_client_id: inst?.client_id,
+          client_name: effectiveClient?.name,
+          country_name: effectiveClient?.country_id ? coMap[effectiveClient.country_id] : undefined,
+          warehouse_name: effectiveClient?.warehouse_id ? whMap[effectiveClient.warehouse_id] : undefined,
+        };
+      }),
       error: null,
     };
   } catch (err: any) {
@@ -306,10 +349,19 @@ export async function canAccessInstance(instanceId: string): Promise<{ allowed: 
     const effectiveTenantId = pu.tenant_context_override || pu.tenant_id;
     console.log('[canAccessInstance] User:', pu.id, '| tenant:', effectiveTenantId, '| role_id:', pu.role_id, '| instanceId:', instanceId);
 
+    // Determine if super admin early
+    let isSA = false;
+    const { data: roleData } = await supabase
+      .from('roles')
+      .select('level')
+      .eq('id', pu.role_id || '')
+      .maybeSingle();
+    isSA = (roleData?.level || 0) >= 100;
+
     // Check instance exists and is active
     const { data: instance, error: instError } = await supabase
       .from('application_instances')
-      .select('id, tenant_id, application_id, status, instance_name, url, open_mode, allows_iframe')
+      .select('id, tenant_id, application_id, client_id, status, instance_name, url, open_mode, allows_iframe')
       .eq('id', instanceId)
       .is('deleted_at', null)
       .maybeSingle();
@@ -354,12 +406,6 @@ export async function canAccessInstance(instanceId: string): Promise<{ allowed: 
 
     // Check instance belongs to user's tenant (or super admin bypass)
     if (instance.tenant_id !== effectiveTenantId) {
-      const { data: roleData } = await supabase
-        .from('roles')
-        .select('level')
-        .eq('id', pu.role_id || '')
-        .maybeSingle();
-      const isSA = (roleData?.level || 0) >= 100;
       console.log('[canAccessInstance] Tenant mismatch — instance:', instance.tenant_id, '| user:', effectiveTenantId, '| isSA:', isSA);
       if (!isSA) {
         return { allowed: false, access: null, error: 'La instancia no pertenece a tu tenant' };
@@ -368,10 +414,67 @@ export async function canAccessInstance(instanceId: string): Promise<{ allowed: 
     }
 
     console.log('[canAccessInstance] ACCESS GRANTED for instance:', instance.instance_name);
+
+    // Additional check: client_id validation
+    if (instance.client_id) {
+      const { data: userClients } = await supabase
+        .from('user_clients')
+        .select('id')
+        .eq('user_id', pu.id)
+        .eq('client_id', instance.client_id);
+
+      const hasDirectClientAccess = (userClients || []).length > 0;
+
+      if (!hasDirectClientAccess && !isSA) {
+        console.warn('[canAccessInstance] User does not have access to client:', instance.client_id);
+        return { allowed: false, access: null, error: 'No tienes acceso al cliente asociado a esta instancia' };
+      }
+    }
+
     return { allowed: true, access: access as AccessWithDetails, error: null };
   } catch (err: any) {
     console.error('[canAccessInstance] Unexpected error:', err);
     return { allowed: false, access: null, error: err.message || 'Error al validar acceso' };
+  }
+}
+
+export async function validateUserClientAccess(userId: string, clientId: string): Promise<{ hasAccess: boolean; error: string | null }> {
+  try {
+    // Check direct client access
+    const { data: userClients, error: ucError } = await supabase
+      .from('user_clients')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('client_id', clientId);
+
+    if (ucError) throw ucError;
+
+    if ((userClients || []).length > 0) {
+      return { hasAccess: true, error: null };
+    }
+
+    // Check role level for scope_all_clients
+    const { data: pu } = await supabase
+      .from('platform_users')
+      .select('role_id, tenant_context_override')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (pu?.role_id) {
+      const { data: role } = await supabase
+        .from('roles')
+        .select('level')
+        .eq('id', pu.role_id)
+        .maybeSingle();
+
+      if (role && (role.level || 0) >= 100) {
+        return { hasAccess: true, error: null };
+      }
+    }
+
+    return { hasAccess: false, error: 'El usuario no tiene acceso al cliente asociado a esta aplicación.' };
+  } catch (err: any) {
+    return { hasAccess: false, error: err.message || 'Error al validar acceso al cliente' };
   }
 }
 
