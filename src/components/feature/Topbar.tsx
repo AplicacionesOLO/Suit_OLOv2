@@ -103,10 +103,16 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
     if (!ctx.currentCountryId || ctx.currentCountryId === 'all') {
       return ctx.accessibleTenants.map((t) => ({ id: t.tenant_id, label: t.tenant_name }));
     }
-    const whForCountry = ctx.accessibleWarehouses.filter((w) => w.country_id === ctx.currentCountryId);
-    const tenantIds = new Set(whForCountry.map((w) => w.tenant_id));
-    return ctx.accessibleTenants.filter((t) => tenantIds.has(t.tenant_id)).map((t) => ({ id: t.tenant_id, label: t.tenant_name }));
-  }, [ctx.currentCountryId, ctx.accessibleTenants, ctx.accessibleWarehouses]);
+    // Use tenant_countries as the source of truth for country-tenant relationships
+    const allowedTenantIds = ctx.tenantCountriesMap.get(ctx.currentCountryId);
+    if (!allowedTenantIds || allowedTenantIds.size === 0) {
+      // No tenant_countries data for this country — fallback to all accessible
+      return ctx.accessibleTenants.map((t) => ({ id: t.tenant_id, label: t.tenant_name }));
+    }
+    return ctx.accessibleTenants
+      .filter((t) => allowedTenantIds.has(t.tenant_id))
+      .map((t) => ({ id: t.tenant_id, label: t.tenant_name }));
+  }, [ctx.currentCountryId, ctx.accessibleTenants, ctx.tenantCountriesMap]);
 
   const warehouseOptions = useMemo(() => {
     let whs = ctx.accessibleWarehouses;

@@ -50,6 +50,9 @@ export interface TenantContextValue {
   accessibleWarehouses: WarehouseInfo[];
   accessibleClients: ClientInfo[];
 
+  // tenant_countries mapping: country_id → Set<tenant_id>
+  tenantCountriesMap: Map<string, Set<string>>;
+
   // Loading
   loading: boolean;
 
@@ -113,6 +116,7 @@ export function TenantContextProvider({ children }: { children: ReactNode }) {
   const [accessibleTenants, setAccessibleTenants] = useState<TenantInfo[]>([]);
   const [accessibleWarehouses, setAccessibleWarehouses] = useState<WarehouseInfo[]>([]);
   const [accessibleClients, setAccessibleClients] = useState<ClientInfo[]>([]);
+  const [tenantCountriesMap, setTenantCountriesMap] = useState<Map<string, Set<string>>>(new Map());
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(() => {
     try { return localStorage.getItem(LS_KEYS.showAll) === 'true'; } catch { return false; }
@@ -135,6 +139,15 @@ export function TenantContextProvider({ children }: { children: ReactNode }) {
     const { data: tenantsRaw } = await supabase.rpc('get_accessible_tenants');
     const tenants: TenantInfo[] = (tenantsRaw || []).map((t: any) => ({ tenant_id: t.id || t.tenant_id, tenant_name: t.name || t.tenant_name }));
     setAccessibleTenants(tenants);
+
+    // tenant_countries mapping: country_id → Set<tenant_id>
+    const { data: tcData } = await supabase.from('tenant_countries').select('tenant_id, country_id');
+    const tcMap = new Map<string, Set<string>>();
+    (tcData || []).forEach((tc: any) => {
+      if (!tcMap.has(tc.country_id)) tcMap.set(tc.country_id, new Set());
+      tcMap.get(tc.country_id)!.add(tc.tenant_id);
+    });
+    setTenantCountriesMap(tcMap);
 
     // Warehouses — accessible per user's tenants/countries
     if (tenants.length > 0) {
@@ -501,6 +514,7 @@ export function TenantContextProvider({ children }: { children: ReactNode }) {
     accessibleTenants,
     accessibleWarehouses,
     accessibleClients,
+    tenantCountriesMap,
 
     loading,
 

@@ -707,3 +707,112 @@ src/hooks/useTenantContext.tsx                 — Country y Client context
 src/components/feature/Topbar.tsx              — Selectores País + Tenant en cascada
 src/pages/my-access/page.tsx                   — Sección Mis Alcances (País→Tenant→Cliente)
 ```
+
+### Fase Organizacional: ARQUITECTURA CERRADA — v1.0 ✅ APROBADA (Jun 2026)
+
+**Estado:** CERRADA  
+**Versión:** 1.0  
+**Decisión arquitectónica:** Modelo jerárquico en cascada como fuente única de verdad.
+
+**Modelo oficial v1.0:**
+
+```
+PAÍS ↔ TENANT
+       ↓
+   ALMACÉN
+       ↓
+    CLIENTE
+       ↓
+    USUARIO
+       ↓
+ APLICACIÓN
+       ↓
+  INSTANCIA
+```
+
+**Reglas de negocio firmes:**
+
+| Regla | Definición |
+|-------|-----------|
+| Aplicación → Cliente | Una app pertenece a un solo cliente. Si otro cliente necesita la misma app, se crea una nueva relación de aplicación para ese cliente. |
+| Instancia → Cliente | Una instancia pertenece a un solo cliente. Misma regla. |
+| País → Tenant | Un tenant pertenece a un país. Relación 1:N desde país. |
+| Cliente → Usuario | Un cliente tiene N usuarios. Un usuario puede tener acceso a múltiples clientes via scope. |
+
+**Lo que NO se toca:**
+
+| Ítem | Motivo |
+|------|--------|
+| `application_scopes` | POSTERGADO. No aporta valor inmediato frente al costo de refactorización de aplicaciones, instancias, asignaciones, dashboard, catálogo, RLS y workspace. |
+| `instance_scopes` | POSTERGADO. Mismo motivo. |
+| Modelo App ↔ Múltiples Clientes | POSTERGADO. Se revisará cuando existan 50+ clientes, 100+ apps, 500+ instancias. |
+
+**Lo que está TERMINADO y congelado:**
+
+| Área | Componentes |
+|------|------------|
+| **Organización** | Países, Tenants, Almacenes, Clientes, Usuarios |
+| **Contexto** | Topbar contextual, persistencia, contexto en formularios, Modo Auditoría, Super Admin ve toda la organización |
+| **Seguridad** | RLS por cliente, RLS por tenant, validaciones de acceso, asignaciones |
+| **Aplicaciones** | App → Cliente, Instancia → Cliente, Usuario → App |
+| **Alcances** | Multi-tenant, multi-país, multi-cliente con cascada País→Tenant→Cliente |
+| **RLS** | Hardening V3.1 con soft delete dinámico, auditoría estricta, 25 tests críticos |
+
+---
+
+### BACKLOG MAYOR
+
+| Ítem | Estado | Motivo |
+|------|--------|--------|
+| `application_scopes` | POSTERGADO | Costo de refactorización > valor inmediato. Revisar cuando: 50+ clientes, 100+ apps, 500+ instancias. |
+| `instance_scopes` | POSTERGADO | Depende de application_scopes. Mismo criterio de activación. |
+
+---
+
+### Fase 8: Dashboard Ejecutivo ⏳ PENDIENTE
+
+**Objetivo:** Dashboard de alto nivel con métricas agregadas de toda la organización y drill-down jerárquico.
+
+**Métricas del dashboard:**
+- Total Países activos
+- Total Tenants activos
+- Total Almacenes activos
+- Total Clientes activos
+- Total Usuarios (activos, pendientes, inactivos)
+- Total Aplicaciones (por estado: active, maintenance, beta, offline)
+- Total Instancias (por estado)
+
+**Drill-down jerárquico:**
+- Click en País → desglose de tenants, almacenes, clientes de ese país
+- Click en Tenant → desglose de almacenes, clientes, usuarios, apps de ese tenant
+- Click en Cliente → desglose de usuarios, apps, instancias de ese cliente
+
+**Visualizaciones:**
+- Tarjetas de métricas principales (KPI cards)
+- Gráfico de distribución: Apps por estado
+- Gráfico de distribución: Usuarios por rol
+- Tabla de actividad reciente (últimos 10 eventos de auditoría)
+- Línea de tiempo de crecimiento (apps creadas por mes)
+
+**Comportamiento según rol:**
+- Super Admin: ve todo, todas las métricas globales
+- Tenant Admin: ve solo su tenant
+- Country Admin: ve solo su país
+- Client Admin: ve solo su cliente
+- Usuario normal: ve solo sus apps asignadas
+
+**Criterios de aceptación:**
+- [ ] KPI cards con animación de conteo
+- [ ] Drill-down funcional en cada métrica
+- [ ] Gráficos con datos reales de Supabase
+- [ ] Filtrado por rol (RLS-aware)
+- [ ] Modo Auditoría: métricas globales sin filtro de contexto
+- [ ] Skeleton loading state
+- [ ] Empty states para tenants sin datos
+- [ ] Responsive: tarjetas en grid adaptable
+
+### Fase 9: Auditoría / Logs (mejora) ⏳ PENDIENTE
+
+### Fase 10: Notificaciones ⏳ PENDIENTE
+
+### Fase 11: Reportes (Excel/CSV/PDF) ⏳ PENDIENTE
