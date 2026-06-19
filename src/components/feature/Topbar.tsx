@@ -181,16 +181,24 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
             <div className="relative" ref={contextPanelRef}>
               <button
                 onClick={() => setShowContextPanel(!showContextPanel)}
-                className="flex items-center gap-2 h-8 px-2.5 rounded-lg border border-secondary-500/20 bg-background-100 hover:border-secondary-500/40 transition-all text-xs whitespace-nowrap cursor-pointer"
+                className={`flex items-center gap-2 h-8 px-2.5 rounded-lg border transition-all text-xs whitespace-nowrap cursor-pointer ${
+                  ctx.showAll
+                    ? 'border-accent-500/40 bg-accent-500/5 hover:border-accent-500/60'
+                    : 'border-secondary-500/20 bg-background-100 hover:border-secondary-500/40'
+                }`}
                 title="Contexto organizacional"
               >
-                <span className="w-3.5 h-3.5 flex items-center justify-center text-foreground-500">
-                  <i className="ri-stack-line"></i>
+                <span className={`w-3.5 h-3.5 flex items-center justify-center ${
+                  ctx.showAll ? 'text-accent-400' : 'text-foreground-500'
+                }`}>
+                  <i className={ctx.showAll ? 'ri-eye-fill' : 'ri-stack-line'}></i>
                 </span>
                 <span className={`max-w-[140px] truncate ${hasContext ? 'text-foreground-300 font-medium' : 'text-foreground-600'}`}>
                   {contextPath}
                 </span>
-                <span className="w-3 h-3 flex items-center justify-center text-foreground-500">
+                <span className={`w-3 h-3 flex items-center justify-center ${
+                  ctx.showAll ? 'text-accent-400' : 'text-foreground-500'
+                }`}>
                   <i className="ri-arrow-down-s-line text-xs"></i>
                 </span>
               </button>
@@ -198,9 +206,33 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
               {/* Context Panel Dropdown — like AWS/Azure org selector */}
               {showContextPanel && (
                 <div className="absolute right-0 top-full mt-2 w-72 glass-panel-strong rounded-xl animate-scale-in overflow-hidden z-50 shadow-2xl">
-                  <div className="px-4 py-3 border-b border-secondary-500/10">
-                    <p className="text-xs font-medium text-foreground-400">Contexto Organizacional</p>
-                    <p className="text-sm font-semibold text-foreground-200 mt-0.5 truncate">{contextPath}</p>
+                  {/* Header: mode-sensitive */}
+                  <div className={`px-4 py-3 border-b ${
+                    ctx.showAll ? 'border-accent-500/20 bg-accent-500/5' : 'border-secondary-500/10'
+                  }`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`w-4 h-4 flex items-center justify-center ${
+                        ctx.showAll ? 'text-accent-400' : 'text-foreground-500'
+                      }`}>
+                        <i className={ctx.showAll ? 'ri-eye-fill' : 'ri-stack-line'}></i>
+                      </span>
+                      <p className={`text-xs font-semibold uppercase tracking-wider ${
+                        ctx.showAll ? 'text-accent-400' : 'text-foreground-400'
+                      }`}>
+                        {ctx.showAll ? 'Modo Auditoría' : 'Modo Operativo'}
+                      </p>
+                    </div>
+                    <p className="text-sm font-semibold text-foreground-200 truncate">
+                      {ctx.showAll ? 'Contexto de trabajo: ' : ''}{contextPath}
+                    </p>
+                    {ctx.showAll && (
+                      <div className="flex items-center gap-1.5 mt-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-accent-400 animate-pulse"></span>
+                        <p className="text-2xs text-accent-400/80 font-medium">
+                          Mostrando toda la organización
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   <div className="max-h-80 overflow-y-auto py-1 space-y-1">
@@ -280,9 +312,11 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
                     </div>
                   </div>
 
-                  {/* Super Admin: Show All toggle */}
+                  {/* Super Admin: Mode toggle (Operativo / Auditoría) */}
                   {ctx.isSuperAdmin && (
-                    <div className="border-t border-accent-500/10 pt-2 mt-1 px-4 py-2">
+                    <div className={`border-t pt-2 mt-1 px-4 py-2 ${
+                      ctx.showAll ? 'border-accent-500/20 bg-accent-500/3' : 'border-accent-500/10'
+                    }`}>
                       <label className="flex items-center gap-3 cursor-pointer group">
                         <div className="relative">
                           <input
@@ -294,30 +328,47 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
                           <div className="w-9 h-5 rounded-full bg-secondary-400/30 peer-checked:bg-accent-500 transition-colors duration-200"></div>
                           <div className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm peer-checked:translate-x-4 transition-transform duration-200"></div>
                         </div>
-                        <span className={`text-sm transition-colors ${ctx.showAll ? 'text-accent-400 font-medium' : 'text-foreground-400 group-hover:text-foreground-200'}`}>
+                        <span className={`text-sm font-medium transition-colors ${
+                          ctx.showAll ? 'text-accent-400' : 'text-foreground-400 group-hover:text-foreground-200'
+                        }`}>
                           <span className="w-3.5 h-3.5 inline-flex items-center justify-center mr-1.5">
-                            <i className={`${ctx.showAll ? 'ri-eye-fill text-accent-400' : 'ri-eye-line'} text-xs`}></i>
+                            <i className={`${ctx.showAll ? 'ri-eye-fill text-accent-400' : 'ri-eye-off-line'} text-xs`}></i>
                           </span>
-                          Mostrar todo
+                          {ctx.showAll ? 'Modo Auditoría' : 'Modo Operativo'}
                         </span>
                       </label>
                       {ctx.showAll && (
-                        <p className="text-2xs text-accent-400/70 mt-1.5 ml-10">
+                        <p className="text-2xs text-accent-400/60 mt-1.5 ml-10">
                           Viendo todos los registros. El contexto solo aplica en formularios.
                         </p>
                       )}
                     </div>
                   )}
 
-                  {/* Clear context */}
+                  {/* Clear context / Reset mode */}
                   {hasContext && (
                     <div className="border-t border-secondary-500/10 p-2">
                       <button
-                        onClick={() => { ctx.clearFullContext(); setShowContextPanel(false); }}
+                        onClick={() => {
+                          if (ctx.showAll) ctx.toggleShowAll();
+                          ctx.clearFullContext();
+                          setShowContextPanel(false);
+                        }}
                         className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-foreground-400 hover:text-foreground-200 hover:bg-background-200/50 transition-colors cursor-pointer"
                       >
                         <span className="w-3.5 h-3.5 flex items-center justify-center"><i className="ri-arrow-go-back-line"></i></span>
-                        Limpiar contexto
+                        Volver a modo operativo
+                      </button>
+                    </div>
+                  )}
+                  {!hasContext && ctx.showAll && (
+                    <div className="border-t border-secondary-500/10 p-2">
+                      <button
+                        onClick={() => { ctx.toggleShowAll(); setShowContextPanel(false); }}
+                        className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-foreground-400 hover:text-foreground-200 hover:bg-background-200/50 transition-colors cursor-pointer"
+                      >
+                        <span className="w-3.5 h-3.5 flex items-center justify-center"><i className="ri-arrow-go-back-line"></i></span>
+                        Volver a modo operativo
                       </button>
                     </div>
                   )}
