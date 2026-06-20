@@ -31,51 +31,15 @@ export default function MyAccessPage() {
   const { myAccesses, myLoading, loadMyAccesses } = useApplicationAccess();
   const ctx = useTenantContext();
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredByContext, setFilteredByContext] = useState(false);
-
-  useEffect(() => {
-    if (platformUser?.id) {
-      loadMyAccesses(platformUser.id);
-    }
-  }, [platformUser, loadMyAccesses]);
-
-  // Filter accesses by context (Client > Warehouse > Tenant > Country)
-  useEffect(() => {
-    let result = myAccesses;
-    let filtered = false;
-
-    if (ctx.currentClientId && ctx.currentClientId !== 'all') {
-      result = result.filter((a: any) => a.client_id === ctx.currentClientId);
-      filtered = true;
-    } else if (ctx.currentWarehouseId && ctx.currentWarehouseId !== 'all') {
-      result = result.filter((a: any) => a.warehouse_id === ctx.currentWarehouseId);
-      filtered = true;
-    } else if (ctx.currentTenantId && ctx.currentTenantId !== 'all') {
-      result = result.filter((a: any) => a.tenant_id === ctx.currentTenantId);
-      filtered = true;
-    } else if (ctx.currentCountryId && ctx.currentCountryId !== 'all') {
-      result = result.filter((a: any) => a.country_id === ctx.currentCountryId);
-      filtered = true;
-    }
-
-    setFilteredByContext(filtered);
-    // We don't set filtered accesses here since the filtering happens in the render
-  }, [myAccesses, ctx.currentClientId, ctx.currentWarehouseId, ctx.currentTenantId, ctx.currentCountryId]);
 
   const handleOpenApp = (acc: any) => {
     const openMode = acc.instance_open_mode || 'external';
     const instanceId = acc.instance_id;
     const instanceUrl = acc.instance_url || acc.application_base_url;
 
-    console.log('[MyAccess] handleOpenApp — acc.id:', acc.id, '| app:', acc.application_name, '| instanceId:', instanceId, '| openMode:', openMode, '| instanceUrl:', instanceUrl);
-
     if (openMode === 'embedded' && instanceId) {
-      // Navigate to workspace for embedded apps
-      console.log('[MyAccess] Navigating to workspace:', `/workspace/${instanceId}`);
       navigate(`/workspace/${instanceId}`);
     } else if (instanceUrl) {
-      // Open in new tab for external apps
-      console.log('[MyAccess] Opening in new tab:', instanceUrl);
       window.open(instanceUrl, '_blank', 'noopener,noreferrer');
       logAuditEvent({
         action: 'USER_OPENED_EXTERNAL_APPLICATION',
@@ -90,13 +54,17 @@ export default function MyAccessPage() {
         severity: 'info',
       });
     } else {
-      // Fallback: try workspace if instance exists
-      console.warn('[MyAccess] No instanceUrl and openMode is not embedded — fallback to workspace');
       if (instanceId) {
         navigate(`/workspace/${instanceId}`);
       }
     }
   };
+
+  useEffect(() => {
+    if (platformUser?.id) {
+      loadMyAccesses(platformUser.id);
+    }
+  }, [platformUser, loadMyAccesses, ctx.currentCountryId, ctx.currentTenantId, ctx.currentWarehouseId, ctx.currentClientId, ctx.showAll]);
 
   const filtered = myAccesses.filter((a) => {
     if (!searchQuery) return true;

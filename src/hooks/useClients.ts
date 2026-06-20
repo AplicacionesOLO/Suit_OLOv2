@@ -12,6 +12,7 @@ import {
   type TenantSelectOption,
   type WarehouseSelectOption,
 } from '@/services/operations/clientsService';
+import { useTenantContext } from '@/hooks/useTenantContext';
 
 interface UseClientsReturn {
   clients: ClientWithDetails[];
@@ -46,6 +47,7 @@ interface UseClientsReturn {
 }
 
 export function useClients(): UseClientsReturn {
+  const ctx = useTenantContext();
   const [clients, setClients] = useState<ClientWithDetails[]>([]);
   const [countries, setCountries] = useState<CountrySelectOption[]>([]);
   const [tenants, setTenants] = useState<TenantSelectOption[]>([]);
@@ -68,7 +70,7 @@ export function useClients(): UseClientsReturn {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [ctx.currentCountryId, ctx.currentTenantId, ctx.currentWarehouseId, ctx.currentClientId, ctx.showAll]);
 
   useEffect(() => {
     load();

@@ -14,6 +14,7 @@ import {
 import { supabase } from '@/services/supabase/client';
 import { auditCascadeData } from '@/utils/organizationCascade';
 import type { TenantCountryRelation } from '@/types/organization';
+import { useTenantContext } from '@/hooks/useTenantContext';
 
 interface UseUsersReturn {
   users: PlatformUserFull[];
@@ -34,6 +35,7 @@ interface UseUsersReturn {
 }
 
 export function useUsers(): UseUsersReturn {
+  const ctx = useTenantContext();
   const [users, setUsers] = useState<PlatformUserFull[]>([]);
   const [invitations, setInvitations] = useState<UserInvitation[]>([]);
   const [tenants, setTenants] = useState<{ id: string; name: string }[]>([]);
@@ -105,7 +107,7 @@ export function useUsers(): UseUsersReturn {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [ctx.currentCountryId, ctx.currentTenantId, ctx.currentWarehouseId, ctx.currentClientId, ctx.showAll]);
 
   useEffect(() => {
     load();

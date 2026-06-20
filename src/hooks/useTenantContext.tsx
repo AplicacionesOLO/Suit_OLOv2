@@ -141,7 +141,9 @@ export function TenantContextProvider({ children }: { children: ReactNode }) {
     setAccessibleTenants(tenants);
 
     // tenant_countries mapping: country_id → Set<tenant_id>
-    const { data: tcData } = await supabase.from('tenant_countries').select('tenant_id, country_id');
+    // Uses SECURITY DEFINER RPC to bypass RLS, ensuring ALL tenant-country
+    // relationships are visible regardless of which tenant the user belongs to.
+    const { data: tcData } = await supabase.rpc('load_tenant_countries_map');
     const tcMap = new Map<string, Set<string>>();
     (tcData || []).forEach((tc: any) => {
       if (!tcMap.has(tc.country_id)) tcMap.set(tc.country_id, new Set());

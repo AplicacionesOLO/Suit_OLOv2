@@ -147,13 +147,12 @@ export async function fetchUserAccesses(): Promise<{ data: AccessWithDetails[]; 
 
 export async function fetchMyAccesses(userId: string): Promise<{ data: AccessWithDetails[]; error: string | null }> {
   try {
-    const tenantId = await getEffectiveTenantId();
-    if (!tenantId) return { data: [], error: 'No se pudo determinar el tenant' };
-
+    // No filter by tenant_id — RLS handles visibility.
+    // User may have accesses under multiple tenants; restricting to one
+    // tenant would hide valid records from other tenants.
     const { data, error } = await supabase
       .from('user_application_access')
       .select('*')
-      .eq('tenant_id', tenantId)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
