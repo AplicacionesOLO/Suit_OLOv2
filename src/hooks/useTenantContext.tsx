@@ -233,19 +233,7 @@ export function TenantContextProvider({ children }: { children: ReactNode }) {
     }
   }, [loadContext]);
 
-  // ─── cascade: get tenant_countries for validation ─────────────────────
-
-  const getTenantCountriesMap = useCallback(async (): Promise<Map<string, Set<string>>> => {
-    const { data } = await supabase.from('tenant_countries').select('tenant_id, country_id');
-    const map = new Map<string, Set<string>>();
-    (data || []).forEach((tc: any) => {
-      if (!map.has(tc.country_id)) map.set(tc.country_id, new Set());
-      map.get(tc.country_id)!.add(tc.tenant_id);
-    });
-    return map;
-  }, []);
-
-  // ─── switchCountry ────────────────────────────────────────────────────
+  // ─── cascade switching ─────────────────────────────────────────────
 
   const switchCountry = useCallback(async (countryId: string): Promise<boolean> => {
     const ok = await setCountryContextOverride(countryId);
@@ -306,11 +294,10 @@ export function TenantContextProvider({ children }: { children: ReactNode }) {
   // ─── switchTenant ─────────────────────────────────────────────────────
 
   const switchTenant = useCallback(async (tenantId: string): Promise<boolean> => {
-    // Validate tenant belongs to current country via tenant_countries
-    if (ctx?.country_id && ctx.country_id !== 'all') {
-      const tcMap = await getTenantCountriesMap();
-      const allowedTenants = tcMap.get(ctx.country_id);
-      if (allowedTenants && !allowedTenants.has(tenantId) && !ctx.is_super_admin) {
+    // Validate tenant belongs to current country via tenantCountriesMap (loaded via SECURITY DEFINER RPC)
+    if (ctx?.country_id && ctx.country_id !== 'all' && !ctx?.is_super_admin) {
+      const allowedTenants = tenantCountriesMap.get(ctx.country_id);
+      if (allowedTenants && !allowedTenants.has(tenantId)) {
         console.warn('[switchTenant] Tenant not associated with current country');
         return false;
       }
@@ -341,7 +328,7 @@ export function TenantContextProvider({ children }: { children: ReactNode }) {
       await loadAccessibleLists(refreshed);
     }
     return true;
-  }, [ctx?.country_id, ctx?.is_super_admin, loadAccessibleLists, getTenantCountriesMap]);
+  }, [ctx?.country_id, ctx?.is_super_admin, loadAccessibleLists, tenantCountriesMap]);
 
   const clearTenant = useCallback(async (): Promise<boolean> => {
     const ok = await clearTenantContextOverride();

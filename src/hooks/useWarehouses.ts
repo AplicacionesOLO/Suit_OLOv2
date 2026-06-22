@@ -8,6 +8,7 @@ import {
   toggleWarehouseStatus,
   type WarehouseWithDetails,
 } from '@/services/operations/warehousesService';
+import { useTenantContext } from '@/hooks/useTenantContext';
 
 interface UseWarehousesReturn {
   warehouses: WarehouseWithDetails[];
@@ -38,6 +39,7 @@ interface UseWarehousesReturn {
 }
 
 export function useWarehouses(): UseWarehousesReturn {
+  const ctx = useTenantContext();
   const [warehouses, setWarehouses] = useState<WarehouseWithDetails[]>([]);
   const [countries, setCountries] = useState<{ id: string; name: string }[]>([]);
   const [tenants, setTenants] = useState<{ id: string; name: string }[]>([]);
@@ -59,7 +61,7 @@ export function useWarehouses(): UseWarehousesReturn {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [ctx.currentCountryId, ctx.currentTenantId, ctx.currentWarehouseId, ctx.currentClientId, ctx.showAll]);
 
   useEffect(() => {
     load();

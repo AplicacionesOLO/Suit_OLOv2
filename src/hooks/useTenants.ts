@@ -9,6 +9,7 @@ import {
   type UpdateTenantInput,
 } from '@/services/operations/tenantsService';
 import { syncTenantCountries } from '@/services/operations/countriesService';
+import { useTenantContext } from '@/hooks/useTenantContext';
 
 interface UseTenantsReturn {
   tenants: TenantWithCounts[];
@@ -28,6 +29,7 @@ interface UseTenantsReturn {
 }
 
 export function useTenants(): UseTenantsReturn {
+  const ctx = useTenantContext();
   const [tenants, setTenants] = useState<TenantWithCounts[]>([]);
   const [countries, setCountries] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,7 +56,7 @@ export function useTenants(): UseTenantsReturn {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [ctx.currentCountryId, ctx.currentTenantId, ctx.currentWarehouseId, ctx.currentClientId, ctx.showAll]);
 
   useEffect(() => {
     load();

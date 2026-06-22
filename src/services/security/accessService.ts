@@ -32,6 +32,9 @@ export interface AccessWithDetails extends UserAppAccess {
   instance_allows_iframe?: boolean;
   instance_client_id?: string;
   client_name?: string;
+  client_id?: string | null;
+  warehouse_id?: string | null;
+  country_id?: string | null;
   country_name?: string;
   warehouse_name?: string;
   role_name?: string;
@@ -220,6 +223,9 @@ export async function fetchMyAccesses(userId: string): Promise<{ data: AccessWit
           instance_allows_iframe: inst?.allows_iframe,
           instance_client_id: inst?.client_id,
           client_name: effectiveClient?.name,
+          client_id: effectiveClient?.id || app?.client_id || inst?.client_id || null,
+          warehouse_id: effectiveClient?.warehouse_id || null,
+          country_id: effectiveClient?.country_id || null,
           country_name: effectiveClient?.country_id ? coMap[effectiveClient.country_id] : undefined,
           warehouse_name: effectiveClient?.warehouse_id ? whMap[effectiveClient.warehouse_id] : undefined,
         };
