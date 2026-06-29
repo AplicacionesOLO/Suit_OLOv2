@@ -2,6 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/services/supabase/client';
 
+const MAX_RETRIES = 8;
+const INITIAL_DELAY_MS = 300;
+const MAX_DELAY_MS = 3000;
+
 export default function AuthCallbackPage() {
   const navigate = useNavigate();
   const [status, setStatus] = useState('Conectando con Google...');
@@ -11,37 +15,60 @@ export default function AuthCallbackPage() {
     if (processed.current) return;
     processed.current = true;
 
-    const handleCallback = async () => {
-      try {
-        // Wait a tick so Supabase SDK can process the hash fragment
-        await new Promise((resolve) => setTimeout(resolve, 400));
+    let mounted = true;
+    let attempts = 0;
 
-        // Clean any residual hash from the URL — never let index.html# linger
-        if (window.location.hash) {
-          window.history.replaceState({}, document.title, window.location.pathname);
-        }
+    const tryGetSession = async () => {
+      if (!mounted) return;
 
-        setStatus('Verificando sesión...');
+      // Clean residual hash from OAuth redirect
+      if (window.location.hash) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
 
-        const { data } = await supabase.auth.getSession();
+      setStatus('Verificando sesión...');
 
-        if (data?.session) {
-          setStatus('Sesión verificada. Redirigiendo...');
-          await new Promise((resolve) => setTimeout(resolve, 300));
-          navigate('/dashboard', { replace: true });
-        } else {
-          setStatus('No se detectó sesión. Redirigiendo al login...');
-          await new Promise((resolve) => setTimeout(resolve, 800));
-          navigate('/login', { replace: true });
-        }
-      } catch {
-        setStatus('Error inesperado. Redirigiendo al login...');
+      const { data } = await supabase.auth.getSession();
+
+      if (data?.session) {
+        setStatus('Sesión verificada. Redirigiendo...');
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        if (mounted) navigate('/dashboard', { replace: true });
+        return;
+      }
+
+      // Also listen for the auth state change — sometimes the SDK fires
+      // onAuthStateChange before getSession() picks it up
+      attempts++;
+      if (attempts < MAX_RETRIES && mounted) {
+        const delay = Math.min(INITIAL_DELAY_MS * Math.pow(1.5, attempts - 1), MAX_DELAY_MS);
+        setStatus(`Esperando autenticación... (${attempts}/${MAX_RETRIES})`);
+        setTimeout(tryGetSession, delay);
+      } else if (mounted) {
+        setStatus('No se detectó sesión. Redirigiendo al login...');
         await new Promise((resolve) => setTimeout(resolve, 800));
-        navigate('/login', { replace: true });
+        if (mounted) navigate('/login', { replace: true });
       }
     };
 
-    handleCallback();
+    // Listen for auth state changes in parallel — if the SDK fires
+    // onAuthStateChange, we catch it immediately without polling
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session && mounted) {
+        setStatus('Sesión verificada. Redirigiendo...');
+        setTimeout(() => {
+          if (mounted) navigate('/dashboard', { replace: true });
+        }, 200);
+      }
+    });
+
+    // Start polling after a small initial delay to let the SDK process the code
+    setTimeout(tryGetSession, INITIAL_DELAY_MS);
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [navigate]);
 
   return (

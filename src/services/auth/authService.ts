@@ -77,10 +77,13 @@ export async function loginWithEmail({ email, password }: LoginCredentials): Pro
 }
 
 export async function loginWithGoogle(): Promise<LoginResult> {
+  const basePrefix = __BASE_PATH__ === '/' ? '' : __BASE_PATH__.replace(/\/$/, '');
+  const redirectUrl = `${window.location.origin}${basePrefix}/auth/callback`;
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${window.location.origin}/auth/callback`,
+      redirectTo: redirectUrl,
       queryParams: {
         access_type: 'offline',
         prompt: 'consent',
@@ -97,8 +100,11 @@ export async function logout(): Promise<{ error: AuthError | null }> {
 }
 
 export async function sendPasswordReset(email: string): Promise<{ error: AuthError | null }> {
+  const basePrefix = __BASE_PATH__ === '/' ? '' : __BASE_PATH__.replace(/\/$/, '');
+  const redirectUrl = `${window.location.origin}${basePrefix}/login`;
+
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}/login`,
+    redirectTo: redirectUrl,
   });
   return { error };
 }
