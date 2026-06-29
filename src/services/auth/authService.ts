@@ -77,21 +77,61 @@ export async function loginWithEmail({ email, password }: LoginCredentials): Pro
 }
 
 export async function loginWithGoogle(): Promise<LoginResult> {
-  const basePrefix = __BASE_PATH__ === '/' ? '' : __BASE_PATH__.replace(/\/$/, '');
-  const redirectUrl = `${window.location.origin}${basePrefix}/auth/callback`;
+  try {
+    const basePrefix = __BASE_PATH__ === '/' ? '' : __BASE_PATH__.replace(/\/$/, '');
+    const redirectUrl = `${window.location.origin}${basePrefix}/auth/callback`;
+    const errorRedirectUrl = `${window.location.origin}${basePrefix}/login`;
 
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: redirectUrl,
-      queryParams: {
-        access_type: 'offline',
-        prompt: 'consent',
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: redirectUrl,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
       },
-    },
-  });
+    });
 
-  return { user: null, session: null, error: error || null };
+    if (error) {
+      return {
+        user: null,
+        session: null,
+        error: {
+          ...error,
+          message: error.message || 'No se pudo conectar con Google. Verifica tu conexión e intenta de nuevo.',
+        },
+      };
+    }
+
+    // data.url contiene la URL a la que Supabase redirige automáticamente.
+    // Si data es null/undefined, el redirect nunca ocurrió (fallo de red o config).
+    if (!data || !data.url) {
+      return {
+        user: null,
+        session: null,
+        error: {
+          name: 'OAuthRedirectFailed',
+          message: 'No se recibió la URL de redirección de Google. Posible problema de red o configuración.',
+          status: 0,
+        } as import('@supabase/supabase-js').AuthError,
+      };
+    }
+
+    return { user: null, session: null, error: null };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[Suite OLO] loginWithGoogle error:', msg);
+    return {
+      user: null,
+      session: null,
+      error: {
+        name: 'OAuthError',
+        message: msg || 'Error inesperado al iniciar sesión con Google.',
+        status: 0,
+      } as import('@supabase/supabase-js').AuthError,
+    };
+  }
 }
 
 export async function logout(): Promise<{ error: AuthError | null }> {

@@ -1,7 +1,8 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import Button from '@/components/base/Button';
 import Input from '@/components/base/Input';
+import { supabase } from '@/services/supabase/client';
 
 const capabilities = [
   { icon: 'ri-user-settings-line', label: 'Gestión de Usuarios' },
@@ -12,6 +13,38 @@ const capabilities = [
 
 const badges = ['Logística', 'Distribución', 'Inventario', 'Seguridad'];
 
+// Diagnóstico ligero de conectividad a Supabase
+function useSupabaseConnectivity() {
+  const [status, setStatus] = useState<'checking' | 'ok' | 'slow' | 'down'>('checking');
+
+  useEffect(() => {
+    let mounted = true;
+    const start = Date.now();
+
+    // Ping al health check de Supabase — endpoint ligero
+    const supabaseUrl = import.meta.env.VITE_PUBLIC_SUPABASE_URL as string;
+    const healthUrl = `${supabaseUrl}/auth/v1/health`;
+
+    fetch(healthUrl, { method: 'HEAD', cache: 'no-store' })
+      .then((res) => {
+        if (!mounted) return;
+        const elapsed = Date.now() - start;
+        if (res.ok) {
+          setStatus(elapsed > 3000 ? 'slow' : 'ok');
+        } else {
+          setStatus('down');
+        }
+      })
+      .catch(() => {
+        if (mounted) setStatus('down');
+      });
+
+    return () => { mounted = false; };
+  }, []);
+
+  return status;
+}
+
 export default function LoginPage() {
   const { login, loginGoogle, resetPassword, loading, error, clearError } = useAuth();
   const [email, setEmail] = useState('');
@@ -19,6 +52,8 @@ export default function LoginPage() {
   const [remember, setRemember] = useState(false);
   const [localError, setLocalError] = useState('');
   const [resetSent, setResetSent] = useState(false);
+
+  const connectivity = useSupabaseConnectivity();
 
   const displayError = localError || error;
 
@@ -309,6 +344,22 @@ export default function LoginPage() {
                 <i className="ri-shield-check-line text-primary-400"></i>
               </span>
               Plataforma Corporativa · Acceso Seguro
+            </div>
+
+            {/* Diagnóstico de conectividad Supabase */}
+            <div className="mt-3 flex items-center justify-center gap-1.5">
+              <span className={`w-1.5 h-1.5 rounded-full ${
+                connectivity === 'ok' ? 'bg-emerald-400' :
+                connectivity === 'slow' ? 'bg-amber-400 animate-pulse' :
+                connectivity === 'down' ? 'bg-red-400' :
+                'bg-foreground-300 animate-pulse'
+              }`} />
+              <span className="text-[10px] text-foreground-700">
+                {connectivity === 'checking' && 'Verificando conexión...'}
+                {connectivity === 'ok' && 'Servidor de autenticación conectado'}
+                {connectivity === 'slow' && 'Conexión lenta — la autenticación puede tardar'}
+                {connectivity === 'down' && 'Sin conexión al servidor de autenticación'}
+              </span>
             </div>
           </div>
 

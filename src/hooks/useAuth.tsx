@@ -134,7 +134,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginGoogle = useCallback(async () => {
     setError(null);
     setLoading(true);
-    await loginWithGoogle();
+    try {
+      const result = await loginWithGoogle();
+      if (result.error) {
+        setError(result.error.message);
+        setLoading(false);
+      }
+      // Si NO hay error, el navegador ya fue redirigido a Google.
+      // No hacemos setLoading(false) porque la página se va a descargar.
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error inesperado al conectar con Google.';
+      setError(msg);
+      setLoading(false);
+    }
   }, []);
 
   const logout = useCallback(async () => {
