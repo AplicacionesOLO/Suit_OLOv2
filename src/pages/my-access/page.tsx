@@ -3,8 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/feature/AppLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { useApplicationAccess } from '@/hooks/useApplicationAccess';
+import { useFavorites } from '@/hooks/useFavorites';
 import { useTenantContext } from '@/hooks/useTenantContext';
 import { logAuditEvent } from '@/services/security/accessService';
+import FavoritesSection from '@/pages/my-access/components/FavoritesSection';
+import type { FavoriteWithDetails } from '@/services/security/favoritesService';
 
 const statusConfig: Record<string, { label: string; bg: string; text: string; border: string }> = {
   assigned: { label: 'Activo', bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20' },
@@ -29,6 +32,7 @@ export default function MyAccessPage() {
   const navigate = useNavigate();
   const { platformUser, user } = useAuth();
   const { myAccesses, myLoading, loadMyAccesses } = useApplicationAccess();
+  const { favorites, loading: favLoading, toggleFavorite, isAppFavorite, togglingIds, handleReorder } = useFavorites();
   const ctx = useTenantContext();
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -48,6 +52,34 @@ export default function MyAccessPage() {
         details: {
           application_name: acc.application_name,
           instance_name: acc.instance_name,
+          url: instanceUrl,
+          open_mode: 'external_direct',
+        },
+        severity: 'info',
+      });
+    } else {
+      if (instanceId) {
+        navigate(`/workspace/${instanceId}`);
+      }
+    }
+  };
+
+  const handleOpenFavorite = (fav: FavoriteWithDetails) => {
+    const openMode = fav.instance_open_mode || 'external';
+    const instanceId = fav.instance_id;
+    const instanceUrl = fav.instance_url || fav.application_base_url;
+
+    if (openMode === 'embedded' && instanceId) {
+      navigate(`/workspace/${instanceId}`);
+    } else if (instanceUrl) {
+      window.open(instanceUrl, '_blank', 'noopener,noreferrer');
+      logAuditEvent({
+        action: 'USER_OPENED_FAVORITE_APPLICATION',
+        entity_type: 'user_favorites',
+        entity_id: fav.id,
+        details: {
+          application_name: fav.application_name,
+          instance_name: fav.instance_name,
           url: instanceUrl,
           open_mode: 'external_direct',
         },
@@ -211,6 +243,14 @@ export default function MyAccessPage() {
           ))}
         </div>
 
+        {/* ⭐ Favorites Section */}
+        <FavoritesSection
+          favorites={favorites}
+          loading={favLoading}
+          onOpenApp={handleOpenFavorite}
+          onReorder={handleReorder}
+        />
+
         <div className="relative max-w-sm">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground-500 w-4 h-4 flex items-center justify-center"><i className="ri-search-line text-sm"></i></span>
           <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Buscar por nombre de aplicacion..." className="w-full h-9 bg-background-100 border border-secondary-500/20 rounded-lg pl-9 pr-3 text-sm text-foreground-300 placeholder:text-foreground-600 outline-none focus:border-primary-500/40 transition-all" />
@@ -251,19 +291,27 @@ export default function MyAccessPage() {
                     const grantedDate = acc.granted_at ? new Date(acc.granted_at).toLocaleDateString() : null;
                     const openMode = acc.instance_open_mode || 'external';
                     const isEmbedded = openMode === 'embedded';
+                    const isFav = isAppFavorite(acc.application_id);
+                    const isToggling = togglingIds.has(acc.application_id);
                     return (
-                      <div key={acc.id} className="glass-panel rounded-2xl p-5 hover:border-secondary-500/20 transition-all duration-200 group">
+                      <div
+                        key={acc.id}
+                        onClick={() => handleOpenApp(acc)}
+                        className="glass-panel rounded-2xl p-5 hover:border-secondary-500/20 hover:bg-background-100 transition-all duration-200 group cursor-pointer relative"
+                      >
                         <div className="flex items-start justify-between mb-4">
                           <div className={`w-11 h-11 rounded-xl ${colors.bg} border ${colors.border} flex items-center justify-center group-hover:scale-110 transition-transform duration-200`}>
                             <i className={`${acc.application_icon || 'ri-apps-line'} ${colors.text} text-xl`}></i>
                           </div>
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-medium border ${
-                            isEmbedded
-                              ? 'bg-accent-500/10 text-accent-400 border-accent-500/20'
-                              : 'bg-secondary-500/10 text-secondary-400 border-secondary-500/20'
-                          }`}>
-                            {isEmbedded ? 'EMBEBIDA' : 'EXTERNA'}
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-medium border ${
+                              isEmbedded
+                                ? 'bg-accent-500/10 text-accent-400 border-accent-500/20'
+                                : 'bg-secondary-500/10 text-secondary-400 border-secondary-500/20'
+                            }`}>
+                              {isEmbedded ? 'EMBEBIDA' : 'EXTERNA'}
+                            </span>
+                          </div>
                         </div>
                         <h3 className="text-sm font-semibold text-foreground-200 mb-1.5">{acc.application_name}</h3>
                         {acc.instance_name && <p className="text-xs text-foreground-500 mb-1">Instancia: {acc.instance_name}</p>}
@@ -275,13 +323,27 @@ export default function MyAccessPage() {
                           </div>
                         )}
                         {grantedDate && <p className="text-2xs text-foreground-600 mb-3">Desde {grantedDate}</p>}
-                        <button
-                          onClick={() => handleOpenApp(acc)}
-                          className="flex items-center gap-1.5 text-xs font-medium text-primary-400 hover:text-primary-300 transition-colors cursor-pointer"
-                        >
-                          <span className="w-4 h-4 flex items-center justify-center"><i className="ri-external-link-line"></i></span>
-                          Abrir aplicacion
-                        </button>
+                        <div className="flex items-center justify-between">
+                          <span className="flex items-center gap-1.5 text-xs font-medium text-primary-400 group-hover:text-primary-300 transition-colors">
+                            <span className="w-4 h-4 flex items-center justify-center"><i className="ri-external-link-line"></i></span>
+                            Abrir aplicacion
+                          </span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleFavorite(acc.application_id);
+                            }}
+                            disabled={isToggling}
+                            className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-200 cursor-pointer ${
+                              isFav
+                                ? 'bg-amber-500/10 text-amber-400 hover:bg-amber-500/20'
+                                : 'bg-background-100 text-foreground-600 hover:text-amber-400 hover:bg-amber-500/10 opacity-0 group-hover:opacity-100'
+                            } ${isToggling ? 'animate-pulse' : ''}`}
+                            title={isFav ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+                          >
+                            <i className={`${isFav ? 'ri-star-fill' : 'ri-star-line'} text-sm`}></i>
+                          </button>
+                        </div>
                       </div>
                     );
                   })}
