@@ -76,25 +76,23 @@
   }
 
   /* ═══════════════════════════════════════════
-     Light Mode Tokens — Warm Monochrome Professional
-     Hue 85 consistently across background, foreground, secondary
-     for cohesive temperature. Pure white canvas.
+     Light Mode Tokens
      ═══════════════════════════════════════════ */
   [data-theme="light"] {
-    /* Background — Pure whites to warm gray */
-    --background-50:  1.00 0.000 85;
-    --background-100: 0.995 0.002 85;
-    --background-200: 0.985 0.003 85;
-    --background-300: 0.965 0.004 85;
-    --background-400: 0.930 0.005 85;
-    --background-500: 0.880 0.006 85;
-    --background-600: 0.820 0.006 85;
-    --background-700: 0.740 0.005 85;
-    --background-800: 0.650 0.004 85;
-    --background-900: 0.550 0.003 85;
-    --background-950: 0.450 0.002 85;
+    /* Background - Clean warm whites */
+    --background-50: 0.990 0.002 95;
+    --background-100: 0.968 0.003 95;
+    --background-200: 0.938 0.005 95;
+    --background-300: 0.895 0.008 95;
+    --background-400: 0.845 0.010 95;
+    --background-500: 0.790 0.012 95;
+    --background-600: 0.720 0.013 95;
+    --background-700: 0.640 0.014 95;
+    --background-800: 0.555 0.014 95;
+    --background-900: 0.460 0.013 95;
+    --background-950: 0.360 0.012 95;
 
-    /* Primary — Emerald (unchanged hue, adjusted for light bg) */
+    /* Primary - Emerald Security Green (adjusted for light bg) */
     --primary-50: 0.97 0.04 170;
     --primary-100: 0.92 0.07 170;
     --primary-200: 0.87 0.10 170;
@@ -107,7 +105,7 @@
     --primary-900: 0.28 0.10 170;
     --primary-950: 0.22 0.07 170;
 
-    /* Accent — Cyan (unchanged hue, adjusted for light bg) */
+    /* Accent - Cyan Tech (adjusted for light bg) */
     --accent-50: 0.98 0.03 200;
     --accent-100: 0.93 0.06 200;
     --accent-200: 0.88 0.09 200;
@@ -120,31 +118,31 @@
     --accent-900: 0.30 0.09 200;
     --accent-950: 0.24 0.06 200;
 
-    /* Secondary — Warm gray (hue 85), visible solid borders */
-    --secondary-50:  0.98 0.006 85;
-    --secondary-100: 0.92 0.008 85;
-    --secondary-200: 0.84 0.010 85;
-    --secondary-300: 0.75 0.012 85;
-    --secondary-400: 0.66 0.014 85;
-    --secondary-500: 0.58 0.015 85;
-    --secondary-600: 0.50 0.014 85;
-    --secondary-700: 0.43 0.012 85;
-    --secondary-800: 0.36 0.010 85;
-    --secondary-900: 0.30 0.008 85;
-    --secondary-950: 0.24 0.006 85;
+    /* Secondary - Warm Slate (chroma boost para bordes sólidos en claro) */
+    --secondary-50: 0.96 0.06 260;
+    --secondary-100: 0.90 0.07 260;
+    --secondary-200: 0.82 0.08 260;
+    --secondary-300: 0.72 0.09 260;
+    --secondary-400: 0.63 0.10 260;
+    --secondary-500: 0.55 0.10 260;
+    --secondary-600: 0.48 0.10 260;
+    --secondary-700: 0.41 0.09 260;
+    --secondary-800: 0.34 0.08 260;
+    --secondary-900: 0.28 0.07 260;
+    --secondary-950: 0.22 0.06 260;
 
-    /* Foreground — Warm black (hue 85), high contrast for readability */
-    --foreground-50:  0.015 0.003 85;
-    --foreground-100: 0.055 0.004 85;
-    --foreground-200: 0.120 0.005 85;
-    --foreground-300: 0.200 0.006 85;
-    --foreground-400: 0.300 0.006 85;
-    --foreground-500: 0.420 0.005 85;
-    --foreground-600: 0.530 0.004 85;
-    --foreground-700: 0.650 0.003 85;
-    --foreground-800: 0.780 0.002 85;
-    --foreground-900: 0.900 0.001 85;
-    --foreground-950: 0.970 0.001 85;
+    /* Foreground - Dark text scale */
+    --foreground-50: 0.04 0.002 270;
+    --foreground-100: 0.08 0.003 270;
+    --foreground-200: 0.13 0.004 270;
+    --foreground-300: 0.20 0.005 270;
+    --foreground-400: 0.28 0.005 270;
+    --foreground-500: 0.36 0.005 270;
+    --foreground-600: 0.45 0.004 270;
+    --foreground-700: 0.53 0.004 270;
+    --foreground-800: 0.62 0.003 270;
+    --foreground-900: 0.71 0.002 270;
+    --foreground-950: 0.80 0.002 270;
   }
 
   * {
@@ -185,30 +183,11 @@
     background: oklch(var(--secondary-500) / 0.6);
   }
 
-  [data-theme="light"] ::-webkit-scrollbar-track {
-    background: oklch(var(--background-100));
-  }
-
-  [data-theme="light"] ::-webkit-scrollbar-thumb {
-    background: oklch(var(--secondary-400));
-    border: 1px solid oklch(var(--secondary-300));
-    border-radius: 3px;
-  }
-
-  [data-theme="light"] ::-webkit-scrollbar-thumb:hover {
-    background: oklch(var(--secondary-500));
-  }
-
   /* Focus ring */
   *:focus-visible {
     outline: 2px solid oklch(var(--primary-500) / 0.6);
     outline-offset: 2px;
     border-radius: 2px;
-  }
-
-  [data-theme="light"] *:focus-visible {
-    outline: 2px solid oklch(var(--primary-500));
-    outline-offset: 2px;
   }
 
   /* ── Input autofill override ── NEVER show white background ── */
@@ -233,71 +212,6 @@
     background-color: oklch(var(--primary-500) / 0.25);
     color: oklch(var(--foreground-50));
   }
-
-  [data-theme="light"] ::selection {
-    background-color: oklch(var(--primary-200));
-    color: oklch(var(--foreground-50));
-  }
-
-  /* ── Light mode solid overrides: kill translucency system-wide ── */
-  [data-theme="light"] [class*="bg-background-50/"],
-  [data-theme="light"] [class*="bg-background-100/"],
-  [data-theme="light"] [class*="bg-background-200/"] {
-    background-color: oklch(var(--background-100)) !important;
-  }
-
-  [data-theme="light"] [class*="bg-secondary-500/"],
-  [data-theme="light"] [class*="bg-secondary-400/"] {
-    background-color: oklch(var(--secondary-100)) !important;
-  }
-
-  [data-theme="light"] [class*="bg-primary-500/"],
-  [data-theme="light"] [class*="bg-primary-400/"] {
-    background-color: oklch(var(--primary-50)) !important;
-  }
-
-  [data-theme="light"] [class*="bg-accent-500/"],
-  [data-theme="light"] [class*="bg-accent-400/"] {
-    background-color: oklch(var(--accent-50)) !important;
-  }
-
-  [data-theme="light"] .backdrop-blur-sm,
-  [data-theme="light"] .backdrop-blur-md {
-    backdrop-filter: none !important;
-  }
-
-  [data-theme="light"] [class*="border-secondary-500/"],
-  [data-theme="light"] [class*="border-secondary-400/"],
-  [data-theme="light"] [class*="border-secondary-300/"] {
-    border-color: oklch(var(--secondary-300)) !important;
-  }
-
-  [data-theme="light"] [class*="border-primary-500/"],
-  [data-theme="light"] [class*="border-primary-400/"] {
-    border-color: oklch(var(--primary-200)) !important;
-  }
-
-  [data-theme="light"] [class*="border-accent-500/"],
-  [data-theme="light"] [class*="border-accent-400/"] {
-    border-color: oklch(var(--accent-200)) !important;
-  }
-
-  [data-theme="light"] [class*="hover:bg-background-200/"]:hover,
-  [data-theme="light"] [class*="hover:bg-background-100/"]:hover {
-    background-color: oklch(var(--background-200)) !important;
-  }
-
-  [data-theme="light"] [class*="hover:bg-secondary-500/"]:hover {
-    background-color: oklch(var(--secondary-200)) !important;
-  }
-
-  [data-theme="light"] [class*="hover:bg-primary-500/"]:hover {
-    background-color: oklch(var(--primary-100)) !important;
-  }
-
-  [data-theme="light"] [class*="hover:bg-accent-500/"]:hover {
-    background-color: oklch(var(--accent-100)) !important;
-  }
 }
 
 @layer components {
@@ -311,19 +225,6 @@
     background: oklch(var(--background-100) / 0.85);
     backdrop-filter: blur(16px);
     border: 1px solid oklch(var(--secondary-500) / 0.35);
-  }
-
-  /* ── Solid panels for light mode: cards get subtle relief ── */
-  [data-theme="light"] .glass-panel {
-    background: oklch(var(--background-100));
-    backdrop-filter: none;
-    border: 1px solid oklch(var(--secondary-300));
-  }
-
-  [data-theme="light"] .glass-panel-strong {
-    background: oklch(var(--background-50));
-    backdrop-filter: none;
-    border: 1px solid oklch(var(--secondary-300));
   }
 
   .glow-primary {
