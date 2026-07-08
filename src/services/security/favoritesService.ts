@@ -22,6 +22,8 @@ export interface FavoriteWithDetails extends UserFavorite {
   tenant_name?: string;
   client_name?: string;
   country_name?: string;
+  warehouse_name?: string;
+  category_name?: string;
   access_id?: string;
 }
 
@@ -55,7 +57,7 @@ export async function getFavorites(): Promise<{ data: FavoriteWithDetails[]; err
 
     const { data: apps } = await supabase
       .from('applications')
-      .select('id, name, code, icon, color, base_url, client_id, tenant_id')
+      .select('id, name, code, icon, color, base_url, client_id, tenant_id, category_id')
       .in('id', appIds);
 
     const appMap: Record<string, any> = {};
@@ -98,7 +100,7 @@ export async function getFavorites(): Promise<{ data: FavoriteWithDetails[]; err
       (tenants || []).forEach((t) => { tenantMap[t.id] = t.name; });
     }
 
-    // Get client names and their country/tenant info
+    // Get client names and their country/tenant/warehouse info
     const accessClientIds = [...new Set((accesses || []).map((a: any) => {
       const inst = a.instance_id ? instMap[a.instance_id] : null;
       return inst?.client_id || null;
@@ -107,10 +109,11 @@ export async function getFavorites(): Promise<{ data: FavoriteWithDetails[]; err
     const allClientIds = [...new Set([...accessClientIds, ...appClientIds])];
     let clientMap: Record<string, any> = {};
     let countryMap: Record<string, string> = {};
+    let warehouseMap: Record<string, string> = {};
     if (allClientIds.length > 0) {
       const { data: clients } = await supabase
         .from('clients')
-        .select('id, name, country_id')
+        .select('id, name, country_id, warehouse_id')
         .in('id', allClientIds);
       (clients || []).forEach((c) => { clientMap[c.id] = c; });
 
@@ -122,6 +125,26 @@ export async function getFavorites(): Promise<{ data: FavoriteWithDetails[]; err
           .in('id', countryIds);
         (countries || []).forEach((c) => { countryMap[c.id] = c.name; });
       }
+
+      const whIds = [...new Set((clients || []).map((c: any) => c.warehouse_id).filter(Boolean))] as string[];
+      if (whIds.length > 0) {
+        const { data: whs } = await supabase
+          .from('warehouses')
+          .select('id, name')
+          .in('id', whIds);
+        (whs || []).forEach((w) => { warehouseMap[w.id] = w.name; });
+      }
+    }
+
+    // Fetch category names
+    const appCatIds = [...new Set((apps || []).map((a: any) => a.category_id).filter(Boolean))] as string[];
+    let catMap: Record<string, string> = {};
+    if (appCatIds.length > 0) {
+      const { data: cats } = await supabase
+        .from('application_categories')
+        .select('id, name')
+        .in('id', appCatIds);
+      (cats || []).forEach((c) => { catMap[c.id] = c.name; });
     }
 
     return {
@@ -148,6 +171,8 @@ export async function getFavorites(): Promise<{ data: FavoriteWithDetails[]; err
           tenant_name: access?.tenant_id ? tenantMap[access.tenant_id] : undefined,
           client_name: effectiveClient?.name,
           country_name: effectiveClient?.country_id ? countryMap[effectiveClient.country_id] : undefined,
+          warehouse_name: effectiveClient?.warehouse_id ? warehouseMap[effectiveClient.warehouse_id] : undefined,
+          category_name: app?.category_id ? catMap[app.category_id] : undefined,
           access_id: access?.id,
         };
       }),

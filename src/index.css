@@ -5,17 +5,17 @@
 @layer base {
   :root {
     /* Background - Deep enterprise dark */
-    --background-50: 0.21 0.012 255;
-    --background-100: 0.24 0.012 255;
-    --background-200: 0.28 0.012 255;
-    --background-300: 0.32 0.012 255;
-    --background-400: 0.36 0.012 255;
-    --background-500: 0.40 0.012 255;
-    --background-600: 0.44 0.012 255;
-    --background-700: 0.48 0.012 255;
-    --background-800: 0.52 0.012 255;
-    --background-900: 0.56 0.012 255;
-    --background-950: 0.60 0.012 255;
+    --background-50: 0.16 0.012 255;
+    --background-100: 0.21 0.012 255;
+    --background-200: 0.25 0.012 255;
+    --background-300: 0.29 0.012 255;
+    --background-400: 0.33 0.012 255;
+    --background-500: 0.38 0.012 255;
+    --background-600: 0.42 0.012 255;
+    --background-700: 0.46 0.012 255;
+    --background-800: 0.50 0.012 255;
+    --background-900: 0.54 0.012 255;
+    --background-950: 0.58 0.012 255;
 
     /* Primary - Emerald Security Green */
     --primary-50: 0.95 0.045 170;
@@ -43,31 +43,31 @@
     --accent-900: 0.37 0.09 200;
     --accent-950: 0.29 0.06 200;
 
-    /* Secondary - Muted Slate */
-    --secondary-50: 0.90 0.005 260;
-    --secondary-100: 0.84 0.008 260;
-    --secondary-200: 0.76 0.012 260;
-    --secondary-300: 0.68 0.015 260;
-    --secondary-400: 0.60 0.018 260;
-    --secondary-500: 0.52 0.02 260;
-    --secondary-600: 0.45 0.018 260;
-    --secondary-700: 0.38 0.015 260;
-    --secondary-800: 0.31 0.012 260;
-    --secondary-900: 0.25 0.008 260;
-    --secondary-950: 0.19 0.005 260;
+    /* Secondary - Muted Slate (chroma boost para bordes visibles) */
+    --secondary-50: 0.16 0.06 260;
+    --secondary-100: 0.22 0.07 260;
+    --secondary-200: 0.28 0.08 260;
+    --secondary-300: 0.34 0.09 260;
+    --secondary-400: 0.41 0.10 260;
+    --secondary-500: 0.48 0.10 260;
+    --secondary-600: 0.54 0.10 260;
+    --secondary-700: 0.61 0.09 260;
+    --secondary-800: 0.68 0.08 260;
+    --secondary-900: 0.76 0.07 260;
+    --secondary-950: 0.83 0.06 260;
 
     /* Foreground - Light text scale */
-    --foreground-50: 0.985 0.001 270;
-    --foreground-100: 0.965 0.001 270;
-    --foreground-200: 0.93 0.002 270;
-    --foreground-300: 0.88 0.002 270;
-    --foreground-400: 0.82 0.003 270;
-    --foreground-500: 0.74 0.003 270;
-    --foreground-600: 0.65 0.003 270;
-    --foreground-700: 0.55 0.003 270;
-    --foreground-800: 0.44 0.003 270;
-    --foreground-900: 0.32 0.002 270;
-    --foreground-950: 0.20 0.002 270;
+    --foreground-50: 0.988 0.001 270;
+    --foreground-100: 0.970 0.002 270;
+    --foreground-200: 0.940 0.002 270;
+    --foreground-300: 0.895 0.003 270;
+    --foreground-400: 0.840 0.003 270;
+    --foreground-500: 0.770 0.003 270;
+    --foreground-600: 0.680 0.003 270;
+    --foreground-700: 0.580 0.003 270;
+    --foreground-800: 0.470 0.003 270;
+    --foreground-900: 0.350 0.002 270;
+    --foreground-950: 0.220 0.002 270;
 
     /* Typography */
     --font-body: 'Inter', system-ui, -apple-system, sans-serif;
@@ -80,17 +80,17 @@
      ═══════════════════════════════════════════ */
   [data-theme="light"] {
     /* Background - Clean warm whites */
-    --background-50: 0.988 0.002 95;
-    --background-100: 0.970 0.003 95;
-    --background-200: 0.945 0.005 95;
-    --background-300: 0.905 0.008 95;
-    --background-400: 0.860 0.010 95;
-    --background-500: 0.810 0.012 95;
-    --background-600: 0.740 0.013 95;
-    --background-700: 0.660 0.014 95;
-    --background-800: 0.570 0.014 95;
-    --background-900: 0.470 0.013 95;
-    --background-950: 0.370 0.012 95;
+    --background-50: 0.990 0.002 95;
+    --background-100: 0.968 0.003 95;
+    --background-200: 0.938 0.005 95;
+    --background-300: 0.895 0.008 95;
+    --background-400: 0.845 0.010 95;
+    --background-500: 0.790 0.012 95;
+    --background-600: 0.720 0.013 95;
+    --background-700: 0.640 0.014 95;
+    --background-800: 0.555 0.014 95;
+    --background-900: 0.460 0.013 95;
+    --background-950: 0.360 0.012 95;
 
     /* Primary - Emerald Security Green (adjusted for light bg) */
     --primary-50: 0.97 0.04 170;
@@ -118,31 +118,31 @@
     --accent-900: 0.30 0.09 200;
     --accent-950: 0.24 0.06 200;
 
-    /* Secondary - Warm Slate */
-    --secondary-50: 0.92 0.005 260;
-    --secondary-100: 0.86 0.008 260;
-    --secondary-200: 0.78 0.012 260;
-    --secondary-300: 0.70 0.015 260;
-    --secondary-400: 0.62 0.018 260;
-    --secondary-500: 0.55 0.020 260;
-    --secondary-600: 0.48 0.018 260;
-    --secondary-700: 0.41 0.015 260;
-    --secondary-800: 0.34 0.012 260;
-    --secondary-900: 0.28 0.008 260;
-    --secondary-950: 0.22 0.005 260;
+    /* Secondary - Warm Slate (chroma boost para bordes sólidos en claro) */
+    --secondary-50: 0.96 0.06 260;
+    --secondary-100: 0.90 0.07 260;
+    --secondary-200: 0.82 0.08 260;
+    --secondary-300: 0.72 0.09 260;
+    --secondary-400: 0.63 0.10 260;
+    --secondary-500: 0.55 0.10 260;
+    --secondary-600: 0.48 0.10 260;
+    --secondary-700: 0.41 0.09 260;
+    --secondary-800: 0.34 0.08 260;
+    --secondary-900: 0.28 0.07 260;
+    --secondary-950: 0.22 0.06 260;
 
     /* Foreground - Dark text scale */
-    --foreground-50: 0.06 0.002 270;
-    --foreground-100: 0.10 0.003 270;
-    --foreground-200: 0.16 0.004 270;
-    --foreground-300: 0.24 0.005 270;
-    --foreground-400: 0.32 0.005 270;
-    --foreground-500: 0.41 0.005 270;
-    --foreground-600: 0.50 0.004 270;
-    --foreground-700: 0.58 0.004 270;
-    --foreground-800: 0.66 0.003 270;
-    --foreground-900: 0.74 0.002 270;
-    --foreground-950: 0.82 0.002 270;
+    --foreground-50: 0.04 0.002 270;
+    --foreground-100: 0.08 0.003 270;
+    --foreground-200: 0.13 0.004 270;
+    --foreground-300: 0.20 0.005 270;
+    --foreground-400: 0.28 0.005 270;
+    --foreground-500: 0.36 0.005 270;
+    --foreground-600: 0.45 0.004 270;
+    --foreground-700: 0.53 0.004 270;
+    --foreground-800: 0.62 0.003 270;
+    --foreground-900: 0.71 0.002 270;
+    --foreground-950: 0.80 0.002 270;
   }
 
   * {
@@ -218,13 +218,13 @@
   .glass-panel {
     background: oklch(var(--background-100) / 0.6);
     backdrop-filter: blur(12px);
-    border: 1px solid oklch(var(--secondary-500) / 0.12);
+    border: 1px solid oklch(var(--secondary-500) / 0.28);
   }
 
   .glass-panel-strong {
     background: oklch(var(--background-100) / 0.85);
     backdrop-filter: blur(16px);
-    border: 1px solid oklch(var(--secondary-500) / 0.18);
+    border: 1px solid oklch(var(--secondary-500) / 0.35);
   }
 
   .glow-primary {

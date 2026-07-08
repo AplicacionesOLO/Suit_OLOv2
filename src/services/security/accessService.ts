@@ -37,6 +37,7 @@ export interface AccessWithDetails extends UserAppAccess {
   country_id?: string | null;
   country_name?: string;
   warehouse_name?: string;
+  category_name?: string;
   role_name?: string;
 }
 
@@ -166,7 +167,7 @@ export async function fetchMyAccesses(userId: string): Promise<{ data: AccessWit
     const instanceIds = [...new Set(data.map((a) => a.instance_id).filter(Boolean))] as string[];
 
     const [appsRes, instancesRes] = await Promise.all([
-      supabase.from('applications').select('id, name, code, icon, color, base_url, status, version, client_id').in('id', appIds),
+      supabase.from('applications').select('id, name, code, icon, color, base_url, status, version, client_id, category_id').in('id', appIds),
       instanceIds.length > 0 ? supabase.from('application_instances').select('*').in('id', instanceIds) : Promise.resolve({ data: [] }),
     ]);
 
@@ -202,6 +203,14 @@ export async function fetchMyAccesses(userId: string): Promise<{ data: AccessWit
       }
     }
 
+    // Fetch category names
+    const appCatIds = [...new Set((appsRes.data || []).map((a: any) => a.category_id).filter(Boolean))] as string[];
+    let catMap: Record<string, string> = {};
+    if (appCatIds.length > 0) {
+      const catRes = await supabase.from('application_categories').select('id, name').in('id', appCatIds);
+      (catRes.data || []).forEach((c: any) => { catMap[c.id] = c.name; });
+    }
+
     return {
       data: data.map((a) => {
         const app = appMap[a.application_id];
@@ -228,6 +237,7 @@ export async function fetchMyAccesses(userId: string): Promise<{ data: AccessWit
           country_id: effectiveClient?.country_id || null,
           country_name: effectiveClient?.country_id ? coMap[effectiveClient.country_id] : undefined,
           warehouse_name: effectiveClient?.warehouse_id ? whMap[effectiveClient.warehouse_id] : undefined,
+          category_name: app?.category_id ? catMap[app.category_id] : undefined,
         };
       }),
       error: null,

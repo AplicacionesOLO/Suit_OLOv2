@@ -16,6 +16,7 @@ import {
   rectSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { groupApps } from '@/utils/groupApps';
 import type { FavoriteWithDetails } from '@/services/security/favoritesService';
 
 const colorMap: Record<string, { bg: string; text: string; border: string }> = {
@@ -64,7 +65,7 @@ function SortableCard({ fav, isEditing, onOpen }: SortableCardProps) {
       className={`glass-panel rounded-xl p-3 transition-all duration-200 group cursor-pointer ${
         isEditing
           ? 'border border-accent-500/30'
-          : 'hover:border-secondary-500/20 hover:bg-background-100'
+          : 'hover:border-secondary-500/30 hover:bg-background-100'
       }`}
     >
       <div className="flex items-center gap-2.5">
@@ -88,12 +89,17 @@ function SortableCard({ fav, isEditing, onOpen }: SortableCardProps) {
               <span className="text-2xs text-foreground-500">Instancia: {fav.instance_name}</span>
             )}
             {fav.tenant_name && (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-2xs bg-secondary-500/10 text-secondary-400">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-2xs bg-secondary-500/15 text-secondary-400">
                 {fav.tenant_name}
               </span>
             )}
             {fav.country_name && (
               <span className="text-2xs text-foreground-600">{fav.country_name}</span>
+            )}
+            {fav.category_name && (
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-2xs bg-secondary-500/15 text-secondary-400">
+                {fav.category_name}
+              </span>
             )}
           </div>
         </div>
@@ -101,7 +107,7 @@ function SortableCard({ fav, isEditing, onOpen }: SortableCardProps) {
           <span className={`shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-2xs font-medium border ${
             isEmbedded
               ? 'bg-accent-500/10 text-accent-400 border-accent-500/20'
-              : 'bg-secondary-500/10 text-secondary-400 border-secondary-500/20'
+              : 'bg-secondary-500/15 text-secondary-400 border-secondary-500/25'
           }`}>
             {isEmbedded ? 'EMB' : 'EXT'}
           </span>
@@ -140,6 +146,9 @@ export default function FavoritesSection({ favorites, loading, onOpenApp, onReor
 
   if (!loading && favorites.length === 0) return null;
 
+  const favoriteGroups = groupApps(favorites);
+  const showGrouping = favoriteGroups.length > 1;
+
   return (
     <section className="animate-fade-in">
       <div className="flex items-center justify-between mb-3">
@@ -154,7 +163,7 @@ export default function FavoritesSection({ favorites, loading, onOpenApp, onReor
             className={`h-7 px-3 rounded-lg text-2xs font-medium transition-all duration-200 whitespace-nowrap cursor-pointer ${
               isEditing
                 ? 'bg-accent-500/10 text-accent-400 border border-accent-500/20'
-                : 'bg-background-100 text-foreground-500 border border-secondary-500/10 hover:border-secondary-500/30'
+                : 'bg-background-100 text-foreground-500 border border-secondary-500/15 hover:border-secondary-500/35'
             }`}
           >
             {isEditing ? 'Listo' : 'Editar orden'}
@@ -166,6 +175,36 @@ export default function FavoritesSection({ favorites, loading, onOpenApp, onReor
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="glass-panel rounded-xl p-3 h-[72px] animate-pulse bg-background-100/50" />
+          ))}
+        </div>
+      ) : showGrouping ? (
+        <div className="space-y-4">
+          {favoriteGroups.map((group, gi) => (
+            <div key={gi}>
+              {group.label && (
+                <h3 className="text-xs font-semibold text-foreground-400 mb-2 flex items-center gap-1.5">
+                  <span className="w-3.5 h-3.5 flex items-center justify-center">
+                    <i className={`${group.icon} ${group.iconColor} text-xs`}></i>
+                  </span>
+                  {group.label}
+                  <span className="text-2xs text-foreground-600 font-normal ml-1">({group.items.length})</span>
+                </h3>
+              )}
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext items={group.items.map((f) => f.id)} strategy={rectSortingStrategy}>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                    {group.items.map((fav) => (
+                      <SortableCard
+                        key={fav.id}
+                        fav={fav}
+                        isEditing={isEditing}
+                        onOpen={onOpenApp}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            </div>
           ))}
         </div>
       ) : (

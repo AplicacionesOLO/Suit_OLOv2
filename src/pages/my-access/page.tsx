@@ -7,14 +7,9 @@ import { useFavorites } from '@/hooks/useFavorites';
 import { useTenantContext } from '@/hooks/useTenantContext';
 import { logAuditEvent } from '@/services/security/accessService';
 import FavoritesSection from '@/pages/my-access/components/FavoritesSection';
+import { groupApps } from '@/utils/groupApps';
 import type { FavoriteWithDetails } from '@/services/security/favoritesService';
-
-const statusConfig: Record<string, { label: string; bg: string; text: string; border: string }> = {
-  assigned: { label: 'Activo', bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20' },
-  pending: { label: 'Pendiente', bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20' },
-  revoked: { label: 'Revocado', bg: 'bg-red-500/10', text: 'text-red-400', border: 'border-red-500/20' },
-  expired: { label: 'Expirado', bg: 'bg-slate-500/10', text: 'text-slate-400', border: 'border-slate-500/20' },
-};
+import type { AccessWithDetails } from '@/services/security/accessService';
 
 const colorMap: Record<string, { bg: string; text: string; border: string }> = {
   emerald: { bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20' },
@@ -28,6 +23,77 @@ const colorMap: Record<string, { bg: string; text: string; border: string }> = {
 
 function getColors(c: string) { return colorMap[c] || colorMap.emerald; }
 
+function AppCard({ acc, isFav, isToggling, onToggle, onOpen }: {
+  acc: AccessWithDetails;
+  isFav: boolean;
+  isToggling: boolean;
+  onToggle: (appId: string) => void;
+  onOpen: (acc: AccessWithDetails) => void;
+}) {
+  const colors = getColors(acc.application_color || 'emerald');
+  const grantedDate = acc.granted_at ? new Date(acc.granted_at).toLocaleDateString() : null;
+  const openMode = acc.instance_open_mode || 'external';
+  const isEmbedded = openMode === 'embedded';
+
+  return (
+    <div
+      onClick={() => onOpen(acc)}
+      className="glass-panel rounded-2xl p-5 hover:border-secondary-500/30 hover:bg-background-100 transition-all duration-200 group cursor-pointer relative"
+    >
+      <div className="flex items-start justify-between mb-4">
+        <div className={`w-11 h-11 rounded-xl ${colors.bg} border ${colors.border} flex items-center justify-center group-hover:scale-110 transition-transform duration-200`}>
+          <i className={`${acc.application_icon || 'ri-apps-line'} ${colors.text} text-xl`}></i>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-medium border ${
+            isEmbedded
+              ? 'bg-accent-500/10 text-accent-400 border-accent-500/20'
+              : 'bg-secondary-500/10 text-secondary-400 border-secondary-500/20'
+          }`}>
+            {isEmbedded ? 'EMBEBIDA' : 'EXTERNA'}
+          </span>
+        </div>
+      </div>
+      <h3 className="text-sm font-semibold text-foreground-200 mb-1.5">{acc.application_name}</h3>
+      {acc.instance_name && <p className="text-xs text-foreground-500 mb-1">Instancia: {acc.instance_name}</p>}
+      {acc.client_name && (
+        <div className="flex flex-wrap items-center gap-1 mb-1">
+          <span className="text-2xs text-foreground-500">{acc.client_name}</span>
+          {acc.warehouse_name && <><span className="text-foreground-700">·</span><span className="text-2xs text-foreground-600">{acc.warehouse_name}</span></>}
+          {acc.country_name && <><span className="text-foreground-700">·</span><span className="text-2xs text-foreground-600">{acc.country_name}</span></>}
+        </div>
+      )}
+      {grantedDate && <p className="text-2xs text-foreground-600 mb-3">Desde {grantedDate}</p>}
+      {acc.category_name && (
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-2xs bg-secondary-500/15 text-secondary-400 mb-3 whitespace-nowrap">
+          {acc.category_name}
+        </span>
+      )}
+      <div className="flex items-center justify-between mt-auto">
+        <span className="flex items-center gap-1.5 text-xs font-medium text-primary-400 group-hover:text-primary-300 transition-colors">
+          <span className="w-4 h-4 flex items-center justify-center"><i className="ri-external-link-line"></i></span>
+          Abrir aplicacion
+        </span>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggle(acc.application_id);
+          }}
+          disabled={isToggling}
+          className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-200 cursor-pointer ${
+            isFav
+              ? 'bg-amber-500/15 text-amber-400 hover:bg-amber-500/25'
+              : 'bg-background-100 text-foreground-600 hover:text-amber-400 hover:bg-amber-500/10 opacity-0 group-hover:opacity-100'
+          } ${isToggling ? 'animate-pulse' : ''}`}
+          title={isFav ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+        >
+          <i className={`${isFav ? 'ri-star-fill' : 'ri-star-line'} text-sm`}></i>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function MyAccessPage() {
   const navigate = useNavigate();
   const { platformUser, user } = useAuth();
@@ -35,8 +101,9 @@ export default function MyAccessPage() {
   const { favorites, loading: favLoading, toggleFavorite, isAppFavorite, togglingIds, handleReorder } = useFavorites();
   const ctx = useTenantContext();
   const [searchQuery, setSearchQuery] = useState('');
+  const [isScopeExpanded, setIsScopeExpanded] = useState(false);
 
-  const handleOpenApp = (acc: any) => {
+  const handleOpenApp = (acc: AccessWithDetails) => {
     const openMode = acc.instance_open_mode || 'external';
     const instanceId = acc.instance_id;
     const instanceUrl = acc.instance_url || acc.application_base_url;
@@ -104,7 +171,6 @@ export default function MyAccessPage() {
     return (a.application_name || '').toLowerCase().includes(q) || (a.application_code || '').toLowerCase().includes(q);
   });
 
-  // Apply context filter
   const contextFiltered = (() => {
     if (ctx.showAll) return filtered;
     if (ctx.currentClientId && ctx.currentClientId !== 'all') {
@@ -124,6 +190,9 @@ export default function MyAccessPage() {
 
   const activeAccesses = contextFiltered.filter((a) => a.access_status === 'assigned');
   const pendingAccesses = contextFiltered.filter((a) => a.access_status === 'pending');
+
+  // Group active accesses
+  const activeGroups = groupApps(activeAccesses);
 
   if (myLoading) {
     return (
@@ -151,76 +220,83 @@ export default function MyAccessPage() {
             <h1 className="text-xl font-bold text-foreground-100">Mis Accesos</h1>
             <p className="text-sm text-foreground-500 mt-1">
               Aplicaciones e instancias autorizadas para tu usuario.
-
             </p>
           </div>
         </div>
 
-        {/* Mis Alcances — Organizational scope */}
+        {/* Mis Alcances — collapsible */}
         <section className="glass-panel rounded-2xl p-5">
-          <div className="flex items-center gap-2 mb-4">
+          <button
+            onClick={() => setIsScopeExpanded(!isScopeExpanded)}
+            className="w-full flex items-center gap-2 cursor-pointer"
+          >
             <span className="w-5 h-5 rounded-md bg-emerald-500/10 flex items-center justify-center">
               <i className="ri-stack-line text-emerald-400 text-xs"></i>
             </span>
             <h2 className="text-sm font-semibold text-foreground-200">Mis Alcances</h2>
             <span className="text-2xs text-foreground-500 ml-1">Pais → Tenant → Cliente</span>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="p-3 rounded-xl bg-background-100/70 border border-secondary-500/10">
-              <p className="text-xs font-medium text-foreground-500 mb-2 flex items-center gap-1.5">
-                <span className="w-3 h-3 flex items-center justify-center text-emerald-400"><i className="ri-global-line text-xs"></i></span>
-                Paises
-              </p>
-              {ctx.accessibleCountries.length === 0 ? (
-                <p className="text-xs text-foreground-600 italic">Sin paises asignados</p>
-              ) : (
-                <ul className="space-y-1">
-                  {ctx.accessibleCountries.map((c) => (
-                    <li key={c.id} className="flex items-center gap-2 text-xs text-foreground-300">
-                      <span className={`w-1.5 h-1.5 rounded-full ${c.id === ctx.currentCountryId ? 'bg-emerald-400' : 'bg-emerald-400/40'}`}></span>
-                      {c.name}
-                    </li>
-                  ))}
-                </ul>
-              )}
+            <span className="ml-auto w-6 h-6 flex items-center justify-center text-foreground-500 transition-transform duration-200" style={{ transform: isScopeExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+              <i className="ri-arrow-down-s-line"></i>
+            </span>
+          </button>
+          {isScopeExpanded && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4 animate-slide-up">
+              <div className="p-3 rounded-xl bg-background-100/70 border border-secondary-500/15">
+                <p className="text-xs font-medium text-foreground-500 mb-2 flex items-center gap-1.5">
+                  <span className="w-3 h-3 flex items-center justify-center text-emerald-400"><i className="ri-global-line text-xs"></i></span>
+                  Paises
+                </p>
+                {ctx.accessibleCountries.length === 0 ? (
+                  <p className="text-xs text-foreground-600 italic">Sin paises asignados</p>
+                ) : (
+                  <ul className="space-y-1">
+                    {ctx.accessibleCountries.map((c) => (
+                      <li key={c.id} className="flex items-center gap-2 text-xs text-foreground-300">
+                        <span className={`w-1.5 h-1.5 rounded-full ${c.id === ctx.currentCountryId ? 'bg-emerald-400' : 'bg-emerald-400/40'}`}></span>
+                        {c.name}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <div className="p-3 rounded-xl bg-background-100/70 border border-secondary-500/15">
+                <p className="text-xs font-medium text-foreground-500 mb-2 flex items-center gap-1.5">
+                  <span className="w-3 h-3 flex items-center justify-center text-primary-400"><i className="ri-building-line text-xs"></i></span>
+                  Tenants
+                </p>
+                {ctx.accessibleTenants.length === 0 ? (
+                  <p className="text-xs text-foreground-600 italic">Sin tenants asignados</p>
+                ) : (
+                  <ul className="space-y-1">
+                    {ctx.accessibleTenants.map((t) => (
+                      <li key={t.tenant_id} className="flex items-center gap-2 text-xs text-foreground-300">
+                        <span className={`w-1.5 h-1.5 rounded-full ${t.tenant_name === ctx.currentTenantName ? 'bg-primary-400' : 'bg-primary-400/40'}`}></span>
+                        {t.tenant_name}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <div className="p-3 rounded-xl bg-background-100/70 border border-secondary-500/15">
+                <p className="text-xs font-medium text-foreground-500 mb-2 flex items-center gap-1.5">
+                  <span className="w-3 h-3 flex items-center justify-center text-amber-400"><i className="ri-building-2-line text-xs"></i></span>
+                  Clientes
+                </p>
+                {ctx.accessibleClients.length === 0 ? (
+                  <p className="text-xs text-foreground-600 italic">Sin clientes asignados</p>
+                ) : (
+                  <ul className="space-y-1">
+                    {ctx.accessibleClients.map((cl) => (
+                      <li key={cl.id} className="flex items-center gap-2 text-xs text-foreground-300">
+                        <span className={`w-1.5 h-1.5 rounded-full ${cl.id === ctx.currentClientId ? 'bg-violet-400' : 'bg-amber-400/40'}`}></span>
+                        {cl.name}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
-            <div className="p-3 rounded-xl bg-background-100/70 border border-secondary-500/10">
-              <p className="text-xs font-medium text-foreground-500 mb-2 flex items-center gap-1.5">
-                <span className="w-3 h-3 flex items-center justify-center text-primary-400"><i className="ri-building-line text-xs"></i></span>
-                Tenants
-              </p>
-              {ctx.accessibleTenants.length === 0 ? (
-                <p className="text-xs text-foreground-600 italic">Sin tenants asignados</p>
-              ) : (
-                <ul className="space-y-1">
-                  {ctx.accessibleTenants.map((t) => (
-                    <li key={t.tenant_id} className="flex items-center gap-2 text-xs text-foreground-300">
-                      <span className={`w-1.5 h-1.5 rounded-full ${t.tenant_name === ctx.currentTenantName ? 'bg-primary-400' : 'bg-primary-400/40'}`}></span>
-                      {t.tenant_name}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-            <div className="p-3 rounded-xl bg-background-100/70 border border-secondary-500/10">
-              <p className="text-xs font-medium text-foreground-500 mb-2 flex items-center gap-1.5">
-                <span className="w-3 h-3 flex items-center justify-center text-amber-400"><i className="ri-building-2-line text-xs"></i></span>
-                Clientes
-              </p>
-              {ctx.accessibleClients.length === 0 ? (
-                <p className="text-xs text-foreground-600 italic">Sin clientes asignados</p>
-              ) : (
-                <ul className="space-y-1">
-                  {ctx.accessibleClients.map((cl) => (
-                    <li key={cl.id} className="flex items-center gap-2 text-xs text-foreground-300">
-                      <span className={`w-1.5 h-1.5 rounded-full ${cl.id === ctx.currentClientId ? 'bg-violet-400' : 'bg-amber-400/40'}`}></span>
-                      {cl.name}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </div>
+          )}
         </section>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -253,7 +329,7 @@ export default function MyAccessPage() {
 
         <div className="relative max-w-sm">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground-500 w-4 h-4 flex items-center justify-center"><i className="ri-search-line text-sm"></i></span>
-          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Buscar por nombre de aplicacion..." className="w-full h-9 bg-background-100 border border-secondary-500/20 rounded-lg pl-9 pr-3 text-sm text-foreground-300 placeholder:text-foreground-600 outline-none focus:border-primary-500/40 transition-all" />
+          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Buscar por nombre de aplicacion..." className="w-full h-9 bg-background-100 border border-secondary-500/25 rounded-lg pl-9 pr-3 text-sm text-foreground-300 placeholder:text-foreground-600 outline-none focus:border-primary-500/40 transition-all" />
         </div>
 
         {myAccesses.length === 0 ? (
@@ -263,7 +339,7 @@ export default function MyAccessPage() {
             </div>
             <h3 className="text-sm font-semibold text-foreground-300 mb-2">No tienes aplicaciones asignadas para este contexto</h3>
             <p className="text-xs text-foreground-500 max-w-sm mx-auto mb-6">
-              No hay aplicaciones autorizadas para el país, tenant o cliente seleccionado. Cambia de contexto o contacta a tu administrador.
+              No hay aplicaciones autorizadas para el pais, tenant o cliente seleccionado. Cambia de contexto o contacta a tu administrador.
             </p>
             <button className="h-9 px-4 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-sm font-medium whitespace-nowrap">
               Ir al catalogo
@@ -275,79 +351,51 @@ export default function MyAccessPage() {
               <i className="ri-search-line text-foreground-500 text-lg"></i>
             </div>
             <p className="text-sm text-foreground-500">No se encontraron aplicaciones con "{searchQuery}"</p>
-            <button onClick={() => setSearchQuery('')} className="mt-3 text-xs text-primary-400 hover:text-primary-300 transition-colors cursor-pointer">Limpiar búsqueda</button>
+            <button onClick={() => setSearchQuery('')} className="mt-3 text-xs text-primary-400 hover:text-primary-300 transition-colors cursor-pointer">Limpiar busqueda</button>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {activeAccesses.length > 0 && (
               <section>
                 <h2 className="text-sm font-semibold text-foreground-200 mb-4 flex items-center gap-2">
                   <span className="w-4 h-4 flex items-center justify-center text-emerald-400"><i className="ri-check-double-line"></i></span>
                   Aplicaciones autorizadas
                 </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {activeAccesses.map((acc) => {
-                    const colors = getColors(acc.application_color || 'emerald');
-                    const grantedDate = acc.granted_at ? new Date(acc.granted_at).toLocaleDateString() : null;
-                    const openMode = acc.instance_open_mode || 'external';
-                    const isEmbedded = openMode === 'embedded';
-                    const isFav = isAppFavorite(acc.application_id);
-                    const isToggling = togglingIds.has(acc.application_id);
-                    return (
-                      <div
-                        key={acc.id}
-                        onClick={() => handleOpenApp(acc)}
-                        className="glass-panel rounded-2xl p-5 hover:border-secondary-500/20 hover:bg-background-100 transition-all duration-200 group cursor-pointer relative"
-                      >
-                        <div className="flex items-start justify-between mb-4">
-                          <div className={`w-11 h-11 rounded-xl ${colors.bg} border ${colors.border} flex items-center justify-center group-hover:scale-110 transition-transform duration-200`}>
-                            <i className={`${acc.application_icon || 'ri-apps-line'} ${colors.text} text-xl`}></i>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-medium border ${
-                              isEmbedded
-                                ? 'bg-accent-500/10 text-accent-400 border-accent-500/20'
-                                : 'bg-secondary-500/10 text-secondary-400 border-secondary-500/20'
-                            }`}>
-                              {isEmbedded ? 'EMBEBIDA' : 'EXTERNA'}
+                {activeGroups.length === 0 ? (
+                  <p className="text-xs text-foreground-500">No hay aplicaciones activas en este contexto.</p>
+                ) : (
+                  <div className="space-y-6">
+                    {activeGroups.map((group, gi) => (
+                      <div key={gi}>
+                        {group.label && (
+                          <h3 className="text-xs font-semibold text-foreground-400 mb-3 flex items-center gap-1.5">
+                            <span className="w-3.5 h-3.5 flex items-center justify-center">
+                              <i className={`${group.icon} ${group.iconColor} text-xs`}></i>
                             </span>
-                          </div>
-                        </div>
-                        <h3 className="text-sm font-semibold text-foreground-200 mb-1.5">{acc.application_name}</h3>
-                        {acc.instance_name && <p className="text-xs text-foreground-500 mb-1">Instancia: {acc.instance_name}</p>}
-                        {acc.client_name && (
-                          <div className="flex flex-wrap items-center gap-1 mb-1">
-                            <span className="text-2xs text-foreground-500">{acc.client_name}</span>
-                            {acc.warehouse_name && <><span className="text-foreground-700">·</span><span className="text-2xs text-foreground-600">{acc.warehouse_name}</span></>}
-                            {acc.country_name && <><span className="text-foreground-700">·</span><span className="text-2xs text-foreground-600">{acc.country_name}</span></>}
-                          </div>
+                            {group.label}
+                            <span className="text-2xs text-foreground-600 font-normal ml-1">({group.items.length})</span>
+                          </h3>
                         )}
-                        {grantedDate && <p className="text-2xs text-foreground-600 mb-3">Desde {grantedDate}</p>}
-                        <div className="flex items-center justify-between">
-                          <span className="flex items-center gap-1.5 text-xs font-medium text-primary-400 group-hover:text-primary-300 transition-colors">
-                            <span className="w-4 h-4 flex items-center justify-center"><i className="ri-external-link-line"></i></span>
-                            Abrir aplicacion
-                          </span>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleFavorite(acc.application_id);
-                            }}
-                            disabled={isToggling}
-                            className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-200 cursor-pointer ${
-                              isFav
-                                ? 'bg-amber-500/10 text-amber-400 hover:bg-amber-500/20'
-                                : 'bg-background-100 text-foreground-600 hover:text-amber-400 hover:bg-amber-500/10 opacity-0 group-hover:opacity-100'
-                            } ${isToggling ? 'animate-pulse' : ''}`}
-                            title={isFav ? 'Quitar de favoritos' : 'Agregar a favoritos'}
-                          >
-                            <i className={`${isFav ? 'ri-star-fill' : 'ri-star-line'} text-sm`}></i>
-                          </button>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                          {group.items.map((acc) => {
+                            const isFav = isAppFavorite(acc.application_id);
+                            const isToggling = togglingIds.has(acc.application_id);
+                            return (
+                              <AppCard
+                                key={acc.id}
+                                acc={acc}
+                                isFav={isFav}
+                                isToggling={isToggling}
+                                onToggle={toggleFavorite}
+                                onOpen={handleOpenApp}
+                              />
+                            );
+                          })}
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
+                    ))}
+                  </div>
+                )}
               </section>
             )}
 
@@ -361,7 +409,7 @@ export default function MyAccessPage() {
                   {pendingAccesses.map((acc) => {
                     const colors = getColors(acc.application_color || 'emerald');
                     return (
-                      <div key={acc.id} className="glass-panel rounded-2xl p-5 border border-amber-500/10">
+                      <div key={acc.id} className="glass-panel rounded-2xl p-5 border border-amber-500/15">
                         <div className="flex items-start justify-between mb-4">
                           <div className={`w-11 h-11 rounded-xl ${colors.bg} border ${colors.border} flex items-center justify-center opacity-60`}>
                             <i className={`${acc.application_icon || 'ri-apps-line'} ${colors.text} text-xl`}></i>
