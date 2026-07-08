@@ -153,14 +153,14 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
 
   // ─── Select helpers ───────────────────────────────────────────────────
 
-  const selectClass = "w-full h-9 bg-background-100 border border-secondary-500/20 rounded-lg px-2.5 text-sm text-foreground-300 outline-none focus:border-primary-500/40 disabled:opacity-40 cursor-pointer";
+  const selectClass = "w-full h-9 bg-background-100 border border-secondary-300 rounded-lg px-2.5 text-sm text-foreground-300 outline-none focus:border-primary-500 disabled:opacity-40 cursor-pointer";
 
   return (
     <>
       <header
         className={`
           fixed top-0 right-0 h-[60px] z-30
-          bg-background-50/80 backdrop-blur-md border-b border-secondary-500/10
+          bg-background-50 border-b border-secondary-300
           flex items-center justify-between px-3 md:px-6
           transition-all duration-300 ease-out
           ${sidebarCollapsed ? 'left-[68px]' : 'left-[260px]'}
@@ -178,7 +178,7 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
             </span>
             <input
               type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar..." className="w-full h-8 bg-background-100 border border-secondary-500/20 rounded-lg pl-8 pr-2 text-xs text-foreground-300 placeholder:text-foreground-600 outline-none focus:border-primary-500/40 transition-all"
+              placeholder="Buscar..." className="w-full h-8 bg-background-100 border border-secondary-300 rounded-lg pl-8 pr-2 text-xs text-foreground-300 placeholder:text-foreground-600 outline-none focus:border-primary-500 transition-all"
             />
           </div>
 
@@ -190,7 +190,7 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
                 className={`flex items-center gap-2 h-8 px-2.5 rounded-lg border transition-all text-xs whitespace-nowrap cursor-pointer ${
                   ctx.showAll
                     ? 'border-accent-500/40 bg-accent-500/5 hover:border-accent-500/60'
-                    : 'border-secondary-500/20 bg-background-100 hover:border-secondary-500/40'
+                    : 'border-secondary-300 bg-background-100 hover:border-secondary-400'
                 }`}
                 title="Contexto organizacional"
               >
@@ -214,7 +214,7 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
                 <div className="absolute right-0 top-full mt-2 w-72 glass-panel-strong rounded-xl animate-scale-in overflow-hidden z-50 shadow-2xl">
                   {/* Header: mode-sensitive */}
                   <div className={`px-4 py-3 border-b ${
-                    ctx.showAll ? 'border-accent-500/20 bg-accent-500/5' : 'border-secondary-500/10'
+                    ctx.showAll ? 'border-accent-300 bg-accent-50' : 'border-secondary-300'
                   }`}>
                     <div className="flex items-center gap-2 mb-1">
                       <span className={`w-4 h-4 flex items-center justify-center ${
@@ -353,7 +353,7 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
 
                   {/* Clear context / Reset mode */}
                   {hasContext && (
-                    <div className="border-t border-secondary-500/10 p-2">
+                    <div className="border-t border-secondary-300 p-2">
                       <button
                         onClick={() => {
                           if (ctx.showAll) ctx.toggleShowAll();
@@ -368,7 +368,7 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
                     </div>
                   )}
                   {!hasContext && ctx.showAll && (
-                    <div className="border-t border-secondary-500/10 p-2">
+                    <div className="border-t border-secondary-300 p-2">
                       <button
                         onClick={() => { ctx.toggleShowAll(); setShowContextPanel(false); }}
                         className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-foreground-400 hover:text-foreground-200 hover:bg-background-200/50 transition-colors cursor-pointer"
@@ -399,7 +399,7 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
 
             {showNotifications && (
               <div className="absolute right-0 top-full mt-2 w-72 glass-panel-strong rounded-xl animate-scale-in overflow-hidden z-50">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-secondary-500/10">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-secondary-300">
                   <p className="text-sm font-medium text-foreground-200">Notificaciones</p>
                   {unreadCount > 0 && (
                     <button onClick={markAllAsRead} className="text-2xs text-primary-400 hover:text-primary-300 font-medium whitespace-nowrap cursor-pointer">Marcar todas</button>
@@ -415,7 +415,7 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
                       const sev = severityIcons[n.severity] || severityIcons.info;
                       return (
                         <button key={n.id} onClick={() => { if (n.status === 'unread') markAsRead(n.id); }}
-                          className={`w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-background-200/50 transition-colors border-b border-secondary-500/5 ${n.status === 'unread' ? 'bg-primary-500/3' : ''}`}>
+                          className={`w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-background-100 transition-colors border-b border-secondary-200 ${n.status === 'unread' ? 'bg-primary-50' : ''}`}>
                           <div className={`w-7 h-7 rounded-lg ${sev.bg} flex items-center justify-center shrink-0 mt-0.5`}>
                             <i className={`${sev.icon} ${sev.color} text-xs`}></i>
                           </div>
@@ -448,7 +448,7 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
 
             {showUserMenu && (
               <div className="absolute right-0 top-full mt-2 w-52 glass-panel-strong rounded-xl animate-scale-in overflow-hidden z-50">
-                <div className="px-4 py-3 border-b border-secondary-500/10">
+                <div className="px-4 py-3 border-b border-secondary-300">
                   <p className="text-sm font-medium text-foreground-200">
                     {platformUser?.first_name ? `${platformUser.first_name} ${platformUser.last_name || ''}` : user?.email?.split('@')[0] || 'Usuario'}
                   </p>
@@ -467,7 +467,7 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
                     </button>
                   ))}
                 </div>
-                <div className="border-t border-secondary-500/10 pt-1 pb-1">
+                <div className="border-t border-secondary-300 pt-1 pb-1">
                   <p className="px-4 py-1.5 text-2xs font-semibold text-foreground-600 uppercase tracking-wider">Tema</p>
                   {([{ key: 'light', icon: 'ri-sun-line', label: 'Claro' }, { key: 'dark', icon: 'ri-moon-line', label: 'Oscuro' }, { key: 'system', icon: 'ri-computer-line', label: 'Sistema' }] as const).map(({ key, icon, label }) => (
                     <button key={key} onClick={() => setTheme(key)}
@@ -478,7 +478,7 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
                     </button>
                   ))}
                 </div>
-                <div className="border-t border-secondary-500/10 py-1">
+                <div className="border-t border-secondary-300 py-1">
                   <button onClick={async () => { setShowUserMenu(false); await logout(); }}
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/5 transition-colors">
                     <span className="w-4 h-4 flex items-center justify-center"><i className="ri-logout-box-r-line"></i></span>

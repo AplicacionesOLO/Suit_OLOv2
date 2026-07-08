@@ -38,7 +38,7 @@ function AppCard({ acc, isFav, isToggling, onToggle, onOpen }: {
   return (
     <div
       onClick={() => onOpen(acc)}
-      className="glass-panel rounded-2xl p-5 hover:border-secondary-500/30 hover:bg-background-100 transition-all duration-200 group cursor-pointer relative"
+      className="glass-panel rounded-2xl p-5 hover:border-secondary-400 hover:bg-background-100 transition-all duration-200 group cursor-pointer relative"
     >
       <div className="flex items-start justify-between mb-4">
         <div className={`w-11 h-11 rounded-xl ${colors.bg} border ${colors.border} flex items-center justify-center group-hover:scale-110 transition-transform duration-200`}>
@@ -65,7 +65,7 @@ function AppCard({ acc, isFav, isToggling, onToggle, onOpen }: {
       )}
       {grantedDate && <p className="text-2xs text-foreground-600 mb-3">Desde {grantedDate}</p>}
       {acc.category_name && (
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-2xs bg-secondary-500/15 text-secondary-400 mb-3 whitespace-nowrap">
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-2xs bg-secondary-100 text-secondary-700 mb-3 whitespace-nowrap">
           {acc.category_name}
         </span>
       )}
@@ -204,7 +204,7 @@ export default function MyAccessPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="glass-panel rounded-2xl p-5 h-40 animate-pulse bg-background-100/50" />
+              <div key={i} className="glass-panel rounded-2xl p-5 h-40 animate-pulse bg-background-200" />
             ))}
           </div>
         </div>
@@ -241,7 +241,7 @@ export default function MyAccessPage() {
           </button>
           {isScopeExpanded && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4 animate-slide-up">
-              <div className="p-3 rounded-xl bg-background-100/70 border border-secondary-500/15">
+              <div className="p-3 rounded-xl bg-background-100 border border-secondary-300">
                 <p className="text-xs font-medium text-foreground-500 mb-2 flex items-center gap-1.5">
                   <span className="w-3 h-3 flex items-center justify-center text-emerald-400"><i className="ri-global-line text-xs"></i></span>
                   Paises
@@ -259,7 +259,7 @@ export default function MyAccessPage() {
                   </ul>
                 )}
               </div>
-              <div className="p-3 rounded-xl bg-background-100/70 border border-secondary-500/15">
+              <div className="p-3 rounded-xl bg-background-100 border border-secondary-300">
                 <p className="text-xs font-medium text-foreground-500 mb-2 flex items-center gap-1.5">
                   <span className="w-3 h-3 flex items-center justify-center text-primary-400"><i className="ri-building-line text-xs"></i></span>
                   Tenants
@@ -277,7 +277,7 @@ export default function MyAccessPage() {
                   </ul>
                 )}
               </div>
-              <div className="p-3 rounded-xl bg-background-100/70 border border-secondary-500/15">
+              <div className="p-3 rounded-xl bg-background-100 border border-secondary-300">
                 <p className="text-xs font-medium text-foreground-500 mb-2 flex items-center gap-1.5">
                   <span className="w-3 h-3 flex items-center justify-center text-amber-400"><i className="ri-building-2-line text-xs"></i></span>
                   Clientes
@@ -329,12 +329,12 @@ export default function MyAccessPage() {
 
         <div className="relative max-w-sm">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground-500 w-4 h-4 flex items-center justify-center"><i className="ri-search-line text-sm"></i></span>
-          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Buscar por nombre de aplicacion..." className="w-full h-9 bg-background-100 border border-secondary-500/25 rounded-lg pl-9 pr-3 text-sm text-foreground-300 placeholder:text-foreground-600 outline-none focus:border-primary-500/40 transition-all" />
+          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Buscar por nombre de aplicacion..." className="w-full h-9 bg-background-100 border border-secondary-300 rounded-lg pl-9 pr-3 text-sm text-foreground-300 placeholder:text-foreground-600 outline-none focus:border-primary-500 transition-all" />
         </div>
 
         {myAccesses.length === 0 ? (
           <div className="glass-panel rounded-2xl p-16 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-secondary-500/10 border border-secondary-500/20 flex items-center justify-center mx-auto mb-5">
+            <div className="w-16 h-16 rounded-2xl bg-secondary-100 border border-secondary-300 flex items-center justify-center mx-auto mb-5">
               <i className="ri-shield-keyhole-line text-foreground-500 text-2xl"></i>
             </div>
             <h3 className="text-sm font-semibold text-foreground-300 mb-2">No tienes aplicaciones asignadas para este contexto</h3>
@@ -347,7 +347,7 @@ export default function MyAccessPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="glass-panel rounded-2xl p-12 text-center">
-            <div className="w-12 h-12 rounded-xl bg-secondary-500/10 border border-secondary-500/20 flex items-center justify-center mx-auto mb-3">
+            <div className="w-12 h-12 rounded-xl bg-secondary-100 border border-secondary-300 flex items-center justify-center mx-auto mb-3">
               <i className="ri-search-line text-foreground-500 text-lg"></i>
             </div>
             <p className="text-sm text-foreground-500">No se encontraron aplicaciones con "{searchQuery}"</p>
@@ -409,7 +409,7 @@ export default function MyAccessPage() {
                   {pendingAccesses.map((acc) => {
                     const colors = getColors(acc.application_color || 'emerald');
                     return (
-                      <div key={acc.id} className="glass-panel rounded-2xl p-5 border border-amber-500/15">
+                      <div key={acc.id} className="glass-panel rounded-2xl p-5 border border-amber-300">
                         <div className="flex items-start justify-between mb-4">
                           <div className={`w-11 h-11 rounded-xl ${colors.bg} border ${colors.border} flex items-center justify-center opacity-60`}>
                             <i className={`${acc.application_icon || 'ri-apps-line'} ${colors.text} text-xl`}></i>

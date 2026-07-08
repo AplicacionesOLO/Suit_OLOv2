@@ -89,7 +89,7 @@ function SortableCard({ fav, isEditing, onOpen }: SortableCardProps) {
               <span className="text-2xs text-foreground-500">Instancia: {fav.instance_name}</span>
             )}
             {fav.tenant_name && (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-2xs bg-secondary-500/15 text-secondary-400">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-2xs bg-secondary-100 text-secondary-700">
                 {fav.tenant_name}
               </span>
             )}
@@ -97,7 +97,7 @@ function SortableCard({ fav, isEditing, onOpen }: SortableCardProps) {
               <span className="text-2xs text-foreground-600">{fav.country_name}</span>
             )}
             {fav.category_name && (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-2xs bg-secondary-500/15 text-secondary-400">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-2xs bg-secondary-100 text-secondary-700">
                 {fav.category_name}
               </span>
             )}
@@ -163,7 +163,7 @@ export default function FavoritesSection({ favorites, loading, onOpenApp, onReor
             className={`h-7 px-3 rounded-lg text-2xs font-medium transition-all duration-200 whitespace-nowrap cursor-pointer ${
               isEditing
                 ? 'bg-accent-500/10 text-accent-400 border border-accent-500/20'
-                : 'bg-background-100 text-foreground-500 border border-secondary-500/15 hover:border-secondary-500/35'
+                : 'bg-background-100 text-foreground-500 border border-secondary-300 hover:border-secondary-400'
             }`}
           >
             {isEditing ? 'Listo' : 'Editar orden'}
@@ -174,7 +174,7 @@ export default function FavoritesSection({ favorites, loading, onOpenApp, onReor
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="glass-panel rounded-xl p-3 h-[72px] animate-pulse bg-background-100/50" />
+            <div key={i} className="glass-panel rounded-xl p-3 h-[72px] animate-pulse bg-background-200" />
           ))}
         </div>
       ) : showGrouping ? (

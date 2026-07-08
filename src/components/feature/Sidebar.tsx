@@ -91,13 +91,13 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
     <aside
       className={`
         fixed left-0 top-0 h-full z-40
-        bg-background-50 border-r border-secondary-500/10
+        bg-background-50 border-r border-secondary-300
         flex flex-col transition-all duration-300 ease-out
         ${collapsed ? 'w-[68px]' : 'w-[260px]'}
       `}
     >
       {/* Logo area */}
-      <div className={`flex items-center h-[60px] border-b border-secondary-500/10 shrink-0 ${collapsed ? 'justify-center px-0' : 'px-5'}`}>
+      <div className={`flex items-center h-[60px] border-b border-secondary-300 shrink-0 ${collapsed ? 'justify-center px-0' : 'px-5'}`}>
         {!collapsed ? (
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-primary-500/15 border border-primary-500/25 flex items-center justify-center glow-primary shrink-0">
@@ -120,7 +120,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
         {/* Divider */}
         {visibleGroups.length > 0 && (
           <div className="px-3 py-1">
-            <div className="border-t border-secondary-500/8"></div>
+            <div className="border-t border-secondary-200"></div>
           </div>
         )}
 
@@ -144,7 +144,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
               )}
               {collapsed && (
                 <div className="px-2 py-1.5 mb-0.5">
-                  <div className="border-t border-secondary-500/8"></div>
+                  <div className="border-t border-secondary-200"></div>
                 </div>
               )}
               <div className={`space-y-0.5 overflow-hidden transition-all duration-200 ${collapsed || expandedGroups[group.title] ? 'max-h-96' : 'max-h-0'}`}>
@@ -178,7 +178,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
       </nav>
 
       {/* Footer */}
-      <div className={`border-t border-secondary-500/10 p-3 ${collapsed ? 'flex flex-col items-center gap-3' : ''}`}>
+      <div className={`border-t border-secondary-300 p-3 ${collapsed ? 'flex flex-col items-center gap-3' : ''}`}>
         <button
           onClick={() => navigate('/profile')}
           className={`
