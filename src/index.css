@@ -190,6 +190,36 @@
     border-radius: 2px;
   }
 
+  /* ═══════════════════════════════════════════
+     Light Mode Glass Panel Overrides
+     ═══════════════════════════════════════════ */
+  [data-theme="light"] .glass-panel {
+    background: oklch(var(--background-100));
+    backdrop-filter: none;
+    border: 1px solid oklch(var(--secondary-500) / 0.35);
+  }
+
+  [data-theme="light"] .glass-panel-strong {
+    background: oklch(var(--background-100));
+    backdrop-filter: none;
+    border: 1px solid oklch(var(--secondary-500) / 0.42);
+  }
+
+  /* Scrollbar in light mode */
+  [data-theme="light"] ::-webkit-scrollbar-thumb {
+    background: oklch(var(--secondary-500) / 0.3);
+  }
+
+  [data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+    background: oklch(var(--secondary-500) / 0.5);
+  }
+
+  /* Selection in light mode */
+  [data-theme="light"] ::selection {
+    background-color: oklch(var(--primary-500) / 0.18);
+    color: oklch(var(--foreground-950));
+  }
+
   /* ── Input autofill override ── NEVER show white background ── */
   input:-webkit-autofill,
   input:-webkit-autofill:hover,

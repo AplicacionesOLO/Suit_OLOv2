@@ -67,7 +67,7 @@ export function groupApps<T extends GroupableItem>(items: T[]): AppGroup<T>[] {
               groups.push({
                 label: `${countryName} · ${whName} · ${catName}`,
                 icon: 'ri-folder-line',
-                iconColor: 'text-secondary-400',
+                iconColor: 'text-secondary-600',
                 items: catItems,
               });
             });
@@ -75,7 +75,7 @@ export function groupApps<T extends GroupableItem>(items: T[]): AppGroup<T>[] {
             groups.push({
               label: `${countryName} · ${whName}`,
               icon: 'ri-building-line',
-              iconColor: 'text-secondary-400',
+              iconColor: 'text-secondary-600',
               items: whItems,
             });
           }
@@ -92,7 +92,7 @@ export function groupApps<T extends GroupableItem>(items: T[]): AppGroup<T>[] {
           groups.push({
             label: `${countryName} · ${catName}`,
             icon: 'ri-folder-line',
-            iconColor: 'text-secondary-400',
+            iconColor: 'text-secondary-600',
             items: catItems,
           });
         });
@@ -100,7 +100,7 @@ export function groupApps<T extends GroupableItem>(items: T[]): AppGroup<T>[] {
         groups.push({
           label: countryName,
           icon: 'ri-global-line',
-          iconColor: 'text-emerald-400',
+          iconColor: 'text-emerald-600',
           items: countryItems,
         });
       }
@@ -128,7 +128,7 @@ export function groupApps<T extends GroupableItem>(items: T[]): AppGroup<T>[] {
           groups.push({
             label: `${whName} · ${catName}`,
             icon: 'ri-folder-line',
-            iconColor: 'text-secondary-400',
+            iconColor: 'text-secondary-600',
             items: catItems,
           });
         });
@@ -136,7 +136,7 @@ export function groupApps<T extends GroupableItem>(items: T[]): AppGroup<T>[] {
         groups.push({
           label: whName,
           icon: 'ri-building-line',
-          iconColor: 'text-secondary-400',
+          iconColor: 'text-secondary-600',
           items: whItems,
         });
       }
@@ -153,7 +153,7 @@ export function groupApps<T extends GroupableItem>(items: T[]): AppGroup<T>[] {
       groups.push({
         label: catName,
         icon: 'ri-folder-line',
-        iconColor: 'text-secondary-400',
+        iconColor: 'text-secondary-600',
         items: catItems,
       });
     });
