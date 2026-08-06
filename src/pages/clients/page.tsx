@@ -759,7 +759,7 @@ export default function ClientsPage() {
                 className={`h-9 px-4 rounded-lg text-white transition-colors text-sm font-medium whitespace-nowrap ${
                   confirmToggle.status === 'active'
                     ? 'bg-amber-600 hover:bg-amber-700'
-                    : 'bg-primary-600 hover:bg-primary-700'
+                    : 'bg-primary-500 hover:bg-primary-700'
                 }`}
               >
                 {confirmToggle.status === 'active' ? 'Desactivar' : 'Activar'}

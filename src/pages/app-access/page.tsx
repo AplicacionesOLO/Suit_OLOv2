@@ -244,7 +244,7 @@ export default function AppAccessPage() {
             </p>
             <div className="flex items-center justify-center gap-3">
               <button onClick={() => setActionConfirm(null)} className="h-9 px-4 rounded-lg border border-secondary-500/20 text-sm text-foreground-400 hover:text-foreground-200 transition-all whitespace-nowrap">Cancelar</button>
-              <button onClick={handleAction} className={`h-9 px-4 rounded-lg text-sm font-medium whitespace-nowrap ${actionConfirm.action === 'approve' ? 'bg-primary-600 hover:bg-primary-700' : 'bg-red-600 hover:bg-red-700'} text-white transition-colors`}>
+              <button onClick={handleAction} className={`h-9 px-4 rounded-lg text-sm font-medium whitespace-nowrap ${actionConfirm.action === 'approve' ? 'bg-primary-500 hover:bg-primary-700' : 'bg-red-600 hover:bg-red-700'} text-white transition-colors`}>
                 Confirmar
               </button>
             </div>
