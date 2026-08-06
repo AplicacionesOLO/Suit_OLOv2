@@ -35,14 +35,14 @@ interface AppCategory {
 }
 
 const statusConfig: Record<string, { label: string; dot: string; bg: string; text: string }> = {
-  active: { label: 'Activo', dot: 'bg-emerald-400', bg: 'bg-emerald-500/10', text: 'text-emerald-400' },
+  active: { label: 'Activo', dot: 'bg-primary-400', bg: 'bg-primary-500/10', text: 'text-primary-400' },
   maintenance: { label: 'Mantenimiento', dot: 'bg-amber-400', bg: 'bg-amber-500/10', text: 'text-amber-400' },
   offline: { label: 'Offline', dot: 'bg-red-400', bg: 'bg-red-500/10', text: 'text-red-400' },
   beta: { label: 'Beta', dot: 'bg-violet-400', bg: 'bg-violet-500/10', text: 'text-violet-400' },
 };
 
 const colorMap: Record<string, { bgColor: string; textColor: string; borderColor: string }> = {
-  emerald: { bgColor: 'bg-emerald-500/10', textColor: 'text-emerald-400', borderColor: 'border-emerald-500/20' },
+  emerald: { bgColor: 'bg-primary-500/10', textColor: 'text-primary-400', borderColor: 'border-primary-500/20' },
   cyan: { bgColor: 'bg-cyan-500/10', textColor: 'text-cyan-400', borderColor: 'border-cyan-500/20' },
   amber: { bgColor: 'bg-amber-500/10', textColor: 'text-amber-400', borderColor: 'border-amber-500/20' },
   slate: { bgColor: 'bg-slate-500/10', textColor: 'text-slate-400', borderColor: 'border-slate-500/20' },

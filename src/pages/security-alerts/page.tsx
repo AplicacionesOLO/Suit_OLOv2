@@ -12,7 +12,7 @@ const severityConfig: Record<string, { badgeBg: string; badgeText: string; icon:
 const statusConfig: Record<string, { badgeBg: string; badgeText: string; dot: string }> = {
   open: { badgeBg: 'bg-red-500/10', badgeText: 'text-red-400', dot: 'bg-red-400' },
   investigating: { badgeBg: 'bg-amber-500/10', badgeText: 'text-amber-400', dot: 'bg-amber-400' },
-  resolved: { badgeBg: 'bg-emerald-500/10', badgeText: 'text-emerald-400', dot: 'bg-emerald-400' },
+  resolved: { badgeBg: 'bg-primary-500/10', badgeText: 'text-primary-400', dot: 'bg-primary-400' },
 };
 
 const typeLabels: Record<string, string> = {
@@ -93,7 +93,7 @@ export default function SecurityAlertsPage() {
             { label: 'Alertas activas', value: totalOpen, icon: 'ri-alert-fill', bg: 'bg-red-500/10', text: 'text-red-400' },
             { label: 'Criticas', value: criticalCount, icon: 'ri-error-warning-fill', bg: 'bg-red-500/20', text: 'text-red-300' },
             { label: 'En investigacion', value: alerts.filter((a) => a.status === 'investigating').length, icon: 'ri-search-eye-line', bg: 'bg-amber-500/10', text: 'text-amber-400' },
-            { label: 'Resueltas', value: alerts.filter((a) => a.status === 'resolved').length, icon: 'ri-check-double-line', bg: 'bg-emerald-500/10', text: 'text-emerald-400' },
+            { label: 'Resueltas', value: alerts.filter((a) => a.status === 'resolved').length, icon: 'ri-check-double-line', bg: 'bg-primary-500/10', text: 'text-primary-400' },
           ].map((stat) => (
             <div key={stat.label} className="glass-panel rounded-xl p-4">
               <div className="flex items-center gap-3">
@@ -138,8 +138,8 @@ export default function SecurityAlertsPage() {
           </div>
         ) : alerts.length === 0 ? (
           <div className="glass-panel rounded-2xl p-16 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-5">
-              <i className="ri-check-double-line text-emerald-400 text-2xl"></i>
+            <div className="w-16 h-16 rounded-2xl bg-primary-500/10 border border-primary-500/20 flex items-center justify-center mx-auto mb-5">
+              <i className="ri-check-double-line text-primary-400 text-2xl"></i>
             </div>
             <h3 className="text-sm font-semibold text-foreground-300 mb-2">Todo en orden</h3>
             <p className="text-xs text-foreground-500 max-w-sm mx-auto">No hay alertas que coincidan con los filtros actuales.</p>
@@ -235,7 +235,7 @@ export default function SecurityAlertsPage() {
                           {alert.status !== 'resolved' && (
                             <button
                               onClick={(e) => { e.stopPropagation(); resolve(alert.id); }}
-                              className="h-7 px-3 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition-colors text-2xs font-medium whitespace-nowrap"
+                              className="h-7 px-3 rounded-md bg-primary-500/10 border border-primary-500/20 text-primary-400 hover:bg-primary-500/20 transition-colors text-2xs font-medium whitespace-nowrap"
                             >
                               Marcar resuelta
                             </button>
@@ -254,7 +254,7 @@ export default function SecurityAlertsPage() {
       {/* Alert detail drawer */}
       {selectedAlert && (
         <div className="fixed inset-0 z-50 flex justify-end">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedAlert(null)} />
+          <div className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm" onClick={() => setSelectedAlert(null)} />
           <div className="relative w-full max-w-md bg-background-50 border-l border-secondary-500/10 h-full overflow-y-auto animate-slide-in-right">
             <div className="sticky top-0 z-10 bg-background-50 border-b border-secondary-500/10 p-5 flex items-center justify-between">
               <h2 className="text-base font-semibold text-foreground-200">Detalle de alerta</h2>
@@ -308,7 +308,7 @@ export default function SecurityAlertsPage() {
                     {selectedAlert.status !== 'resolved' && (
                       <button
                         onClick={() => { resolve(selectedAlert.id); setSelectedAlert(null); }}
-                        className="w-full flex items-center justify-center gap-2 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition-colors text-sm font-medium whitespace-nowrap"
+                        className="w-full flex items-center justify-center gap-2 h-10 rounded-lg bg-primary-500/10 border border-primary-500/20 text-primary-400 hover:bg-primary-500/20 transition-colors text-sm font-medium whitespace-nowrap"
                       >
                         <span className="w-4 h-4 flex items-center justify-center"><i className="ri-check-line text-sm"></i></span>
                         Marcar como resuelta

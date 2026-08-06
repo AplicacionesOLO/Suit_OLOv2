@@ -285,8 +285,8 @@ export default function CountriesPage() {
               label: 'Paises activos',
               value: contextCountries.filter((c) => c.status === 'active').length,
               icon: 'ri-checkbox-circle-line',
-              bg: 'bg-emerald-500/10',
-              text: 'text-emerald-400',
+              bg: 'bg-primary-500/10',
+              text: 'text-primary-400',
             },
             {
               label: 'Total almacenes',
@@ -466,13 +466,13 @@ export default function CountriesPage() {
                       <span
                         className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-2xs font-medium border ${
                           country.status === 'active'
-                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                            ? 'bg-primary-500/10 text-primary-400 border-primary-500/20'
                             : 'bg-red-500/10 text-red-400 border-red-500/20'
                         }`}
                       >
                         <span
                           className={`w-1.5 h-1.5 rounded-full ${
-                            country.status === 'active' ? 'bg-emerald-400' : 'bg-red-400'
+                            country.status === 'active' ? 'bg-primary-400' : 'bg-red-400'
                           }`}
                         ></span>
                         {country.status === 'active' ? 'Activo' : 'Inactivo'}
@@ -511,7 +511,7 @@ export default function CountriesPage() {
                           className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
                             country.status === 'active'
                               ? 'text-foreground-500 hover:text-amber-400 hover:bg-amber-500/10'
-                              : 'text-foreground-500 hover:text-emerald-400 hover:bg-emerald-500/10'
+                              : 'text-foreground-500 hover:text-primary-400 hover:bg-primary-500/10'
                           }`}
                           title={
                             country.status === 'active' ? 'Desactivar' : 'Activar'
@@ -556,7 +556,7 @@ export default function CountriesPage() {
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm"
             onClick={() => {
               setShowModal(false);
               resetForm();
@@ -773,13 +773,13 @@ export default function CountriesPage() {
             {selectedCountry && (
               <div className="ml-7 animate-fade-in">
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-xs font-bold text-emerald-400">
+                  <span className="w-5 h-5 rounded-full bg-primary-500/20 border border-primary-500/30 flex items-center justify-center text-xs font-bold text-primary-400">
                     {editing ? '✓' : '3'}
                   </span>
                   <span className="text-sm font-medium text-foreground-300">
                     Datos autocompletados del catalogo ISO
                   </span>
-                  <span className="text-2xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full font-medium ml-auto">
+                  <span className="text-2xs text-primary-400 bg-primary-500/10 border border-primary-500/20 px-2 py-0.5 rounded-full font-medium ml-auto">
                     Verificado
                   </span>
                 </div>
@@ -899,7 +899,7 @@ export default function CountriesPage() {
       {confirmToggle && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm"
             onClick={() => setConfirmToggle(null)}
           />
           <div className="relative glass-panel-strong rounded-2xl w-full max-w-sm p-6 animate-scale-in text-center">
@@ -907,14 +907,14 @@ export default function CountriesPage() {
               className={`w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4 ${
                 confirmToggle.status === 'active'
                   ? 'bg-amber-500/10 border border-amber-500/20'
-                  : 'bg-emerald-500/10 border border-emerald-500/20'
+                  : 'bg-primary-500/10 border border-primary-500/20'
               }`}
             >
               <i
                 className={`${
                   confirmToggle.status === 'active'
                     ? 'ri-toggle-line text-amber-400'
-                    : 'ri-toggle-fill text-emerald-400'
+                    : 'ri-toggle-fill text-primary-400'
                 } text-2xl`}
               ></i>
             </div>
@@ -938,7 +938,7 @@ export default function CountriesPage() {
                 className={`h-9 px-4 rounded-lg text-white transition-colors text-sm font-medium whitespace-nowrap ${
                   confirmToggle.status === 'active'
                     ? 'bg-amber-600 hover:bg-amber-700'
-                    : 'bg-emerald-600 hover:bg-emerald-700'
+                    : 'bg-primary-600 hover:bg-primary-700'
                 }`}
               >
                 {confirmToggle.status === 'active' ? 'Desactivar' : 'Activar'}

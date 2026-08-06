@@ -170,7 +170,7 @@ export default function RolesPage() {
       <div className="animate-fade-in space-y-6">
         {toast && (
           <div className={`fixed top-20 right-6 z-[60] flex items-center gap-3 px-4 py-3 rounded-xl animate-slide-in-right shadow-lg border ${
-            toast.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border-red-500/20 text-red-400'
+            toast.type === 'success' ? 'bg-primary-500/10 border-primary-500/20 text-primary-400' : 'bg-red-500/10 border-red-500/20 text-red-400'
           }`}>
             <span className="w-4 h-4 flex items-center justify-center shrink-0">
               <i className={toast.type === 'success' ? 'ri-check-line' : 'ri-error-warning-line'}></i>
@@ -197,7 +197,7 @@ export default function RolesPage() {
             { label: 'Total roles', value: roles.length, icon: 'ri-shield-user-line', bg: 'bg-primary-500/10', text: 'text-primary-400' },
             { label: 'Sistema', value: roles.filter((r) => r.is_system).length, icon: 'ri-settings-3-line', bg: 'bg-accent-500/10', text: 'text-accent-400' },
             { label: 'Personalizados', value: roles.filter((r) => !r.is_system).length, icon: 'ri-user-settings-line', bg: 'bg-violet-500/10', text: 'text-violet-400' },
-            { label: 'Usuarios asignados', value: roles.reduce((s, r) => s + r.user_count, 0), icon: 'ri-team-line', bg: 'bg-emerald-500/10', text: 'text-emerald-400' },
+            { label: 'Usuarios asignados', value: roles.reduce((s, r) => s + r.user_count, 0), icon: 'ri-team-line', bg: 'bg-primary-500/10', text: 'text-primary-400' },
           ].map((stat) => (
             <div key={stat.label} className="glass-panel rounded-xl p-4">
               <div className="flex items-center gap-3">
@@ -264,7 +264,7 @@ export default function RolesPage() {
                         </span>
                       </td>
                       <td className="px-5 py-3.5">
-                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-2xs font-medium ${role.is_system ? 'bg-primary-500/10 text-primary-400 border border-primary-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'}`}>
+                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-2xs font-medium ${role.is_system ? 'bg-primary-500/10 text-primary-400 border border-primary-500/20' : 'bg-primary-500/10 text-primary-400 border border-primary-500/20'}`}>
                           {role.is_system ? 'Sistema' : 'Personalizado'}
                         </span>
                       </td>
@@ -310,7 +310,7 @@ export default function RolesPage() {
       {/* Create/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowModal(false)} />
+          <div className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm" onClick={() => setShowModal(false)} />
           <div className="relative glass-panel-strong rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6 animate-scale-in">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-foreground-200">{editing ? `Editar: ${formData.name}` : 'Nuevo rol'}</h2>
@@ -333,7 +333,7 @@ export default function RolesPage() {
               </button>
               <button onClick={() => setActiveTab('permissions')} className={`px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap ${activeTab === 'permissions' ? 'bg-primary-500 text-foreground-50' : 'text-foreground-500 hover:text-foreground-300'}`}>
                 Matriz de Permisos
-                {activeCount > 0 && <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-2xs">{activeCount}</span>}
+                {activeCount > 0 && <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-primary-500/20 text-primary-400 text-2xs">{activeCount}</span>}
               </button>
             </div>
 
@@ -433,7 +433,7 @@ export default function RolesPage() {
       {/* Delete confirmation */}
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setConfirmDelete(null)} />
+          <div className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm" onClick={() => setConfirmDelete(null)} />
           <div className="relative glass-panel-strong rounded-2xl w-full max-w-sm p-6 animate-scale-in text-center">
             <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-4">
               <i className="ri-error-warning-line text-red-400 text-2xl"></i>

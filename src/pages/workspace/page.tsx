@@ -153,7 +153,7 @@ export default function WorkspacePage() {
   }, [instanceId]);
 
   const colorMap: Record<string, { bg: string; text: string; border: string }> = {
-    emerald: { bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20' },
+    emerald: { bg: 'bg-primary-500/10', text: 'text-primary-400', border: 'border-primary-500/20' },
     cyan: { bg: 'bg-cyan-500/10', text: 'text-cyan-400', border: 'border-cyan-500/20' },
     amber: { bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20' },
     violet: { bg: 'bg-violet-500/10', text: 'text-violet-400', border: 'border-violet-500/20' },

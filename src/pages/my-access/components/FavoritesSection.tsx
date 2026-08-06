@@ -20,7 +20,7 @@ import { groupApps } from '@/utils/groupApps';
 import type { FavoriteWithDetails } from '@/services/security/favoritesService';
 
 const colorMap: Record<string, { bg: string; text: string; border: string }> = {
-  emerald: { bg: 'bg-emerald-500/20', text: 'text-emerald-600', border: 'border-emerald-500/30' },
+  emerald: { bg: 'bg-primary-500/20', text: 'text-primary-600', border: 'border-primary-500/30' },
   cyan: { bg: 'bg-cyan-500/20', text: 'text-cyan-600', border: 'border-cyan-500/30' },
   amber: { bg: 'bg-amber-500/20', text: 'text-amber-600', border: 'border-amber-500/30' },
   violet: { bg: 'bg-violet-500/20', text: 'text-violet-600', border: 'border-violet-500/30' },

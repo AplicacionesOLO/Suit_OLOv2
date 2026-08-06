@@ -12,7 +12,7 @@ import type { FavoriteWithDetails } from '@/services/security/favoritesService';
 import type { AccessWithDetails } from '@/services/security/accessService';
 
 const colorMap: Record<string, { bg: string; text: string; border: string }> = {
-  emerald: { bg: 'bg-emerald-500/20', text: 'text-emerald-600', border: 'border-emerald-500/30' },
+  emerald: { bg: 'bg-primary-500/20', text: 'text-primary-600', border: 'border-primary-500/30' },
   cyan: { bg: 'bg-cyan-500/20', text: 'text-cyan-600', border: 'border-cyan-500/30' },
   amber: { bg: 'bg-amber-500/20', text: 'text-amber-600', border: 'border-amber-500/30' },
   violet: { bg: 'bg-violet-500/20', text: 'text-violet-600', border: 'border-violet-500/30' },
@@ -250,7 +250,7 @@ export default function MyAccessPage() {
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-700 text-xs font-medium border border-emerald-200">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary-100 text-primary-700 text-xs font-medium border border-primary-200">
               <i className="ri-check-double-line"></i> {activeAccesses.length} Apps
             </span>
             {pendingAccesses.length > 0 && (
@@ -270,8 +270,8 @@ export default function MyAccessPage() {
             onClick={() => setIsScopeExpanded(!isScopeExpanded)}
             className="w-full flex items-center gap-3 px-4 py-3 hover:bg-background-100/50 transition-colors cursor-pointer"
           >
-            <span className="w-8 h-8 rounded-lg bg-emerald-100 border border-emerald-200 flex items-center justify-center shrink-0">
-              <i className="ri-stack-line text-emerald-600 text-sm"></i>
+            <span className="w-8 h-8 rounded-lg bg-primary-100 border border-primary-200 flex items-center justify-center shrink-0">
+              <i className="ri-stack-line text-primary-600 text-sm"></i>
             </span>
             <div className="text-left">
               <h2 className="text-sm font-semibold text-foreground-200">Mis Alcances</h2>
@@ -288,7 +288,7 @@ export default function MyAccessPage() {
             <div className="px-4 pb-4 grid grid-cols-1 sm:grid-cols-3 gap-3 border-t border-secondary-500/15 animate-slide-up">
               <div className="p-3 rounded-lg bg-background-100/70 border border-secondary-500/15">
                 <p className="text-xs font-medium text-foreground-500 mb-2 flex items-center gap-1.5">
-                  <span className="w-4 h-4 flex items-center justify-center text-emerald-600"><i className="ri-global-line text-xs"></i></span>
+                  <span className="w-4 h-4 flex items-center justify-center text-primary-600"><i className="ri-global-line text-xs"></i></span>
                   Países
                 </p>
                 {ctx.accessibleCountries.length === 0 ? (
@@ -297,7 +297,7 @@ export default function MyAccessPage() {
                   <ul className="space-y-1">
                     {ctx.accessibleCountries.map((c) => (
                       <li key={c.id} className="flex items-center gap-2 text-xs text-foreground-300">
-                        <span className={`w-1.5 h-1.5 rounded-full ${c.id === ctx.currentCountryId ? 'bg-emerald-500' : 'bg-emerald-400/50'}`}></span>
+                        <span className={`w-1.5 h-1.5 rounded-full ${c.id === ctx.currentCountryId ? 'bg-primary-500' : 'bg-primary-400/50'}`}></span>
                         {c.name}
                       </li>
                     ))}
@@ -406,7 +406,7 @@ export default function MyAccessPage() {
             {activeAccesses.length > 0 && (
               <section>
                 <h2 className="text-sm font-semibold text-foreground-200 mb-3 flex items-center gap-2">
-                  <i className="ri-check-double-line text-emerald-600"></i>
+                  <i className="ri-check-double-line text-primary-600"></i>
                   Aplicaciones autorizadas
                 </h2>
                 {activeGroups.length === 0 ? (

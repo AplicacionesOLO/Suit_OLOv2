@@ -14,7 +14,7 @@ interface Notification {
 
 const severityIcons: Record<string, { icon: string; color: string; bg: string }> = {
   info: { icon: 'ri-information-line', color: 'text-primary-400', bg: 'bg-primary-500/10' },
-  success: { icon: 'ri-check-line', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+  success: { icon: 'ri-check-line', color: 'text-primary-400', bg: 'bg-primary-500/10' },
   warning: { icon: 'ri-error-warning-line', color: 'text-amber-400', bg: 'bg-amber-500/10' },
   critical: { icon: 'ri-alert-fill', color: 'text-red-400', bg: 'bg-red-500/10' },
 };
@@ -245,7 +245,7 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
                     {/* País */}
                     <div className="px-4 py-2">
                       <label className="block text-2xs font-semibold text-foreground-500 uppercase tracking-wider mb-1.5">
-                        <span className="w-3 h-3 inline-flex items-center justify-center mr-1 text-emerald-400"><i className="ri-global-line text-xs"></i></span>
+                        <span className="w-3 h-3 inline-flex items-center justify-center mr-1 text-primary-400"><i className="ri-global-line text-xs"></i></span>
                         País
                       </label>
                       <select

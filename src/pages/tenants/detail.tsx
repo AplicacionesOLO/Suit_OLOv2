@@ -4,7 +4,7 @@ import AppLayout from '@/components/feature/AppLayout';
 import { fetchTenantById, fetchTenantAuditLogs, type TenantWithCounts, type TenantSettings, type AuditLogEntry } from '@/services/operations/tenantsService';
 
 const statusConfig: Record<string, { label: string; dot: string; badgeBg: string; badgeText: string; border: string }> = {
-  active: { label: 'Activo', dot: 'bg-emerald-400', badgeBg: 'bg-emerald-500/10', badgeText: 'text-emerald-400', border: 'border-emerald-500/20' },
+  active: { label: 'Activo', dot: 'bg-primary-400', badgeBg: 'bg-primary-500/10', badgeText: 'text-primary-400', border: 'border-primary-500/20' },
   suspended: { label: 'Suspendido', dot: 'bg-amber-400', badgeBg: 'bg-amber-500/10', badgeText: 'text-amber-400', border: 'border-amber-500/20' },
   deleted: { label: 'Eliminado', dot: 'bg-red-400', badgeBg: 'bg-red-500/10', badgeText: 'text-red-400', border: 'border-red-500/20' },
 };
@@ -197,7 +197,7 @@ export default function TenantDetailPage() {
               { label: 'Almacenes', value: tenant.warehouse_count, icon: 'ri-store-2-line', bg: 'bg-cyan-500/10', text: 'text-cyan-400', path: '/warehouses' },
               { label: 'Clientes', value: tenant.client_count, icon: 'ri-building-2-line', bg: 'bg-rose-500/10', text: 'text-rose-400', path: '/clients' },
               { label: 'Usuarios', value: tenant.user_count, icon: 'ri-team-line', bg: 'bg-amber-500/10', text: 'text-amber-400', path: '/users' },
-              { label: 'Aplicaciones', value: tenant.instance_count, icon: 'ri-apps-2-line', bg: 'bg-emerald-500/10', text: 'text-emerald-400', path: '/instances' },
+              { label: 'Aplicaciones', value: tenant.instance_count, icon: 'ri-apps-2-line', bg: 'bg-primary-500/10', text: 'text-primary-400', path: '/instances' },
             ].map((stat) => (
               <button key={stat.label} onClick={() => navigate(stat.path)} className="glass-panel rounded-xl p-4 hover:border-secondary-500/20 transition-all text-left cursor-pointer group">
                 <div className="flex items-center gap-3 mb-2">

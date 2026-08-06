@@ -105,10 +105,10 @@ export default function DashboardPage() {
     { label: 'Países activos', value: stats.activeCountries, icon: 'ri-global-line', bg: 'bg-violet-500/10', text: 'text-violet-400', path: '/countries' },
     { label: 'Almacenes', value: stats.activeWarehouses, icon: 'ri-store-2-line', bg: 'bg-cyan-500/10', text: 'text-cyan-400', path: '/warehouses' },
     { label: 'Clientes', value: stats.activeClients, icon: 'ri-building-2-line', bg: 'bg-rose-500/10', text: 'text-rose-400', path: '/clients' },
-    { label: 'Usuarios activos', value: stats.activeUsers, icon: 'ri-team-line', bg: 'bg-emerald-500/10', text: 'text-emerald-400', path: '/users' },
+    { label: 'Usuarios activos', value: stats.activeUsers, icon: 'ri-team-line', bg: 'bg-primary-500/10', text: 'text-primary-400', path: '/users' },
     { label: 'Aplicaciones', value: stats.activeApplications, icon: 'ri-apps-2-line', bg: 'bg-amber-500/10', text: 'text-amber-400', path: '/applications' },
     { label: 'Instancias activas', value: stats.activeInstances, icon: 'ri-server-line', bg: 'bg-accent-500/10', text: 'text-accent-400', path: '/instances' },
-    { label: 'Accesos asignados', value: stats.assignedAccesses, icon: 'ri-check-double-line', bg: 'bg-emerald-500/10', text: 'text-emerald-400', path: '/assignments' },
+    { label: 'Accesos asignados', value: stats.assignedAccesses, icon: 'ri-check-double-line', bg: 'bg-primary-500/10', text: 'text-primary-400', path: '/assignments' },
   ];
 
   const severityBadge = (severity: string) => {

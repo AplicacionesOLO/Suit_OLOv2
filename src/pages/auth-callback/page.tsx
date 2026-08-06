@@ -132,9 +132,11 @@ export default function AuthCallbackPage() {
     <div className="min-h-screen bg-background-50 flex items-center justify-center">
       <div className="text-center space-y-6 max-w-sm mx-auto px-6">
         {/* OLO Brand mark */}
-        <div className="w-14 h-14 rounded-2xl bg-primary-500/12 border border-primary-500/25 flex items-center justify-center mx-auto">
-          <span className="text-primary-500 font-bold text-base tracking-tighter">OLO</span>
-        </div>
+        <img
+          src="https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/c45bb62f-53ee-47ef-b37c-7d43f30597f2_compressed_logo_transparente.webp"
+          alt="OLO Logo"
+          className="w-14 h-14 object-contain mx-auto"
+        />
 
         {/* Spinner — solo cuando está cargando */}
         {!allRetriesExhausted && (

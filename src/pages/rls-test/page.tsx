@@ -316,7 +316,7 @@ export default function RlsTestPage() {
     switch (status) {
       case 'pass':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 whitespace-nowrap">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-primary-500/15 text-primary-400 border border-primary-500/25 whitespace-nowrap">
             <i className="ri-checkbox-circle-fill text-sm"></i>
             PASS
           </span>
@@ -413,8 +413,8 @@ export default function RlsTestPage() {
           <div className="flex items-center gap-3">
             {runComplete && (
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/15">
-                  <span className="text-xs font-semibold text-emerald-400">{passCount} PASS</span>
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary-500/10 border border-primary-500/15">
+                  <span className="text-xs font-semibold text-primary-400">{passCount} PASS</span>
                 </div>
                 {warnCount > 0 && (
                   <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/15">
@@ -499,7 +499,7 @@ export default function RlsTestPage() {
                           ? 'bg-red-500/10 text-red-400'
                           : r.status === 'warning'
                             ? 'bg-amber-500/10 text-amber-400'
-                            : 'bg-emerald-500/10 text-emerald-400'
+                            : 'bg-primary-500/10 text-primary-400'
                       }`}
                     >
                       <i
@@ -530,7 +530,7 @@ export default function RlsTestPage() {
                           <span className="text-[10px] font-medium text-foreground-400 uppercase tracking-wider">Actual</span>
                           <span
                             className={`text-xs font-medium ${
-                              r.status === 'fail' ? 'text-red-400' : r.status === 'warning' ? 'text-amber-400' : 'text-emerald-400'
+                              r.status === 'fail' ? 'text-red-400' : r.status === 'warning' ? 'text-amber-400' : 'text-primary-400'
                             }`}
                           >
                             {r.actual}
@@ -545,7 +545,7 @@ export default function RlsTestPage() {
                         ? 'bg-red-500/10 text-red-400'
                         : r.status === 'warning'
                           ? 'bg-amber-500/10 text-amber-400'
-                          : 'bg-emerald-500/10 text-emerald-400'
+                          : 'bg-primary-500/10 text-primary-400'
                     }`}
                   >
                     {r.rows} rows
@@ -570,7 +570,7 @@ export default function RlsTestPage() {
               </div>
               <div className="flex items-center gap-2">
                 {failCount === 0 && warnCount === 0 ? (
-                  <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1">
+                  <span className="text-xs font-semibold text-primary-400 flex items-center gap-1">
                     <i className="ri-shield-check-fill"></i>
                     Todas las pruebas pasaron
                   </span>

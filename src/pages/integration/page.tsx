@@ -116,7 +116,7 @@ export default function IntegrationPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className={`w-2 h-2 rounded-full ${provider.status === 'configured' ? 'bg-emerald-400' : provider.status === 'pending' ? 'bg-amber-400' : 'bg-secondary-500/40'}`}></span>
+                      <span className={`w-2 h-2 rounded-full ${provider.status === 'configured' ? 'bg-primary-400' : provider.status === 'pending' ? 'bg-amber-400' : 'bg-secondary-500/40'}`}></span>
                       <button className={`text-xs font-medium ${provider.status === 'configured' ? 'text-primary-400 hover:text-primary-300' : 'text-foreground-500 hover:text-foreground-300'} transition-colors`}>
                         {provider.status === 'configured' ? 'Editar' : 'Configurar'}
                       </button>
@@ -195,7 +195,7 @@ export default function IntegrationPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className={`px-2 py-0.5 rounded text-2xs font-medium ${d.status === 'allowed' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}`}>
+                      <span className={`px-2 py-0.5 rounded text-2xs font-medium ${d.status === 'allowed' ? 'bg-primary-500/10 text-primary-400' : 'bg-amber-500/10 text-amber-400'}`}>
                         {d.status === 'allowed' ? 'Permitido' : 'Restringido'}
                       </span>
                       <button className="w-7 h-7 rounded-lg flex items-center justify-center text-foreground-500 hover:text-red-400 hover:bg-red-500/10 transition-all">

@@ -100,7 +100,7 @@ export function groupApps<T extends GroupableItem>(items: T[]): AppGroup<T>[] {
         groups.push({
           label: countryName,
           icon: 'ri-global-line',
-          iconColor: 'text-emerald-600',
+          iconColor: 'text-primary-600',
           items: countryItems,
         });
       }

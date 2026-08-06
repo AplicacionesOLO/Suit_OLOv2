@@ -19,7 +19,7 @@ interface AppCategory {
 
 function getColorStyles(color: string) {
   const map: Record<string, { bgColor: string; textColor: string; borderColor: string }> = {
-    emerald: { bgColor: 'bg-emerald-500/10', textColor: 'text-emerald-400', borderColor: 'border-emerald-500/20' },
+    emerald: { bgColor: 'bg-primary-500/10', textColor: 'text-primary-400', borderColor: 'border-primary-500/20' },
     cyan: { bgColor: 'bg-cyan-500/10', textColor: 'text-cyan-400', borderColor: 'border-cyan-500/20' },
     amber: { bgColor: 'bg-amber-500/10', textColor: 'text-amber-400', borderColor: 'border-amber-500/20' },
     slate: { bgColor: 'bg-slate-500/10', textColor: 'text-slate-400', borderColor: 'border-slate-500/20' },
@@ -172,8 +172,8 @@ export default function CategoriesPage() {
                       <span className="text-sm font-medium text-foreground-300">{cat.appCount}</span>
                     </td>
                     <td className="px-5 py-3.5">
-                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-2xs font-medium ${cat.isActive ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${cat.isActive ? 'bg-emerald-400' : 'bg-red-400'}`}></span>
+                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-2xs font-medium ${cat.isActive ? 'bg-primary-500/10 text-primary-400' : 'bg-red-500/10 text-red-400'}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${cat.isActive ? 'bg-primary-400' : 'bg-red-400'}`}></span>
                         {cat.isActive ? 'Activo' : 'Inactivo'}
                       </span>
                     </td>
@@ -234,7 +234,7 @@ export default function CategoriesPage() {
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowModal(false)} />
+          <div className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm" onClick={() => setShowModal(false)} />
           <div className="relative glass-panel-strong rounded-2xl w-full max-w-lg p-6 animate-scale-in">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-foreground-200">

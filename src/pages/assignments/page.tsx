@@ -16,14 +16,14 @@ import { fetchApplications, fetchInstances, fetchClients, type Application, type
 import { supabase } from '@/services/supabase/client';
 
 const statusCfg: Record<string, { label: string; dot: string; bg: string; text: string }> = {
-  assigned: { label: 'Asignada', dot: 'bg-emerald-400', bg: 'bg-emerald-500/10', text: 'text-emerald-400' },
+  assigned: { label: 'Asignada', dot: 'bg-primary-400', bg: 'bg-primary-500/10', text: 'text-primary-400' },
   pending: { label: 'Pendiente', dot: 'bg-amber-400', bg: 'bg-amber-500/10', text: 'text-amber-400' },
   revoked: { label: 'Revocada', dot: 'bg-red-400', bg: 'bg-red-500/10', text: 'text-red-400' },
   expired: { label: 'Expirada', dot: 'bg-slate-400', bg: 'bg-slate-500/10', text: 'text-slate-400' },
 };
 
 const userStatusCfg: Record<string, { label: string; bg: string; text: string }> = {
-  active: { label: 'Activo', bg: 'bg-emerald-500/10', text: 'text-emerald-400' },
+  active: { label: 'Activo', bg: 'bg-primary-500/10', text: 'text-primary-400' },
   pending_review: { label: 'Revision', bg: 'bg-amber-500/10', text: 'text-amber-400' },
   inactive: { label: 'Inactivo', bg: 'bg-red-500/10', text: 'text-red-400' },
   suspended: { label: 'Suspendido', bg: 'bg-red-500/10', text: 'text-red-400' },
@@ -290,7 +290,7 @@ export default function AssignmentsPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
             { label: 'Total usuarios', value: users.length, icon: 'ri-team-line', bg: 'bg-primary-500/10', text: 'text-primary-400' },
-            { label: 'Activos', value: users.filter((u) => u.status === 'active').length, icon: 'ri-checkbox-circle-line', bg: 'bg-emerald-500/10', text: 'text-emerald-400' },
+            { label: 'Activos', value: users.filter((u) => u.status === 'active').length, icon: 'ri-checkbox-circle-line', bg: 'bg-primary-500/10', text: 'text-primary-400' },
             { label: 'Pendientes', value: users.filter((u) => u.status === 'pending_review').length, icon: 'ri-time-line', bg: 'bg-amber-500/10', text: 'text-amber-400' },
             { label: 'Inactivos', value: users.filter((u) => u.status === 'inactive' || u.status === 'suspended').length, icon: 'ri-close-circle-line', bg: 'bg-red-500/10', text: 'text-red-400' },
           ].map((stat) => (
@@ -411,7 +411,7 @@ export default function AssignmentsPage() {
       {/* User Detail Side Panel */}
       {selectedUser && (
         <div className="fixed inset-0 z-50 flex">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={closeUserDetail} />
+          <div className="absolute inset-0 bg-[#231E20]/50 backdrop-blur-sm" onClick={closeUserDetail} />
           <div className="relative ml-auto w-full max-w-2xl bg-background-50 border-l border-secondary-500/10 overflow-y-auto animate-slide-in-right">
             {/* Header */}
             <div className="sticky top-0 bg-background-50/95 backdrop-blur-sm border-b border-secondary-500/10 px-6 py-5 flex items-center justify-between z-10">
@@ -475,7 +475,7 @@ export default function AssignmentsPage() {
                   </div>
                 )}
                 {assignSuccess && (
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs mb-3">
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary-500/10 border border-primary-500/20 text-primary-400 text-xs mb-3">
                     <span className="w-3.5 h-3.5 flex items-center justify-center"><i className="ri-check-line"></i></span>
                     {assignSuccess}
                   </div>
@@ -594,7 +594,7 @@ export default function AssignmentsPage() {
                               <button
                                 onClick={() => handleReactivate(acc.id)}
                                 disabled={actionLoading === acc.id}
-                                className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all"
+                                className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-primary-400 hover:bg-primary-500/10 transition-all"
                                 title="Reactivar"
                               >
                                 <span className="w-4 h-4 flex items-center justify-center"><i className="ri-refresh-line text-sm"></i></span>

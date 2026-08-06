@@ -3,14 +3,14 @@ import AppLayout from '@/components/feature/AppLayout';
 import { useSessions } from '@/hooks/useSessions';
 
 const statusConfig: Record<string, { badgeBg: string; badgeText: string; dot: string }> = {
-  active: { badgeBg: 'bg-emerald-500/10', badgeText: 'text-emerald-400', dot: 'bg-emerald-400' },
+  active: { badgeBg: 'bg-primary-500/10', badgeText: 'text-primary-400', dot: 'bg-primary-400' },
   inactive: { badgeBg: 'bg-amber-500/10', badgeText: 'text-amber-400', dot: 'bg-amber-400' },
   expired: { badgeBg: 'bg-secondary-500/10', badgeText: 'text-secondary-400', dot: 'bg-secondary-400' },
   revoked: { badgeBg: 'bg-red-500/10', badgeText: 'text-red-400', dot: 'bg-red-400' },
 };
 
 const riskConfig: Record<string, { badgeBg: string; badgeText: string; dot: string }> = {
-  low: { badgeBg: 'bg-emerald-500/10', badgeText: 'text-emerald-400', dot: 'bg-emerald-400' },
+  low: { badgeBg: 'bg-primary-500/10', badgeText: 'text-primary-400', dot: 'bg-primary-400' },
   medium: { badgeBg: 'bg-amber-500/10', badgeText: 'text-amber-400', dot: 'bg-amber-400' },
   high: { badgeBg: 'bg-red-500/10', badgeText: 'text-red-400', dot: 'bg-red-400' },
   critical: { badgeBg: 'bg-red-500/20', badgeText: 'text-red-300', dot: 'bg-red-500' },
@@ -80,7 +80,7 @@ export default function SessionsPage() {
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: 'Sesiones activas', value: activeCount, icon: 'ri-user-follow-line', bg: 'bg-emerald-500/10', text: 'text-emerald-400' },
+            { label: 'Sesiones activas', value: activeCount, icon: 'ri-user-follow-line', bg: 'bg-primary-500/10', text: 'text-primary-400' },
             { label: 'Total sesiones', value: sessions.length, icon: 'ri-group-line', bg: 'bg-primary-500/10', text: 'text-primary-400' },
             { label: 'Riesgo alto/critico', value: criticalCount, icon: 'ri-alert-line', bg: 'bg-red-500/10', text: 'text-red-400' },
             { label: 'Sesiones revocadas', value: sessions.filter((s) => s.status === 'revoked').length, icon: 'ri-shield-flash-line', bg: 'bg-amber-500/10', text: 'text-amber-400' },
@@ -230,7 +230,7 @@ export default function SessionsPage() {
         {/* Session detail drawer */}
         {selectedSession && (
           <div className="fixed inset-0 z-50 flex justify-end">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedSession(null)} />
+            <div className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm" onClick={() => setSelectedSession(null)} />
             <div className="relative w-full max-w-md bg-background-50 border-l border-secondary-500/10 h-full overflow-y-auto animate-slide-in-right">
               <div className="sticky top-0 z-10 bg-background-50 border-b border-secondary-500/10 p-5 flex items-center justify-between">
                 <h2 className="text-base font-semibold text-foreground-200">Detalle de sesion</h2>
@@ -294,7 +294,7 @@ export default function SessionsPage() {
       {/* Confirm action modal */}
       {showConfirm && confirmAction && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowConfirm(false)} />
+          <div className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm" onClick={() => setShowConfirm(false)} />
           <div className="relative glass-panel-strong rounded-2xl w-full max-w-sm p-6 animate-scale-in text-center">
             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4 ${
               confirmAction.type === 'revoke' ? 'bg-red-500/10 border border-red-500/20' : 'bg-amber-500/10 border border-amber-500/20'

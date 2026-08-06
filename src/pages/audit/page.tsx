@@ -5,7 +5,7 @@ import { exportAuditCSV } from '@/services/security/auditService';
 
 const severityConfig: Record<string, { badgeBg: string; badgeText: string; dot: string }> = {
   info: { badgeBg: 'bg-secondary-500/10', badgeText: 'text-secondary-400', dot: 'bg-secondary-400' },
-  low: { badgeBg: 'bg-emerald-500/10', badgeText: 'text-emerald-400', dot: 'bg-emerald-400' },
+  low: { badgeBg: 'bg-primary-500/10', badgeText: 'text-primary-400', dot: 'bg-primary-400' },
   medium: { badgeBg: 'bg-amber-500/10', badgeText: 'text-amber-400', dot: 'bg-amber-400' },
   high: { badgeBg: 'bg-red-500/10', badgeText: 'text-red-400', dot: 'bg-red-400' },
   critical: { badgeBg: 'bg-red-500/20', badgeText: 'text-red-300', dot: 'bg-red-500' },
@@ -122,7 +122,7 @@ export default function AuditPage() {
             { label: 'Eventos criticos', value: stats.critical, icon: 'ri-alert-line', bg: 'bg-red-500/10', text: 'text-red-400' },
             { label: 'Accesos denegados', value: stats.access_denied, icon: 'ri-shield-flash-line', bg: 'bg-amber-500/10', text: 'text-amber-400' },
             { label: 'Cambios de permisos', value: stats.permission_changes, icon: 'ri-key-2-line', bg: 'bg-accent-500/10', text: 'text-accent-400' },
-            { label: 'Logins recientes', value: stats.recent_logins, icon: 'ri-login-box-line', bg: 'bg-emerald-500/10', text: 'text-emerald-400' },
+            { label: 'Logins recientes', value: stats.recent_logins, icon: 'ri-login-box-line', bg: 'bg-primary-500/10', text: 'text-primary-400' },
           ].map((stat) => (
             <div key={stat.label} className="glass-panel rounded-xl p-4">
               <div className="flex items-center gap-3">
@@ -298,7 +298,7 @@ export default function AuditPage() {
       {/* Detail drawer */}
       {selectedLog && (
         <div className="fixed inset-0 z-50 flex justify-end">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedLog(null)} />
+          <div className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm" onClick={() => setSelectedLog(null)} />
           <div className="relative w-full max-w-lg bg-background-50 border-l border-secondary-500/10 h-full overflow-y-auto animate-slide-in-right">
             <div className="sticky top-0 z-10 bg-background-50 border-b border-secondary-500/10 p-5 flex items-center justify-between">
               <h2 className="text-base font-semibold text-foreground-200">Detalle del evento</h2>

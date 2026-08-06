@@ -49,7 +49,7 @@ export default function ProfilePage() {
         </div>
 
         {passwordSuccess && (
-          <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm">
+          <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-primary-500/10 border border-primary-500/20 text-primary-400 text-sm">
             <span className="w-4 h-4 flex items-center justify-center"><i className="ri-check-line"></i></span>
             Contrasena cambiada exitosamente
           </div>
@@ -69,8 +69,8 @@ export default function ProfilePage() {
                 {platformUser?.first_name ? `${platformUser.first_name} ${platformUser.last_name || ''}` : user?.email?.split('@')[0] || 'Usuario'}
               </h2>
               <p className="text-xs text-foreground-500 mt-0.5">{user?.email || ''}</p>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mt-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-medium bg-primary-500/10 text-primary-400 border border-primary-500/20 mt-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary-400"></span>
                 {platformUser?.status || 'active'}
               </span>
             </div>
@@ -154,7 +154,7 @@ export default function ProfilePage() {
       {/* Change password modal */}
       {showPasswordModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowPasswordModal(false)} />
+          <div className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm" onClick={() => setShowPasswordModal(false)} />
           <div className="relative glass-panel-strong rounded-2xl w-full max-w-md p-6 animate-scale-in">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-foreground-200">Cambiar contrasena</h2>

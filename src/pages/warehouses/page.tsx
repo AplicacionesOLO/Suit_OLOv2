@@ -173,8 +173,8 @@ export default function WarehousesPage() {
               label: 'Almacenes activos',
               value: warehouses.filter((w) => w.status === 'active').length,
               icon: 'ri-checkbox-circle-line',
-              bg: 'bg-emerald-500/10',
-              text: 'text-emerald-400',
+              bg: 'bg-primary-500/10',
+              text: 'text-primary-400',
             },
             {
               label: 'Paises cubiertos',
@@ -326,13 +326,13 @@ export default function WarehousesPage() {
                       <span
                         className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-2xs font-medium border ${
                           w.status === 'active'
-                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                            ? 'bg-primary-500/10 text-primary-400 border-primary-500/20'
                             : 'bg-red-500/10 text-red-400 border-red-500/20'
                         }`}
                       >
                         <span
                           className={`w-1.5 h-1.5 rounded-full ${
-                            w.status === 'active' ? 'bg-emerald-400' : 'bg-red-400'
+                            w.status === 'active' ? 'bg-primary-400' : 'bg-red-400'
                           }`}
                         ></span>
                         {w.status === 'active' ? 'Activo' : 'Inactivo'}
@@ -367,7 +367,7 @@ export default function WarehousesPage() {
                             className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
                               w.status === 'active'
                                 ? 'text-foreground-500 hover:text-amber-400 hover:bg-amber-500/10'
-                                : 'text-foreground-500 hover:text-emerald-400 hover:bg-emerald-500/10'
+                                : 'text-foreground-500 hover:text-primary-400 hover:bg-primary-500/10'
                             }`}
                             title={w.status === 'active' ? 'Desactivar' : 'Activar'}
                           >
@@ -411,7 +411,7 @@ export default function WarehousesPage() {
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm"
             onClick={() => setShowModal(false)}
           />
           <div className="relative glass-panel-strong rounded-2xl w-full max-w-lg p-6 animate-scale-in">
@@ -442,7 +442,7 @@ export default function WarehousesPage() {
               {/* CASCADE: País → Tenant */}
               <div className="p-4 rounded-xl bg-background-100/70 border border-secondary-500/10 space-y-3">
                 <p className="text-xs font-medium text-foreground-500 flex items-center gap-1.5">
-                  <span className="w-3.5 h-3.5 flex items-center justify-center text-emerald-400">
+                  <span className="w-3.5 h-3.5 flex items-center justify-center text-primary-400">
                     <i className="ri-stack-line text-xs"></i>
                   </span>
                   Cascada: Pais → Tenant
@@ -450,7 +450,7 @@ export default function WarehousesPage() {
 
                 <div>
                   <label className="block text-xs font-medium text-foreground-400 mb-1.5">
-                    <span className="w-3 h-3 inline-flex items-center justify-center mr-1 text-emerald-400">
+                    <span className="w-3 h-3 inline-flex items-center justify-center mr-1 text-primary-400">
                       <i className="ri-global-line text-xs"></i>
                     </span>
                     Pais
@@ -575,7 +575,7 @@ export default function WarehousesPage() {
       {confirmToggle && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm"
             onClick={() => setConfirmToggle(null)}
           />
           <div className="relative glass-panel-strong rounded-2xl w-full max-w-sm p-6 animate-scale-in text-center">
@@ -583,14 +583,14 @@ export default function WarehousesPage() {
               className={`w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4 ${
                 confirmToggle.status === 'active'
                   ? 'bg-amber-500/10 border border-amber-500/20'
-                  : 'bg-emerald-500/10 border border-emerald-500/20'
+                  : 'bg-primary-500/10 border border-primary-500/20'
               }`}
             >
               <i
                 className={`${
                   confirmToggle.status === 'active'
                     ? 'ri-toggle-line text-amber-400'
-                    : 'ri-toggle-fill text-emerald-400'
+                    : 'ri-toggle-fill text-primary-400'
                 } text-2xl`}
               ></i>
             </div>
@@ -616,7 +616,7 @@ export default function WarehousesPage() {
                 className={`h-9 px-4 rounded-lg text-white transition-colors text-sm font-medium whitespace-nowrap ${
                   confirmToggle.status === 'active'
                     ? 'bg-amber-600 hover:bg-amber-700'
-                    : 'bg-emerald-600 hover:bg-emerald-700'
+                    : 'bg-primary-600 hover:bg-primary-700'
                 }`}
               >
                 {confirmToggle.status === 'active' ? 'Desactivar' : 'Activar'}

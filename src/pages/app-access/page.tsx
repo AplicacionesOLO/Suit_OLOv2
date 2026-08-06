@@ -5,7 +5,7 @@ import { useRoles } from '@/hooks/useRoles';
 import { useSuitePermissions } from '@/hooks/useSuitePermissions';
 
 const statusConfig: Record<string, { label: string; bg: string; text: string; border: string }> = {
-  active: { label: 'Activo', bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20' },
+  active: { label: 'Activo', bg: 'bg-primary-500/10', text: 'text-primary-400', border: 'border-primary-500/20' },
   pending: { label: 'Pendiente', bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20' },
   revoked: { label: 'Revocado', bg: 'bg-red-500/10', text: 'text-red-400', border: 'border-red-500/20' },
   expired: { label: 'Expirado', bg: 'bg-slate-500/10', text: 'text-slate-400', border: 'border-slate-500/20' },
@@ -13,7 +13,7 @@ const statusConfig: Record<string, { label: string; bg: string; text: string; bo
 };
 
 const colorMap: Record<string, { bg: string; text: string; border: string }> = {
-  emerald: { bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20' },
+  emerald: { bg: 'bg-primary-500/10', text: 'text-primary-400', border: 'border-primary-500/20' },
   cyan: { bg: 'bg-cyan-500/10', text: 'text-cyan-400', border: 'border-cyan-500/20' },
   amber: { bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20' },
   violet: { bg: 'bg-violet-500/10', text: 'text-violet-400', border: 'border-violet-500/20' },
@@ -87,7 +87,7 @@ export default function AppAccessPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
             { label: 'Total accesos', value: stats.total, icon: 'ri-key-2-line', bg: 'bg-primary-500/10', text: 'text-primary-400' },
-            { label: 'Activos', value: stats.active, icon: 'ri-check-double-line', bg: 'bg-emerald-500/10', text: 'text-emerald-400' },
+            { label: 'Activos', value: stats.active, icon: 'ri-check-double-line', bg: 'bg-primary-500/10', text: 'text-primary-400' },
             { label: 'Pendientes', value: stats.pending, icon: 'ri-time-line', bg: 'bg-amber-500/10', text: 'text-amber-400' },
             { label: 'Revocados', value: stats.revoked, icon: 'ri-close-circle-line', bg: 'bg-red-500/10', text: 'text-red-400' },
           ].map((stat) => (
@@ -183,7 +183,7 @@ export default function AppAccessPage() {
                           <div className="flex items-center justify-end gap-1">
                             {acc.access_status === 'pending' && can('app-access', 'create') && (
                               <>
-                                <button onClick={() => setActionConfirm({ id: acc.id, action: 'approve' })} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all" title="Aprobar"><span className="w-4 h-4 flex items-center justify-center"><i className="ri-check-line text-sm"></i></span></button>
+                                <button onClick={() => setActionConfirm({ id: acc.id, action: 'approve' })} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-primary-400 hover:bg-primary-500/10 transition-all" title="Aprobar"><span className="w-4 h-4 flex items-center justify-center"><i className="ri-check-line text-sm"></i></span></button>
                                 <button onClick={() => setActionConfirm({ id: acc.id, action: 'deny' })} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-red-400 hover:bg-red-500/10 transition-all" title="Denegar"><span className="w-4 h-4 flex items-center justify-center"><i className="ri-close-line text-sm"></i></span></button>
                               </>
                             )}
@@ -209,7 +209,7 @@ export default function AppAccessPage() {
       {/* Assign modal - placeholder */}
       {showAssignModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowAssignModal(false)} />
+          <div className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm" onClick={() => setShowAssignModal(false)} />
           <div className="relative glass-panel-strong rounded-2xl w-full max-w-lg p-6 animate-scale-in">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-foreground-200">Asignar acceso</h2>
@@ -231,10 +231,10 @@ export default function AppAccessPage() {
       {/* Action confirmation */}
       {actionConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setActionConfirm(null)} />
+          <div className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm" onClick={() => setActionConfirm(null)} />
           <div className="relative glass-panel-strong rounded-2xl w-full max-w-sm p-6 animate-scale-in text-center">
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4 ${actionConfirm.action === 'approve' ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-red-500/10 border border-red-500/20'}`}>
-              <i className={`${actionConfirm.action === 'approve' ? 'ri-check-line text-emerald-400' : actionConfirm.action === 'revoke' ? 'ri-close-circle-line text-red-400' : 'ri-close-line text-red-400'} text-2xl`}></i>
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4 ${actionConfirm.action === 'approve' ? 'bg-primary-500/10 border border-primary-500/20' : 'bg-red-500/10 border border-red-500/20'}`}>
+              <i className={`${actionConfirm.action === 'approve' ? 'ri-check-line text-primary-400' : actionConfirm.action === 'revoke' ? 'ri-close-circle-line text-red-400' : 'ri-close-line text-red-400'} text-2xl`}></i>
             </div>
             <h3 className="text-base font-semibold text-foreground-200 mb-2">
               {actionConfirm.action === 'approve' ? 'Aprobar acceso' : actionConfirm.action === 'revoke' ? 'Revocar acceso' : 'Denegar acceso'}
@@ -244,7 +244,7 @@ export default function AppAccessPage() {
             </p>
             <div className="flex items-center justify-center gap-3">
               <button onClick={() => setActionConfirm(null)} className="h-9 px-4 rounded-lg border border-secondary-500/20 text-sm text-foreground-400 hover:text-foreground-200 transition-all whitespace-nowrap">Cancelar</button>
-              <button onClick={handleAction} className={`h-9 px-4 rounded-lg text-sm font-medium whitespace-nowrap ${actionConfirm.action === 'approve' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'} text-white transition-colors`}>
+              <button onClick={handleAction} className={`h-9 px-4 rounded-lg text-sm font-medium whitespace-nowrap ${actionConfirm.action === 'approve' ? 'bg-primary-600 hover:bg-primary-700' : 'bg-red-600 hover:bg-red-700'} text-white transition-colors`}>
                 Confirmar
               </button>
             </div>

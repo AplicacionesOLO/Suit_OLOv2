@@ -21,10 +21,10 @@ const statusConfig: Record<
 > = {
   active: {
     label: 'Activo',
-    dot: 'bg-emerald-400',
-    badgeBg: 'bg-emerald-500/10',
-    badgeText: 'text-emerald-400',
-    border: 'border-emerald-500/20',
+    dot: 'bg-primary-400',
+    badgeBg: 'bg-primary-500/10',
+    badgeText: 'text-primary-400',
+    border: 'border-primary-500/20',
   },
   suspended: {
     label: 'Suspendido',
@@ -351,8 +351,8 @@ export default function TenantsPage() {
               label: 'Activos',
               value: activeTenants.length,
               icon: 'ri-checkbox-circle-line',
-              bg: 'bg-emerald-500/10',
-              text: 'text-emerald-400',
+              bg: 'bg-primary-500/10',
+              text: 'text-primary-400',
             },
             {
               label: 'Suspendidos',
@@ -509,7 +509,7 @@ export default function TenantsPage() {
                               t.country_names.map((cn) => (
                                 <span
                                   key={cn}
-                                  className="inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                  className="inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-medium bg-primary-500/10 text-primary-400 border border-primary-500/20"
                                 >
                                   {cn}
                                 </span>
@@ -581,7 +581,7 @@ export default function TenantsPage() {
                             {t.status === 'suspended' && can('tenants', 'update') && (
                               <button
                                 onClick={() => activateTenant(t.id)}
-                                className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all"
+                                className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-primary-400 hover:bg-primary-500/10 transition-all"
                                 title="Activar"
                               >
                                 <span className="w-4 h-4 flex items-center justify-center">
@@ -631,7 +631,7 @@ export default function TenantsPage() {
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm"
             onClick={() => setShowModal(false)}
           />
           <div className="relative glass-panel-strong rounded-2xl w-full max-w-xl p-6 animate-scale-in max-h-[90vh] overflow-y-auto">
@@ -945,7 +945,7 @@ export default function TenantsPage() {
           return (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
               <div
-                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm"
                 onClick={() => setDetailTarget(null)}
               />
               <div className="relative glass-panel-strong rounded-2xl w-full max-w-lg p-6 animate-scale-in max-h-[90vh] overflow-y-auto">
@@ -982,7 +982,7 @@ export default function TenantsPage() {
                       {dt.country_names.map((cn) => (
                         <span
                           key={cn}
-                          className="inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                          className="inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-medium bg-primary-500/10 text-primary-400 border border-primary-500/20"
                         >
                           {cn}
                         </span>
@@ -1094,7 +1094,7 @@ export default function TenantsPage() {
       {suspendTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm"
             onClick={() => setSuspendTarget(null)}
           />
           <div className="relative glass-panel-strong rounded-2xl w-full max-w-sm p-6 animate-scale-in text-center">
@@ -1131,7 +1131,7 @@ export default function TenantsPage() {
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm"
             onClick={() => setDeleteTarget(null)}
           />
           <div className="relative glass-panel-strong rounded-2xl w-full max-w-sm p-6 animate-scale-in text-center">

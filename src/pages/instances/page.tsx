@@ -49,7 +49,7 @@ interface AppInstance {
 }
 
 const statusConfig: Record<string, { label: string; dot: string; bg: string; text: string }> = {
-  active: { label: 'Activa', dot: 'bg-emerald-400', bg: 'bg-emerald-500/10', text: 'text-emerald-400' },
+  active: { label: 'Activa', dot: 'bg-primary-400', bg: 'bg-primary-500/10', text: 'text-primary-400' },
   inactive: { label: 'Inactiva', dot: 'bg-red-400', bg: 'bg-red-500/10', text: 'text-red-400' },
   deploying: { label: 'Desplegando', dot: 'bg-amber-400', bg: 'bg-amber-500/10', text: 'text-amber-400' },
 };
@@ -301,7 +301,7 @@ export default function InstancesPage() {
     <AppLayout>
       <div className="animate-fade-in space-y-6">
         {toast && (
-          <div className={`fixed top-6 right-6 z-[100] px-4 py-3 rounded-xl text-sm font-medium shadow-lg animate-slide-up flex items-center gap-3 ${toast.type === 'success' ? 'bg-emerald-500/95 text-white' : 'bg-red-500/95 text-white'}`}>
+          <div className={`fixed top-6 right-6 z-[100] px-4 py-3 rounded-xl text-sm font-medium shadow-lg animate-slide-up flex items-center gap-3 ${toast.type === 'success' ? 'bg-primary-500/95 text-white' : 'bg-red-500/95 text-white'}`}>
             <span className="w-4 h-4 flex items-center justify-center"><i className={`${toast.type === 'success' ? 'ri-check-line' : 'ri-error-warning-line'} text-base`}></i></span>
             {toast.message}
             <button onClick={() => setToast(null)} className="w-5 h-5 flex items-center justify-center hover:bg-white/20 rounded-full transition-colors ml-1"><i className="ri-close-line text-xs"></i></button>
@@ -396,7 +396,7 @@ export default function InstancesPage() {
                             </>
                           )}
                           {isDeleted && can('instances', 'delete') && (
-                            <button onClick={async () => { const { error } = await restoreInstance(inst.id); if (!error) { showToast('Instancia restaurada', 'success'); loadData(); } else showToast(error, 'error'); }} className="flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-2xs font-medium text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 transition-all cursor-pointer whitespace-nowrap"><span className="w-3.5 h-3.5 flex items-center justify-center"><i className="ri-refresh-line text-xs"></i></span> Restaurar</button>
+                            <button onClick={async () => { const { error } = await restoreInstance(inst.id); if (!error) { showToast('Instancia restaurada', 'success'); loadData(); } else showToast(error, 'error'); }} className="flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-2xs font-medium text-primary-400 bg-primary-500/10 hover:bg-primary-500/20 transition-all cursor-pointer whitespace-nowrap"><span className="w-3.5 h-3.5 flex items-center justify-center"><i className="ri-refresh-line text-xs"></i></span> Restaurar</button>
                           )}
                         </div>
                       </td>
@@ -415,7 +415,7 @@ export default function InstancesPage() {
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowModal(false)} />
+          <div className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm" onClick={() => setShowModal(false)} />
           <div className="relative glass-panel-strong rounded-2xl w-full max-w-lg p-6 animate-scale-in max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-foreground-200">{isEditing ? 'Editar instancia' : 'Nueva instancia'}</h2>

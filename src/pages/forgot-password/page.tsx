@@ -41,9 +41,11 @@ export default function ForgotPasswordPage() {
       <div className="flex-1 flex items-center justify-center p-6 relative z-10">
         <div className="w-full max-w-[420px] animate-slide-up">
           <div className="flex items-center gap-3 mb-10 justify-center">
-            <div className="w-9 h-9 rounded-xl bg-primary-500/15 border border-primary-500/25 flex items-center justify-center glow-primary">
-              <span className="text-primary-400 font-bold text-xs tracking-tighter">OLO</span>
-            </div>
+            <img
+              src="https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/c45bb62f-53ee-47ef-b37c-7d43f30597f2_compressed_logo_transparente.webp"
+              alt="OLO Logo"
+              className="w-9 h-9 object-contain shrink-0"
+            />
             <span className="text-foreground-100 font-bold text-lg tracking-tight">Suite OLO</span>
           </div>
 

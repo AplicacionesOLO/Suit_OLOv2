@@ -27,7 +27,7 @@ import {
 } from '@/services/applications/applicationsService';
 
 const statusConfig: Record<string, { label: string; dot: string; badgeBg: string; badgeText: string }> = {
-  active: { label: 'Activo', dot: 'bg-emerald-400', badgeBg: 'bg-emerald-500/10', badgeText: 'text-emerald-400' },
+  active: { label: 'Activo', dot: 'bg-primary-400', badgeBg: 'bg-primary-500/10', badgeText: 'text-primary-400' },
   maintenance: { label: 'Mantenimiento', dot: 'bg-amber-400', badgeBg: 'bg-amber-500/10', badgeText: 'text-amber-400' },
   offline: { label: 'Offline', dot: 'bg-red-400', badgeBg: 'bg-red-500/10', badgeText: 'text-red-400' },
   beta: { label: 'Beta', dot: 'bg-violet-400', badgeBg: 'bg-violet-500/10', badgeText: 'text-violet-400' },
@@ -101,7 +101,7 @@ const emptyForm: FormData = {
 };
 
 const colorMap: Record<string, { bgColor: string; textColor: string; borderColor: string }> = {
-  emerald: { bgColor: 'bg-emerald-500/10', textColor: 'text-emerald-400', borderColor: 'border-emerald-500/20' },
+  emerald: { bgColor: 'bg-primary-500/10', textColor: 'text-primary-400', borderColor: 'border-primary-500/20' },
   cyan: { bgColor: 'bg-cyan-500/10', textColor: 'text-cyan-400', borderColor: 'border-cyan-500/20' },
   amber: { bgColor: 'bg-amber-500/10', textColor: 'text-amber-400', borderColor: 'border-amber-500/20' },
   slate: { bgColor: 'bg-slate-500/10', textColor: 'text-slate-400', borderColor: 'border-slate-500/20' },
@@ -380,7 +380,7 @@ export default function ApplicationsPage() {
       <div className="animate-fade-in space-y-6">
         {toast && (
           <div className={`fixed top-6 right-6 z-[100] px-4 py-3 rounded-xl text-sm font-medium shadow-lg animate-slide-up flex items-center gap-3 ${
-            toast.type === 'success' ? 'bg-emerald-500/95 text-white' : 'bg-red-500/95 text-white'
+            toast.type === 'success' ? 'bg-primary-500/95 text-white' : 'bg-red-500/95 text-white'
           }`}>
             <span className="w-4 h-4 flex items-center justify-center">
               <i className={`${toast.type === 'success' ? 'ri-check-line' : 'ri-error-warning-line'} text-base`}></i>
@@ -485,7 +485,7 @@ export default function ApplicationsPage() {
                             </>
                           )}
                           {isDeleted && can('applications', 'delete') && (
-                            <button onClick={() => handleDelete(app)} className="flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-2xs font-medium text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 transition-all cursor-pointer whitespace-nowrap">
+                            <button onClick={() => handleDelete(app)} className="flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-2xs font-medium text-primary-400 bg-primary-500/10 hover:bg-primary-500/20 transition-all cursor-pointer whitespace-nowrap">
                               <span className="w-3.5 h-3.5 flex items-center justify-center"><i className="ri-refresh-line text-xs"></i></span> Restaurar
                             </button>
                           )}
@@ -532,7 +532,7 @@ export default function ApplicationsPage() {
 
         {showModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowModal(false)} />
+            <div className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm" onClick={() => setShowModal(false)} />
             <div className="relative glass-panel-strong rounded-2xl w-full max-w-lg p-6 animate-scale-in max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-semibold text-foreground-200">{editingId ? 'Editar aplicación' : 'Nueva aplicación'}</h2>
@@ -634,7 +634,7 @@ export default function ApplicationsPage() {
                     <label className="block text-xs font-medium text-foreground-400 mb-1.5">Color</label>
                     <div className="flex items-center gap-2 flex-wrap">
                       {colorOptions.map((c) => (
-                        <button key={c} onClick={() => setForm({ ...form, color: c })} className={`w-8 h-8 rounded-full border-2 transition-all cursor-pointer ${form.color === c ? 'border-foreground-300 scale-110' : 'border-transparent'}`} style={{ backgroundColor: ({ emerald: '#10b981', cyan: '#06b6d4', amber: '#f59e0b', violet: '#8b5cf6', rose: '#f43f5e', indigo: '#6366f1', slate: '#64748b', red: '#ef4444' } as Record<string, string>)[c] }} title={c} />
+                        <button key={c} onClick={() => setForm({ ...form, color: c })} className={`w-8 h-8 rounded-full border-2 transition-all cursor-pointer ${form.color === c ? 'border-foreground-300 scale-110' : 'border-transparent'}`} style={{ backgroundColor: ({ emerald: '#00C3AE', cyan: '#06b6d4', amber: '#f59e0b', violet: '#8b5cf6', rose: '#f43f5e', indigo: '#6366f1', slate: '#64748b', red: '#ef4444' } as Record<string, string>)[c] }} title={c} />
                       ))}
                     </div>
                   </div>

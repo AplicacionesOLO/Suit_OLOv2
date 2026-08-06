@@ -64,7 +64,7 @@ export default function SecuritySettingsPage() {
           </div>
           <div className="flex items-center gap-2">
             {success && (
-              <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
+              <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary-500/10 border border-primary-500/20 text-primary-400 text-xs font-medium">
                 <span className="w-3.5 h-3.5 flex items-center justify-center"><i className="ri-check-line text-sm"></i></span>
                 Guardado
               </span>
@@ -104,12 +104,12 @@ export default function SecuritySettingsPage() {
               return (
                 <div key={check.key} className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
                   passed
-                    ? 'border-emerald-500/20 bg-emerald-500/5'
+                    ? 'border-primary-500/20 bg-primary-500/5'
                     : check.critical
                       ? 'border-red-500/20 bg-red-500/5'
                       : 'border-amber-500/20 bg-amber-500/5'
                 }`}>
-                  <span className={`w-5 h-5 flex items-center justify-center ${passed ? 'text-emerald-400' : check.critical ? 'text-red-400' : 'text-amber-400'}`}>
+                  <span className={`w-5 h-5 flex items-center justify-center ${passed ? 'text-primary-400' : check.critical ? 'text-red-400' : 'text-amber-400'}`}>
                     <i className={`${passed ? 'ri-checkbox-circle-line' : 'ri-close-circle-line'} text-base`}></i>
                   </span>
                   <div>
@@ -260,7 +260,7 @@ export default function SecuritySettingsPage() {
       {/* Confirm dialog for critical changes */}
       {showConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowConfirm(false)} />
+          <div className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm" onClick={() => setShowConfirm(false)} />
           <div className="relative glass-panel-strong rounded-2xl w-full max-w-md p-6 animate-scale-in">
             <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto mb-4">
               <i className="ri-alert-line text-amber-400 text-2xl"></i>
@@ -293,7 +293,7 @@ function ToggleRow({ label, value, onChange, disabled }: { label: string; value:
       <button
         onClick={() => !disabled && onChange(!value)}
         disabled={disabled}
-        className={`relative w-10 h-5 rounded-full transition-colors ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${value ? 'bg-emerald-500' : 'bg-secondary-500/40'}`}
+        className={`relative w-10 h-5 rounded-full transition-colors ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${value ? 'bg-primary-500' : 'bg-secondary-500/40'}`}
       >
         <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-foreground-50 transition-transform ${value ? 'translate-x-5' : 'translate-x-0.5'}`}></span>
       </button>

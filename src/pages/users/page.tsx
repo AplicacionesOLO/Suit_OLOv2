@@ -195,7 +195,7 @@ export default function UsersPage() {
 
   const statusBadge = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+      case 'active': return 'bg-primary-500/10 text-primary-400 border-primary-500/20';
       case 'pending': return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
       case 'pending_review': return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
       case 'inactive': return 'bg-red-500/10 text-red-400 border-red-500/20';
@@ -231,7 +231,7 @@ export default function UsersPage() {
       <div className="animate-fade-in space-y-6">
         {toast && (
           <div className={`fixed top-20 right-6 z-[60] flex items-center gap-3 px-4 py-3 rounded-xl animate-slide-in-right shadow-lg border ${
-            toast.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border-red-500/20 text-red-400'
+            toast.type === 'success' ? 'bg-primary-500/10 border-primary-500/20 text-primary-400' : 'bg-red-500/10 border-red-500/20 text-red-400'
           }`}>
             <span className="w-4 h-4 flex items-center justify-center shrink-0">
               <i className={toast.type === 'success' ? 'ri-check-line' : 'ri-error-warning-line'}></i>
@@ -265,7 +265,7 @@ export default function UsersPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {[
-            { label: 'Usuarios activos', value: users.filter((u) => u.status === 'active').length, icon: 'ri-checkbox-circle-line', bg: 'bg-emerald-500/10', textColor: 'text-emerald-400' },
+            { label: 'Usuarios activos', value: users.filter((u) => u.status === 'active').length, icon: 'ri-checkbox-circle-line', bg: 'bg-primary-500/10', textColor: 'text-primary-400' },
             { label: 'Pendientes revision', value: users.filter((u) => u.status === 'pending_review').length, icon: 'ri-time-line', bg: 'bg-amber-500/10', textColor: 'text-amber-400' },
             { label: 'Invitaciones enviadas', value: invitations.length, icon: 'ri-mail-send-line', bg: 'bg-accent-500/10', textColor: 'text-accent-400' },
             { label: 'Super Admins', value: users.filter((u) => (u.role_level || 0) >= 100).length, icon: 'ri-shield-star-line', bg: 'bg-red-500/10', textColor: 'text-red-400' },
@@ -499,7 +499,7 @@ export default function UsersPage() {
       {/* Invite Modal */}
       {showInviteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => { setShowInviteModal(false); resetInviteForm(); }} />
+          <div className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm" onClick={() => { setShowInviteModal(false); resetInviteForm(); }} />
           <div className="relative glass-panel-strong rounded-2xl w-full max-w-xl p-6 animate-scale-in max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-foreground-200">Enviar invitacion</h2>
@@ -712,7 +712,7 @@ export default function UsersPage() {
       {/* Delete User Modal */}
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setConfirmDelete(null)} />
+          <div className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm" onClick={() => setConfirmDelete(null)} />
           <div className="relative glass-panel-strong rounded-2xl w-full max-w-sm p-6 animate-scale-in text-center">
             <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-4">
               <i className="ri-delete-bin-line text-red-400 text-2xl"></i>
@@ -733,7 +733,7 @@ export default function UsersPage() {
       {/* Revoke Invitation Modal */}
       {confirmRevoke && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setConfirmRevoke(null)} />
+          <div className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm" onClick={() => setConfirmRevoke(null)} />
           <div className="relative glass-panel-strong rounded-2xl w-full max-w-sm p-6 animate-scale-in text-center">
             <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto mb-4">
               <i className="ri-close-circle-line text-amber-400 text-2xl"></i>
