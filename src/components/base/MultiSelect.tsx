@@ -72,11 +72,11 @@ export default function MultiSelect({
         type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
-        className={`w-full h-10 bg-background-100 border rounded-lg px-3 text-sm text-left flex items-center justify-between gap-2 outline-none transition-all ${
+        className={`w-full h-10 bg-background-100 border rounded-lg px-3 text-sm text-left flex items-center justify-between gap-2 outline-none transition-all duration-150 ${
           disabled
             ? 'border-secondary-500/20 opacity-40 cursor-not-allowed'
             : isOpen
-              ? 'border-primary-500/40 ring-1 ring-primary-500/15'
+              ? 'border-primary-500 ring-1 ring-primary-500/15'
               : 'border-secondary-500/20 hover:border-secondary-500/40'
         }`}
       >
@@ -95,7 +95,7 @@ export default function MultiSelect({
       </button>
 
       {isOpen && !disabled && (
-        <div className="absolute left-0 right-0 top-full mt-1 z-50 glass-panel-strong rounded-xl animate-scale-in overflow-hidden max-h-72 flex flex-col">
+        <div className="absolute left-0 right-0 top-full mt-1 z-50 glass-panel-strong rounded-2xl animate-scale-in overflow-hidden max-h-72 flex flex-col">
           <div className="px-3 py-2 border-b border-secondary-500/10">
             <div className="relative">
               <span className="absolute left-2 top-1/2 -translate-y-1/2 text-foreground-500 w-3.5 h-3.5 flex items-center justify-center">
@@ -106,7 +106,7 @@ export default function MultiSelect({
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={searchPlaceholder}
-                className="w-full h-8 bg-background-100 border border-secondary-500/20 rounded-md pl-7 pr-2 text-xs text-foreground-300 placeholder:text-foreground-600 outline-none focus:border-primary-500/40"
+                className="w-full h-8 bg-background-100 border border-secondary-500/20 rounded-md pl-7 pr-2 text-xs text-foreground-300 placeholder:text-foreground-600 outline-none focus:border-primary-500"
               />
             </div>
           </div>
@@ -115,14 +115,14 @@ export default function MultiSelect({
             <button
               type="button"
               onClick={selectAll}
-              className="text-2xs text-primary-400 hover:text-primary-300 font-medium px-2 py-0.5 rounded hover:bg-primary-500/10 transition-colors whitespace-nowrap"
+              className="text-2xs text-primary-400 hover:text-primary-300 font-850 px-2 py-0.5 rounded hover:bg-primary-500/10 transition-colors whitespace-nowrap"
             >
               Todos
             </button>
             <button
               type="button"
               onClick={clearAll}
-              className="text-2xs text-foreground-500 hover:text-foreground-300 font-medium px-2 py-0.5 rounded hover:bg-background-200/50 transition-colors whitespace-nowrap"
+              className="text-2xs text-foreground-500 hover:text-foreground-300 font-850 px-2 py-0.5 rounded hover:bg-background-200/50 transition-colors whitespace-nowrap"
             >
               Limpiar
             </button>
@@ -139,7 +139,7 @@ export default function MultiSelect({
                     key={opt.id}
                     type="button"
                     onClick={() => toggle(opt.id)}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left transition-colors ${
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left transition-colors duration-150 ${
                       isSel
                         ? 'text-primary-400 bg-primary-500/5'
                         : 'text-foreground-400 hover:text-foreground-200 hover:bg-background-200/50'

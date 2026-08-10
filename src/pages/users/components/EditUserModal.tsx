@@ -354,7 +354,7 @@ export default function EditUserModal({ user, isOpen, onClose, onSaved, onEditUs
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4">
-      <div className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative glass-panel-strong rounded-none sm:rounded-2xl w-full sm:max-w-6xl h-full sm:max-h-[92vh] flex flex-col animate-scale-in overflow-hidden">
         {/* Toast */}
         {toast && (

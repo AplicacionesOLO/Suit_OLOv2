@@ -298,7 +298,7 @@ export default function AuditPage() {
       {/* Detail drawer */}
       {selectedLog && (
         <div className="fixed inset-0 z-50 flex justify-end">
-          <div className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm" onClick={() => setSelectedLog(null)} />
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedLog(null)} />
           <div className="relative w-full max-w-lg bg-background-50 border-l border-secondary-500/10 h-full overflow-y-auto animate-slide-in-right">
             <div className="sticky top-0 z-10 bg-background-50 border-b border-secondary-500/10 p-5 flex items-center justify-between">
               <h2 className="text-base font-semibold text-foreground-200">Detalle del evento</h2>

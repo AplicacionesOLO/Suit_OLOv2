@@ -230,7 +230,7 @@ export default function SessionsPage() {
         {/* Session detail drawer */}
         {selectedSession && (
           <div className="fixed inset-0 z-50 flex justify-end">
-            <div className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm" onClick={() => setSelectedSession(null)} />
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedSession(null)} />
             <div className="relative w-full max-w-md bg-background-50 border-l border-secondary-500/10 h-full overflow-y-auto animate-slide-in-right">
               <div className="sticky top-0 z-10 bg-background-50 border-b border-secondary-500/10 p-5 flex items-center justify-between">
                 <h2 className="text-base font-semibold text-foreground-200">Detalle de sesion</h2>
@@ -294,7 +294,7 @@ export default function SessionsPage() {
       {/* Confirm action modal */}
       {showConfirm && confirmAction && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm" onClick={() => setShowConfirm(false)} />
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowConfirm(false)} />
           <div className="relative glass-panel-strong rounded-2xl w-full max-w-sm p-6 animate-scale-in text-center">
             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4 ${
               confirmAction.type === 'revoke' ? 'bg-red-500/10 border border-red-500/20' : 'bg-amber-500/10 border border-amber-500/20'

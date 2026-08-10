@@ -310,7 +310,7 @@ export default function RolesPage() {
       {/* Create/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm" onClick={() => setShowModal(false)} />
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowModal(false)} />
           <div className="relative glass-panel-strong rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6 animate-scale-in">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-foreground-200">{editing ? `Editar: ${formData.name}` : 'Nuevo rol'}</h2>
@@ -433,7 +433,7 @@ export default function RolesPage() {
       {/* Delete confirmation */}
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm" onClick={() => setConfirmDelete(null)} />
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setConfirmDelete(null)} />
           <div className="relative glass-panel-strong rounded-2xl w-full max-w-sm p-6 animate-scale-in text-center">
             <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-4">
               <i className="ri-error-warning-line text-red-400 text-2xl"></i>

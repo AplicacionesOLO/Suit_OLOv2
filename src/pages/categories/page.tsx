@@ -234,7 +234,7 @@ export default function CategoriesPage() {
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm" onClick={() => setShowModal(false)} />
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowModal(false)} />
           <div className="relative glass-panel-strong rounded-2xl w-full max-w-lg p-6 animate-scale-in">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-foreground-200">
