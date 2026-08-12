@@ -1,6 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/feature/AppLayout';
-import { fetchCategories, type AppCategory as SupaCategory } from '@/services/applications/applicationsService';
+import {
+  fetchCategories,
+  createCategory,
+  updateCategory,
+  softDeleteCategory,
+  type AppCategory as SupaCategory,
+} from '@/services/applications/applicationsService';
 import { useSuitePermissions } from '@/hooks/useSuitePermissions';
 
 interface AppCategory {
@@ -16,6 +22,20 @@ interface AppCategory {
   isActive: boolean;
   appCount: number;
 }
+
+interface CategoryForm {
+  name: string;
+  code: string;
+  description: string;
+  isActive: boolean;
+}
+
+const EMPTY_FORM: CategoryForm = {
+  name: '',
+  code: '',
+  description: '',
+  isActive: true,
+};
 
 function getColorStyles(color: string) {
   const map: Record<string, { bgColor: string; textColor: string; borderColor: string }> = {
@@ -52,18 +72,39 @@ export default function CategoriesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState<AppCategory | null>(null);
+  const [form, setForm] = useState<CategoryForm>(EMPTY_FORM);
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AppCategory | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [catList, setCatList] = useState<AppCategory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const { can } = useSuitePermissions();
+
+  const showToast = useCallback((type: 'success' | 'error', message: string) => {
+    setToast({ type, message });
+  }, []);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   const loadData = useCallback(async () => {
     try {
+      setLoading(true);
+      setLoadError(null);
       const result = await fetchCategories();
-      if (result.data.length > 0) {
+      if (result.error) {
+        setLoadError(result.error);
+      } else {
         setCatList(result.data.map(mapSupaCat));
       }
-    } catch {
-      // silently handle errors
+    } catch (err: any) {
+      setLoadError(err?.message || 'Error al cargar categorías');
     } finally {
       setLoading(false);
     }
@@ -79,18 +120,94 @@ export default function CategoriesPage() {
       c.code.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleDelete = (id: string) => {
-    setCatList((prev) => prev.filter((c) => c.id !== id));
-  };
-
   const openEdit = (cat: AppCategory) => {
     setEditingCategory(cat);
+    setForm({
+      name: cat.name,
+      code: cat.code,
+      description: cat.description,
+      isActive: cat.isActive,
+    });
+    setFormError(null);
     setShowModal(true);
   };
 
   const openCreate = () => {
     setEditingCategory(null);
+    setForm(EMPTY_FORM);
+    setFormError(null);
     setShowModal(true);
+  };
+
+  const closeModal = () => {
+    if (submitting) return;
+    setShowModal(false);
+    setFormError(null);
+  };
+
+  const handleSubmit = async () => {
+    const name = form.name.trim();
+    const code = form.code.trim();
+
+    if (!name) {
+      setFormError('El nombre es obligatorio.');
+      return;
+    }
+    if (!code) {
+      setFormError('El código es obligatorio.');
+      return;
+    }
+
+    setSubmitting(true);
+    setFormError(null);
+
+    if (editingCategory) {
+      const { error } = await updateCategory(editingCategory.id, {
+        name,
+        code,
+        description: form.description,
+        is_active: form.isActive,
+      });
+      if (error) {
+        setFormError(error);
+        setSubmitting(false);
+        return;
+      }
+      showToast('success', 'Categoría actualizada correctamente.');
+    } else {
+      const { error } = await createCategory({
+        name,
+        code,
+        description: form.description,
+        is_active: form.isActive,
+      });
+      if (error) {
+        setFormError(error);
+        setSubmitting(false);
+        return;
+      }
+      showToast('success', 'Categoría creada correctamente.');
+    }
+
+    setSubmitting(false);
+    setShowModal(false);
+    setFormError(null);
+    await loadData();
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    const { error } = await softDeleteCategory(deleteTarget.id);
+    setDeleting(false);
+    setDeleteTarget(null);
+
+    if (error) {
+      showToast('error', error);
+      return;
+    }
+    showToast('success', 'Categoría eliminada correctamente.');
+    await loadData();
   };
 
   if (loading) {
@@ -107,6 +224,31 @@ export default function CategoriesPage() {
   return (
     <AppLayout>
       <div className="animate-fade-in space-y-6">
+        {toast && (
+          <div
+            className={`flex items-center justify-between gap-3 rounded-lg px-4 py-3 text-sm border ${
+              toast.type === 'success'
+                ? 'bg-primary-500/10 border-primary-500/25 text-primary-300'
+                : 'bg-red-500/10 border-red-500/25 text-red-400'
+            }`}
+          >
+            <span className="flex items-center gap-2">
+              <span className="w-4 h-4 flex items-center justify-center">
+                <i className={`${toast.type === 'success' ? 'ri-checkbox-circle-line' : 'ri-error-warning-line'} text-base`}></i>
+              </span>
+              {toast.message}
+            </span>
+            <button
+              onClick={() => setToast(null)}
+              className="w-6 h-6 rounded flex items-center justify-center hover:bg-background-200/50 transition-colors"
+            >
+              <span className="w-4 h-4 flex items-center justify-center">
+                <i className="ri-close-line text-sm"></i>
+              </span>
+            </button>
+          </div>
+        )}
+
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-xl font-bold text-foreground-100">Categorías de Aplicaciones</h1>
@@ -140,6 +282,18 @@ export default function CategoriesPage() {
               />
             </div>
           </div>
+
+          {loadError && (
+            <div className="px-5 py-4 bg-red-500/10 border-b border-red-500/20 flex items-center justify-between gap-3">
+              <span className="text-sm text-red-400">{loadError}</span>
+              <button
+                onClick={loadData}
+                className="h-8 px-3 rounded-lg border border-red-500/30 text-red-400 text-sm hover:bg-red-500/10 transition-colors whitespace-nowrap"
+              >
+                Reintentar
+              </button>
+            </div>
+          )}
 
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -192,7 +346,7 @@ export default function CategoriesPage() {
                         )}
                         {can('categories', 'delete') && (
                           <button
-                            onClick={() => handleDelete(cat.id)}
+                            onClick={() => setDeleteTarget(cat)}
                             className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-red-400 hover:bg-red-500/10 transition-all"
                             title="Eliminar"
                           >
@@ -234,14 +388,14 @@ export default function CategoriesPage() {
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowModal(false)} />
+          <div className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm" onClick={closeModal} />
           <div className="relative glass-panel-strong rounded-2xl w-full max-w-lg p-6 animate-scale-in">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-foreground-200">
                 {editingCategory ? 'Editar categoría' : 'Nueva categoría'}
               </h2>
               <button
-                onClick={() => setShowModal(false)}
+                onClick={closeModal}
                 className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-foreground-200 hover:bg-background-200/50 transition-all"
               >
                 <span className="w-4 h-4 flex items-center justify-center">
@@ -255,7 +409,9 @@ export default function CategoriesPage() {
                 <label className="block text-xs font-medium text-foreground-400 mb-1.5">Nombre</label>
                 <input
                   type="text"
-                  defaultValue={editingCategory?.name || ''}
+                  name="name"
+                  value={form.name}
+                  onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
                   className="w-full h-10 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-200 placeholder:text-foreground-600 outline-none focus:border-primary-500/40 transition-all"
                   placeholder="Ej: Logística"
                 />
@@ -264,7 +420,9 @@ export default function CategoriesPage() {
                 <label className="block text-xs font-medium text-foreground-400 mb-1.5">Código</label>
                 <input
                   type="text"
-                  defaultValue={editingCategory?.code || ''}
+                  name="code"
+                  value={form.code}
+                  onChange={(e) => setForm((prev) => ({ ...prev, code: e.target.value }))}
                   className="w-full h-10 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-200 placeholder:text-foreground-600 outline-none focus:border-primary-500/40 transition-all font-mono"
                   placeholder="Ej: LOGISTICS"
                 />
@@ -272,30 +430,85 @@ export default function CategoriesPage() {
               <div>
                 <label className="block text-xs font-medium text-foreground-400 mb-1.5">Descripción</label>
                 <textarea
-                  defaultValue={editingCategory?.description || ''}
+                  name="description"
+                  value={form.description}
+                  onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
                   rows={3}
+                  maxLength={500}
                   className="w-full bg-background-100 border border-secondary-500/20 rounded-lg px-3 py-2 text-sm text-foreground-200 placeholder:text-foreground-600 outline-none focus:border-primary-500/40 transition-all resize-none"
                   placeholder="Describe el propósito de esta categoría..."
                 />
               </div>
               <div className="flex items-center gap-2">
-                <input type="checkbox" defaultChecked={editingCategory?.isActive ?? true} className="w-4 h-4 rounded border-secondary-500/40 bg-background-100 text-primary-500 focus:ring-primary-500/30" />
+                <input
+                  type="checkbox"
+                  name="is_active"
+                  checked={form.isActive}
+                  onChange={(e) => setForm((prev) => ({ ...prev, isActive: e.target.checked }))}
+                  className="w-4 h-4 rounded border-secondary-500/40 bg-background-100 text-primary-500 focus:ring-primary-500/30"
+                />
                 <label className="text-sm text-foreground-400">Categoría activa</label>
               </div>
+
+              {formError && (
+                <div className="flex items-start gap-2 rounded-lg bg-red-500/10 border border-red-500/25 px-3 py-2.5 text-sm text-red-400">
+                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
+                    <i className="ri-error-warning-line text-base"></i>
+                  </span>
+                  <span>{formError}</span>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center justify-end gap-3 mt-6">
               <button
-                onClick={() => setShowModal(false)}
-                className="h-9 px-4 rounded-lg border border-secondary-500/20 text-sm text-foreground-400 hover:text-foreground-200 hover:border-secondary-500/40 transition-all whitespace-nowrap"
+                onClick={closeModal}
+                disabled={submitting}
+                className="h-9 px-4 rounded-lg border border-secondary-500/20 text-sm text-foreground-400 hover:text-foreground-200 hover:border-secondary-500/40 transition-all whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancelar
               </button>
               <button
-                onClick={() => setShowModal(false)}
-                className="h-9 px-4 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-sm font-medium whitespace-nowrap"
+                onClick={handleSubmit}
+                disabled={submitting}
+                className="h-9 px-4 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-sm font-medium whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {editingCategory ? 'Guardar cambios' : 'Crear categoría'}
+                {submitting ? 'Guardando...' : editingCategory ? 'Guardar cambios' : 'Crear categoría'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm" onClick={() => !deleting && setDeleteTarget(null)} />
+          <div className="relative glass-panel-strong rounded-2xl w-full max-w-sm p-6 animate-scale-in">
+            <div className="flex items-start gap-3">
+              <span className="w-10 h-10 rounded-lg bg-red-500/10 border border-red-500/25 flex items-center justify-center shrink-0">
+                <i className="ri-delete-bin-line text-red-400 text-lg"></i>
+              </span>
+              <div>
+                <h3 className="text-base font-semibold text-foreground-200">Eliminar categoría</h3>
+                <p className="text-sm text-foreground-500 mt-1">
+                  ¿Seguro que deseas eliminar <strong className="text-foreground-300">{deleteTarget.name}</strong>? Esta acción no se puede deshacer.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-3 mt-6">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                disabled={deleting}
+                className="h-9 px-4 rounded-lg border border-secondary-500/20 text-sm text-foreground-400 hover:text-foreground-200 hover:border-secondary-500/40 transition-all whitespace-nowrap disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={deleting}
+                className="h-9 px-4 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors text-sm font-medium whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {deleting ? 'Eliminando...' : 'Eliminar'}
               </button>
             </div>
           </div>

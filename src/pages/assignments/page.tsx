@@ -411,7 +411,7 @@ export default function AssignmentsPage() {
       {/* User Detail Side Panel */}
       {selectedUser && (
         <div className="fixed inset-0 z-50 flex">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={closeUserDetail} />
+          <div className="absolute inset-0 bg-[#231E20]/50 backdrop-blur-sm" onClick={closeUserDetail} />
           <div className="relative ml-auto w-full max-w-2xl bg-background-50 border-l border-secondary-500/10 overflow-y-auto animate-slide-in-right">
             {/* Header */}
             <div className="sticky top-0 bg-background-50/95 backdrop-blur-sm border-b border-secondary-500/10 px-6 py-5 flex items-center justify-between z-10">

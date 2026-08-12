@@ -527,7 +527,7 @@ export default function ClientsPage() {
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm"
             onClick={() => setShowModal(false)}
           />
           <div className="relative glass-panel-strong rounded-2xl w-full max-w-lg p-6 animate-scale-in">
@@ -718,7 +718,7 @@ export default function ClientsPage() {
       {confirmToggle && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm"
             onClick={() => setConfirmToggle(null)}
           />
           <div className="relative glass-panel-strong rounded-2xl w-full max-w-sm p-6 animate-scale-in text-center">

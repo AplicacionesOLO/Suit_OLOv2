@@ -5,6 +5,7 @@ import {
   fetchUserAppAccessesForEdit,
   fetchUserAuditEvents,
   fetchRolePermissionsForDisplay,
+  resetUserPassword,
 } from '@/services/auth/usersService';
 import { revokeUserAccess } from '@/services/security/accessService';
 import MultiSelect from '@/components/base/MultiSelect';
@@ -61,6 +62,13 @@ export default function EditUserModal({ user, isOpen, onClose, onSaved, onEditUs
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // Password reset state
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [resettingPassword, setResettingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
 
   // ========== CASCADING LOGIC — País → Tenant → Almacén → Cliente ==========
 
@@ -181,6 +189,10 @@ export default function EditUserModal({ user, isOpen, onClose, onSaved, onEditUs
     setRolePermissions(null);
     setFormError('');
     setToast(null);
+    setShowPasswordReset(false);
+    setNewPassword('');
+    setConfirmPassword('');
+    setPasswordError('');
 
     const loadSections = async () => {
       const [scopesRes, appsRes, auditRes] = await Promise.all([
@@ -218,6 +230,33 @@ export default function EditUserModal({ user, isOpen, onClose, onSaved, onEditUs
     setToast({ type, message });
     setTimeout(() => setToast(null), 4000);
   }, []);
+
+  const handleResetPassword = async () => {
+    setPasswordError('');
+    if (!newPassword || newPassword.length < 6) {
+      setPasswordError('La contrasena debe tener al menos 6 caracteres');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Las contrasenas no coinciden');
+      return;
+    }
+    if (!user.email) {
+      setPasswordError('El usuario no tiene email registrado');
+      return;
+    }
+    setResettingPassword(true);
+    const result = await resetUserPassword(user.email, newPassword);
+    setResettingPassword(false);
+    if (result.error) {
+      setPasswordError(result.error);
+      return;
+    }
+    showToast('success', 'Contrasena actualizada correctamente');
+    setShowPasswordReset(false);
+    setNewPassword('');
+    setConfirmPassword('');
+  };
 
   const handleTenantChange = (tid: string) => {
     const tenant = tenants.find((t) => t.id === tid);
@@ -354,7 +393,7 @@ export default function EditUserModal({ user, isOpen, onClose, onSaved, onEditUs
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative glass-panel-strong rounded-none sm:rounded-2xl w-full sm:max-w-6xl h-full sm:max-h-[92vh] flex flex-col animate-scale-in overflow-hidden">
         {/* Toast */}
         {toast && (
@@ -474,6 +513,79 @@ export default function EditUserModal({ user, isOpen, onClose, onSaved, onEditUs
                   <span className="text-xs text-foreground-500">Supabase Auth</span>
                 </div>
               </div>
+            </div>
+
+            {/* Password Reset */}
+            <div className="mt-4 pt-4 border-t border-secondary-500/10">
+              {!showPasswordReset ? (
+                <button
+                  onClick={() => { setShowPasswordReset(true); setPasswordError(''); setNewPassword(''); setConfirmPassword(''); }}
+                  className="flex items-center gap-2 h-9 px-4 rounded-lg border border-secondary-500/20 text-sm text-foreground-400 hover:text-foreground-200 hover:border-secondary-500/40 transition-all whitespace-nowrap"
+                >
+                  <span className="w-4 h-4 flex items-center justify-center"><i className="ri-lock-line"></i></span>
+                  Cambiar contrasena
+                </button>
+              ) : (
+                <div className="p-4 rounded-xl bg-background-100/70 border border-secondary-500/10 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium text-foreground-300">Nueva contrasena</p>
+                    <button
+                      onClick={() => { setShowPasswordReset(false); setPasswordError(''); }}
+                      className="w-6 h-6 rounded flex items-center justify-center text-foreground-500 hover:text-foreground-200 transition-all"
+                    >
+                      <span className="w-3.5 h-3.5 flex items-center justify-center"><i className="ri-close-line text-sm"></i></span>
+                    </button>
+                  </div>
+                  {passwordError && (
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
+                      <span className="w-3.5 h-3.5 flex items-center justify-center shrink-0"><i className="ri-error-warning-line"></i></span>
+                      {passwordError}
+                    </div>
+                  )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-foreground-400 mb-1.5">Contrasena</label>
+                      <input
+                        type="password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="w-full h-10 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-200 outline-none focus:border-primary-500/40 transition-all"
+                        placeholder="Minimo 6 caracteres"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-foreground-400 mb-1.5">Confirmar contrasena</label>
+                      <input
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="w-full h-10 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-200 outline-none focus:border-primary-500/40 transition-all"
+                        placeholder="Repite la contrasena"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      onClick={() => { setShowPasswordReset(false); setPasswordError(''); }}
+                      className="h-8 px-3 rounded-lg text-xs text-foreground-500 hover:text-foreground-200 transition-all whitespace-nowrap"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleResetPassword}
+                      disabled={resettingPassword}
+                      className="h-8 px-4 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-xs font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {resettingPassword ? (
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-3.5 h-3.5 flex items-center justify-center animate-spin"><i className="ri-loader-4-line"></i></span>
+                          Cambiando...
+                        </span>
+                      ) : 'Confirmar cambio'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </section>
 

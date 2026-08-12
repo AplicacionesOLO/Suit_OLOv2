@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import AppLogo from '@/components/feature/AppLogo';
 
 const PUBLIC_ROUTES = ['/login', '/forgot-password', '/auth/callback'];
 
@@ -31,12 +32,8 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
     return (
       <div className="min-h-screen bg-background-50 flex items-center justify-center">
         <div className="text-center space-y-4">
-          <img
-            src="https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/c45bb62f-53ee-47ef-b37c-7d43f30597f2_compressed_logo_transparente.webp"
-            alt="OLO Logo"
-            className="w-10 h-10 object-contain mx-auto"
-          />
-          <p className="text-sm text-foreground-500 animate-pulse">Verificando sesión...</p>
+          <AppLogo showText={false} size="md" className="mx-auto" />
+          <p className="text-sm text-foreground-500 animate-pulse">Verificando sesion...</p>
         </div>
       </div>
     );

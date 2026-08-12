@@ -260,7 +260,7 @@ export default function SecuritySettingsPage() {
       {/* Confirm dialog for critical changes */}
       {showConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowConfirm(false)} />
+          <div className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm" onClick={() => setShowConfirm(false)} />
           <div className="relative glass-panel-strong rounded-2xl w-full max-w-md p-6 animate-scale-in">
             <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto mb-4">
               <i className="ri-alert-line text-amber-400 text-2xl"></i>

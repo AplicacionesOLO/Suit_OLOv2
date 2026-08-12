@@ -2,6 +2,7 @@ import { type ReactNode, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useSuitePermissions } from '@/hooks/useSuitePermissions';
+import AppLogo from '@/components/feature/AppLogo';
 
 const ALWAYS_ACCESSIBLE = ['/my-access', '/profile', '/workspace'];
 
@@ -80,11 +81,7 @@ export default function RouteGuard({ children }: RouteGuardProps) {
     return (
       <div className="min-h-screen bg-background-50 flex items-center justify-center">
         <div className="text-center space-y-4">
-          <img
-            src="https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/c45bb62f-53ee-47ef-b37c-7d43f30597f2_compressed_logo_transparente.webp"
-            alt="OLO Logo"
-            className="w-10 h-10 object-contain mx-auto"
-          />
+          <AppLogo showText={false} size="md" className="mx-auto" />
           <p className="text-sm text-foreground-500 animate-pulse">Verificando permisos...</p>
         </div>
       </div>

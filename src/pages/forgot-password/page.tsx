@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '@/components/base/Button';
 import Input from '@/components/base/Input';
+import AppLogo from '@/components/feature/AppLogo';
 
 export default function ForgotPasswordPage() {
   const navigate = useNavigate();
@@ -40,13 +41,8 @@ export default function ForgotPasswordPage() {
 
       <div className="flex-1 flex items-center justify-center p-6 relative z-10">
         <div className="w-full max-w-[420px] animate-slide-up">
-          <div className="flex items-center gap-3 mb-10 justify-center">
-            <img
-              src="https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/c45bb62f-53ee-47ef-b37c-7d43f30597f2_compressed_logo_transparente.webp"
-              alt="OLO Logo"
-              className="w-9 h-9 object-contain shrink-0"
-            />
-            <span className="text-foreground-100 font-bold text-lg tracking-tight">Suite OLO</span>
+          <div className="flex justify-center mb-10">
+            <AppLogo direction="col" size="lg" />
           </div>
 
           <div className="glass-panel-strong rounded-2xl p-8 md:p-10">

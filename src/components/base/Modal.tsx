@@ -46,12 +46,12 @@ export default function Modal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in"
+        className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm animate-fade-in"
         onClick={onClose}
       />
       <div
         className={`
-          relative w-full ${sizeStyles[size]} glass-panel-strong rounded-2xl animate-scale-in
+          relative w-full ${sizeStyles[size]} glass-panel-strong rounded-xl animate-scale-in
           max-h-[85vh] flex flex-col
         `}
       >

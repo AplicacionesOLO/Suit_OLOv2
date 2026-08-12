@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useSuitePermissions } from '@/hooks/useSuitePermissions';
+import AppLogo from '@/components/feature/AppLogo';
 
 interface NavItem {
   label: string;
@@ -97,25 +98,11 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
       `}
     >
       {/* Logo area */}
-      <div className={`flex items-center h-[60px] border-b border-secondary-500/10 shrink-0 ${collapsed ? 'justify-center px-0' : 'px-5'}`}>
-        {!collapsed ? (
-          <div className="flex items-center gap-2.5">
-            <img
-              src="https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/c45bb62f-53ee-47ef-b37c-7d43f30597f2_compressed_logo_transparente.webp"
-              alt="OLO Logo"
-              className="w-8 h-8 object-contain shrink-0"
-            />
-            <div className="whitespace-nowrap">
-              <span className="text-foreground-100 font-bold text-sm tracking-tight">Suite</span>
-              <span className="text-primary-400 font-bold text-sm tracking-tight">OLO</span>
-            </div>
-          </div>
+      <div className={`flex items-center border-b border-secondary-500/10 shrink-0 ${collapsed ? 'justify-center h-[60px] px-0' : 'justify-center h-[76px] px-4'}`}>
+        {collapsed ? (
+          <AppLogo showText={false} size="md" />
         ) : (
-          <img
-            src="https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/c45bb62f-53ee-47ef-b37c-7d43f30597f2_compressed_logo_transparente.webp"
-            alt="OLO Logo"
-            className="w-8 h-8 object-contain"
-          />
+          <AppLogo showText={true} direction="col" size="lg" />
         )}
       </div>
 

@@ -179,11 +179,103 @@ export async function fetchCategories(): Promise<{ data: AppCategory[]; error: s
     const { data, error } = await supabase
       .from('application_categories')
       .select('*')
+      .is('deleted_at', null)
       .order('sort_order', { ascending: true });
     if (error) throw error;
     return { data: (data || []) as AppCategory[], error: null };
   } catch (err: any) {
     return { data: [], error: err.message || 'Error al cargar categorías' };
+  }
+}
+
+export interface CreateCategoryPayload {
+  name: string;
+  code: string;
+  description?: string | null;
+  is_active?: boolean;
+}
+
+export interface UpdateCategoryPayload {
+  name?: string;
+  code?: string;
+  description?: string | null;
+  is_active?: boolean;
+}
+
+export async function createCategory(payload: CreateCategoryPayload): Promise<{ data: AppCategory | null; error: string | null }> {
+  try {
+    const tenantId = await getEffectiveTenantId();
+    if (!tenantId) {
+      return { data: null, error: 'No se pudo determinar tu tenant activo. Verifica tu sesión.' };
+    }
+
+    const { data: lastCat } = await supabase
+      .from('application_categories')
+      .select('sort_order')
+      .order('sort_order', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const nextSortOrder = (lastCat?.sort_order ?? 0) + 10;
+
+    const { data, error } = await supabase
+      .from('application_categories')
+      .insert({
+        tenant_id: tenantId,
+        name: payload.name.trim(),
+        code: payload.code.trim().toUpperCase(),
+        description: payload.description?.trim() || null,
+        icon: 'ri-folder-2-line',
+        color: 'emerald',
+        is_active: payload.is_active ?? true,
+        sort_order: nextSortOrder,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { data: data as AppCategory, error: null };
+  } catch (err: any) {
+    return { data: null, error: err.message || 'Error al crear categoría' };
+  }
+}
+
+export async function updateCategory(id: string, payload: UpdateCategoryPayload): Promise<{ data: AppCategory | null; error: string | null }> {
+  try {
+    const updateData: Record<string, unknown> = { updated_at: cleanDate(new Date()) };
+    if (payload.name !== undefined) updateData.name = payload.name.trim();
+    if (payload.code !== undefined) updateData.code = payload.code.trim().toUpperCase();
+    if (payload.description !== undefined) updateData.description = payload.description?.trim() || null;
+    if (payload.is_active !== undefined) updateData.is_active = payload.is_active;
+
+    const { data, error } = await supabase
+      .from('application_categories')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { data: data as AppCategory, error: null };
+  } catch (err: any) {
+    return { data: null, error: err.message || 'Error al actualizar categoría' };
+  }
+}
+
+export async function softDeleteCategory(id: string): Promise<{ error: string | null }> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data: pu } = user ? await supabase.from('platform_users').select('id').eq('auth_user_id', user.id).maybeSingle() : { data: null };
+
+    const { error } = await supabase
+      .from('application_categories')
+      .update({ deleted_at: cleanDate(new Date()), deleted_by: pu?.id || null, updated_at: cleanDate(new Date()) })
+      .eq('id', id);
+
+    if (error) throw error;
+    return { error: null };
+  } catch (err: any) {
+    return { error: err.message || 'Error al eliminar categoría' };
   }
 }
 

@@ -631,7 +631,7 @@ export default function TenantsPage() {
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm"
             onClick={() => setShowModal(false)}
           />
           <div className="relative glass-panel-strong rounded-2xl w-full max-w-xl p-6 animate-scale-in max-h-[90vh] overflow-y-auto">
@@ -945,7 +945,7 @@ export default function TenantsPage() {
           return (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
               <div
-                className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm"
                 onClick={() => setDetailTarget(null)}
               />
               <div className="relative glass-panel-strong rounded-2xl w-full max-w-lg p-6 animate-scale-in max-h-[90vh] overflow-y-auto">
@@ -1094,7 +1094,7 @@ export default function TenantsPage() {
       {suspendTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm"
             onClick={() => setSuspendTarget(null)}
           />
           <div className="relative glass-panel-strong rounded-2xl w-full max-w-sm p-6 animate-scale-in text-center">
@@ -1131,7 +1131,7 @@ export default function TenantsPage() {
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm"
             onClick={() => setDeleteTarget(null)}
           />
           <div className="relative glass-panel-strong rounded-2xl w-full max-w-sm p-6 animate-scale-in text-center">

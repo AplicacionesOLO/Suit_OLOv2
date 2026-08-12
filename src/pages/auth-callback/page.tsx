@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/services/supabase/client';
+import AppLogo from '@/components/feature/AppLogo';
 
 const MAX_RETRIES = 10;
 const INITIAL_DELAY_MS = 500;
@@ -132,11 +133,7 @@ export default function AuthCallbackPage() {
     <div className="min-h-screen bg-background-50 flex items-center justify-center">
       <div className="text-center space-y-6 max-w-sm mx-auto px-6">
         {/* OLO Brand mark */}
-        <img
-          src="https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/c45bb62f-53ee-47ef-b37c-7d43f30597f2_compressed_logo_transparente.webp"
-          alt="OLO Logo"
-          className="w-14 h-14 object-contain mx-auto"
-        />
+        <AppLogo showText={false} size="xl" className="mx-auto" />
 
         {/* Spinner — solo cuando está cargando */}
         {!allRetriesExhausted && (

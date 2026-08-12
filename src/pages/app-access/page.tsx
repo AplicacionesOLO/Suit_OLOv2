@@ -209,7 +209,7 @@ export default function AppAccessPage() {
       {/* Assign modal - placeholder */}
       {showAssignModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowAssignModal(false)} />
+          <div className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm" onClick={() => setShowAssignModal(false)} />
           <div className="relative glass-panel-strong rounded-2xl w-full max-w-lg p-6 animate-scale-in">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-foreground-200">Asignar acceso</h2>
@@ -231,7 +231,7 @@ export default function AppAccessPage() {
       {/* Action confirmation */}
       {actionConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setActionConfirm(null)} />
+          <div className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm" onClick={() => setActionConfirm(null)} />
           <div className="relative glass-panel-strong rounded-2xl w-full max-w-sm p-6 animate-scale-in text-center">
             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4 ${actionConfirm.action === 'approve' ? 'bg-primary-500/10 border border-primary-500/20' : 'bg-red-500/10 border border-red-500/20'}`}>
               <i className={`${actionConfirm.action === 'approve' ? 'ri-check-line text-primary-400' : actionConfirm.action === 'revoke' ? 'ri-close-circle-line text-red-400' : 'ri-close-line text-red-400'} text-2xl`}></i>

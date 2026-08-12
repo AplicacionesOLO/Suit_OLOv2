@@ -38,7 +38,7 @@ export default function Badge({
   return (
     <span
       className={`
-        inline-flex items-center gap-1.5 rounded-full border font-850 whitespace-nowrap
+        inline-flex items-center gap-1.5 rounded-full border font-medium whitespace-nowrap
         ${variantStyles[variant]}
         ${sizeClass}
         ${className}

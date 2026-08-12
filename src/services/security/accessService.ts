@@ -316,6 +316,67 @@ export async function createUserAccess(payload: CreateAccessPayload): Promise<{ 
   }
 }
 
+export async function requestApplicationAccess(applicationId: string): Promise<{ data: UserAppAccess | null; error: string | null }> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: null, error: 'No autenticado' };
+
+    const { data: pu } = await supabase
+      .from('platform_users')
+      .select('id')
+      .eq('auth_user_id', user.id)
+      .maybeSingle();
+    if (!pu) return { data: null, error: 'Usuario no encontrado en la plataforma' };
+
+    const { data: app } = await supabase
+      .from('applications')
+      .select('tenant_id')
+      .eq('id', applicationId)
+      .is('deleted_at', null)
+      .maybeSingle();
+    if (!app) return { data: null, error: 'Aplicación no encontrada' };
+
+    const { data: existingRows } = await supabase
+      .from('user_application_access')
+      .select('id, access_status')
+      .eq('user_id', pu.id)
+      .eq('application_id', applicationId)
+      .is('instance_id', null);
+
+    const activeOrPending = (existingRows || []).find(
+      (r) => r.access_status === 'assigned' || r.access_status === 'pending',
+    );
+
+    if (activeOrPending) {
+      if (activeOrPending.access_status === 'assigned') {
+        return { data: null, error: 'Ya tienes acceso a esta aplicación' };
+      }
+      return { data: null, error: 'Ya tienes una solicitud pendiente para esta aplicación' };
+    }
+
+    const { data, error } = await supabase
+      .from('user_application_access')
+      .insert({
+        tenant_id: app.tenant_id,
+        user_id: pu.id,
+        application_id: applicationId,
+        instance_id: null,
+        access_status: 'pending',
+        role_id: null,
+        expires_at: null,
+        granted_at: null,
+        granted_by: null,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { data: data as UserAppAccess, error: null };
+  } catch (err: any) {
+    return { data: null, error: err.message || 'Error al solicitar acceso' };
+  }
+}
+
 export async function revokeUserAccess(id: string): Promise<{ error: string | null }> {
   try {
     const { error } = await supabase

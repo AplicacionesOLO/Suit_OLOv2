@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/feature/AppLayout';
 import { fetchCategories, fetchApplications, type Application as SupaApplication, type AppCategory as SupaCategory } from '@/services/applications/applicationsService';
+import { requestApplicationAccess } from '@/services/security/accessService';
 
 interface AppItem {
   id: string;
@@ -73,6 +74,10 @@ export default function CatalogPage() {
   const [appCategories, setAppCategories] = useState<AppCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [requestApp, setRequestApp] = useState<AppItem | null>(null);
+  const [requestSaving, setRequestSaving] = useState(false);
+  const [requestError, setRequestError] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -122,6 +127,22 @@ export default function CatalogPage() {
     .map((cat) => ({ category: cat, apps: filteredApps.filter((a) => a.categoryId === cat.id) }))
     .filter((g) => g.apps.length > 0);
 
+  const handleRequestAccess = async () => {
+    if (!requestApp) return;
+    setRequestSaving(true);
+    setRequestError(null);
+    const result = await requestApplicationAccess(requestApp.id);
+    if (result.error) {
+      setRequestError(result.error);
+      setRequestSaving(false);
+      return;
+    }
+    setRequestSaving(false);
+    setRequestApp(null);
+    setToast({ message: 'Solicitud de acceso enviada correctamente', type: 'success' });
+    setTimeout(() => setToast(null), 3500);
+  };
+
   if (loading) {
     return (
       <AppLayout>
@@ -159,6 +180,13 @@ export default function CatalogPage() {
   return (
     <AppLayout>
       <div className="animate-fade-in space-y-6">
+        {toast && (
+          <div className={`fixed top-6 right-6 z-[100] px-4 py-3 rounded-xl text-sm font-medium shadow-lg animate-slide-up flex items-center gap-3 ${toast.type === 'success' ? 'bg-primary-500/95 text-white' : 'bg-red-500/95 text-white'}`}>
+            <span className="w-4 h-4 flex items-center justify-center"><i className={`${toast.type === 'success' ? 'ri-check-line' : 'ri-error-warning-line'} text-base`}></i></span>
+            {toast.message}
+            <button onClick={() => setToast(null)} className="w-5 h-5 flex items-center justify-center hover:bg-white/20 rounded-full transition-colors ml-1 cursor-pointer"><i className="ri-close-line text-xs"></i></button>
+          </div>
+        )}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-xl font-bold text-foreground-100">Catalogo Empresarial</h1>
@@ -242,7 +270,7 @@ export default function CatalogPage() {
                           <span className="text-2xs text-foreground-600 font-mono">v{app.version}</span>
                         </div>
                         <div className="mt-4 pt-4 border-t border-secondary-500/10">
-                          <button className="w-full h-8 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-xs font-medium whitespace-nowrap">
+                          <button onClick={() => { setRequestError(null); setRequestApp(app); }} className="w-full h-8 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-xs font-medium whitespace-nowrap cursor-pointer">
                             Solicitar acceso
                           </button>
                         </div>
@@ -255,6 +283,42 @@ export default function CatalogPage() {
           </div>
         )}
       </div>
+
+      {requestApp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-[#231E20]/60 backdrop-blur-sm" onClick={() => setRequestApp(null)} />
+          <div className="relative glass-panel-strong rounded-2xl w-full max-w-md p-6 animate-scale-in">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className={`w-11 h-11 rounded-xl ${requestApp.bgColor} border ${requestApp.borderColor} flex items-center justify-center`}>
+                  <i className={`${requestApp.icon} ${requestApp.textColor} text-xl`}></i>
+                </div>
+                <div>
+                  <h2 className="text-base font-semibold text-foreground-200">Solicitar acceso</h2>
+                  <p className="text-sm text-foreground-500 mt-0.5">{requestApp.name}</p>
+                </div>
+              </div>
+              <button onClick={() => setRequestApp(null)} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-foreground-200 hover:bg-background-200/50 transition-all cursor-pointer"><span className="w-4 h-4 flex items-center justify-center"><i className="ri-close-line text-lg"></i></span></button>
+            </div>
+            <p className="text-sm text-foreground-400 leading-relaxed mb-6">
+              Se enviará una solicitud de acceso para <strong className="text-foreground-200">{requestApp.name}</strong>. Un administrador la revisará y, si es aprobada, la verás en tu sección «Mis Accesos».
+            </p>
+            {requestError && (
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 mb-4">
+                <span className="w-4 h-4 flex items-center justify-center shrink-0 mt-0.5"><i className="ri-error-warning-line text-red-400 text-sm"></i></span>
+                <p className="text-xs text-red-400 leading-relaxed">{requestError}</p>
+              </div>
+            )}
+            <div className="flex items-center justify-end gap-3">
+              <button onClick={() => setRequestApp(null)} className="h-9 px-4 rounded-lg border border-secondary-500/20 text-sm text-foreground-400 hover:text-foreground-200 hover:border-secondary-500/40 transition-all whitespace-nowrap cursor-pointer">Cancelar</button>
+              <button onClick={handleRequestAccess} disabled={requestSaving} className="h-9 px-4 rounded-lg bg-primary-500 text-foreground-50 hover:bg-primary-600 transition-colors text-sm font-medium whitespace-nowrap cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                {requestSaving && <span className="w-4 h-4 flex items-center justify-center"><i className="ri-loader-4-line animate-spin text-sm"></i></span>}
+                Enviar solicitud
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppLayout>
   );
 }

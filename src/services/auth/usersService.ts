@@ -488,30 +488,44 @@ export async function fetchRolePermissionsForDisplay(roleId: string): Promise<{ 
 }
 
 export async function deletePlatformUser(userId: string): Promise<{ error: string | null }> {
-  const { data: currentUser } = await supabase.auth.getUser();
-  const { data: targetUser } = await supabase.from('platform_users').select('auth_user_id, tenant_id, email').eq('id', userId).maybeSingle();
-
-  if (targetUser && currentUser?.user?.id === targetUser.auth_user_id) {
-    return { error: 'No puedes eliminarte a ti mismo' };
-  }
-
-  const { error } = await supabase.from('platform_users').delete().eq('id', userId);
-
-  if (error) return { error: error.message };
-
   try {
-    await supabase.from('audit_logs').insert({
-      tenant_id: targetUser?.tenant_id || null,
-      user_id: null,
-      action: 'USER_DELETED',
-      entity_type: 'platform_users',
-      entity_id: userId,
-      details: { email: targetUser?.email },
-      severity: 'high',
-    });
-  } catch { /* non-critical */ }
+    const { data: currentUser } = await supabase.auth.getUser();
+    const { data: targetUser } = await supabase.from('platform_users').select('auth_user_id, tenant_id, email').eq('id', userId).maybeSingle();
 
-  return { error: null };
+    if (targetUser && currentUser?.user?.id === targetUser.auth_user_id) {
+      return { error: 'No puedes eliminarte a ti mismo' };
+    }
+
+    const { data, error } = await supabase.functions.invoke('admin-manage-user', {
+      body: { action: 'delete-user', user_id: userId },
+    });
+
+    if (error) return { error: error.message };
+
+    const parsed = data as { success?: boolean; error?: string };
+    if (parsed?.error) return { error: parsed.error };
+
+    return { error: null };
+  } catch (err: any) {
+    return { error: err.message || 'Error al eliminar usuario' };
+  }
+}
+
+export async function resetUserPassword(email: string, password: string): Promise<{ error: string | null }> {
+  try {
+    const { data, error } = await supabase.functions.invoke('admin-manage-user', {
+      body: { action: 'set-password', email, password },
+    });
+
+    if (error) return { error: error.message };
+
+    const parsed = data as { success?: boolean; error?: string };
+    if (parsed?.error) return { error: parsed.error };
+
+    return { error: null };
+  } catch (err: any) {
+    return { error: err.message || 'Error al cambiar contraseña' };
+  }
 }
 
 export async function fetchAccessibleTenants(): Promise<{ tenants: { tenant_id: string; tenant_name: string }[]; error: string | null }> {

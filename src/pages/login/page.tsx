@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import Button from '@/components/base/Button';
 import Input from '@/components/base/Input';
 import { supabase } from '@/services/supabase/client';
+import AppLogo from '@/components/feature/AppLogo';
 
 const capabilities = [
   { icon: 'ri-user-settings-line', label: 'Gestión de Usuarios' },
@@ -160,20 +161,12 @@ export default function LoginPage() {
         {/* Top section */}
         <div>
           {/* Logo + Brand */}
-          <div className="flex items-center gap-3 mb-2">
-            <img
-              src="https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/c45bb62f-53ee-47ef-b37c-7d43f30597f2_compressed_logo_transparente.webp"
-              alt="OLO Logo"
-              className="w-10 h-10 object-contain shrink-0"
-            />
-            <div>
-              <span className="text-foreground-100 font-bold text-xl tracking-tight">Suite</span>
-              <span className="text-primary-400 font-bold text-xl tracking-tight">OLO</span>
-            </div>
+          <div className="flex justify-center mb-2">
+            <AppLogo direction="col" size="xl" />
           </div>
 
           {/* OLO Identity subtitle */}
-          <p className="text-foreground-600 text-xs tracking-wide mb-16 ml-[52px] uppercase">
+          <p className="text-foreground-600 text-xs tracking-wide mb-16 text-center uppercase">
             Overseas Logistics Operations
           </p>
 
@@ -224,14 +217,7 @@ export default function LoginPage() {
         <div className="w-full max-w-[420px] animate-slide-up">
           {/* Mobile branding */}
           <div className="lg:hidden mb-10 text-center">
-            <div className="flex items-center gap-2 justify-center mb-1">
-              <img
-                src="https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/c45bb62f-53ee-47ef-b37c-7d43f30597f2_compressed_logo_transparente.webp"
-                alt="OLO Logo"
-                className="w-9 h-9 object-contain shrink-0"
-              />
-              <span className="text-foreground-100 font-bold text-lg tracking-tight">Suite OLO</span>
-            </div>
+            <AppLogo direction="col" size="lg" className="mb-1" />
             <p className="text-foreground-600 text-[11px] tracking-wide uppercase mt-1">
               Overseas Logistics Operations
             </p>
