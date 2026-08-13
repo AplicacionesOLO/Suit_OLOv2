@@ -31,6 +31,8 @@ export interface PlatformUserFull {
 export interface UserInvitation {
   id: string;
   email: string;
+  first_name: string | null;
+  last_name: string | null;
   tenant_id: string;
   role_id: string;
   country_id: string | null;
@@ -264,6 +266,20 @@ export async function createUserInvitation(input: CreateInvitationInput): Promis
   return { invitation: data as UserInvitation, error: null };
 }
 
+export async function extendInvitation(invitationId: string): Promise<{ invitation: UserInvitation | null; error: string | null }> {
+  const newExpires = cleanDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
+  const { data, error } = await supabase
+    .from('user_invitations')
+    .update({ expires_at: newExpires, updated_at: cleanDate(new Date()) })
+    .eq('id', invitationId)
+    .select('*')
+    .maybeSingle();
+
+  if (error) return { invitation: null, error: error.message };
+
+  return { invitation: data as UserInvitation, error: null };
+}
+
 export async function revokeInvitation(invitationId: string): Promise<{ error: string | null }> {
   const { error } = await supabase
     .from('user_invitations')
@@ -484,6 +500,30 @@ export async function fetchRolePermissionsForDisplay(roleId: string): Promise<{ 
     return { data: result, error: null };
   } catch (err: any) {
     return { data: null, error: err.message };
+  }
+}
+
+export async function sendInvitationEmail(params: {
+  invitation_id: string
+  to_email: string
+  to_first_name?: string
+  to_last_name?: string
+  tenant_name?: string
+  role_name?: string
+  invited_by_name?: string
+  expires_at?: string
+  app_url?: string
+}): Promise<{ error: string | null }> {
+  try {
+    const { data, error } = await supabase.functions.invoke('send-invitation-email', {
+      body: params,
+    })
+    if (error) return { error: error.message }
+    const parsed = data as { success?: boolean; error?: string }
+    if (parsed?.error) return { error: parsed.error }
+    return { error: null }
+  } catch (err: any) {
+    return { error: err.message || 'Error al enviar correo de invitación' }
   }
 }
 

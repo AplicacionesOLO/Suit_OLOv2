@@ -12,7 +12,7 @@ import {
   type AccessWithDetails,
   type PlatformUserBrief,
 } from '@/services/security/accessService';
-import { fetchApplications, fetchInstances, fetchClients, type Application, type AppInstance, type ClientBrief } from '@/services/applications/applicationsService';
+import { fetchApplications, fetchInstances, fetchClients, fetchCategories, type Application, type AppInstance, type ClientBrief, type AppCategory } from '@/services/applications/applicationsService';
 import { supabase } from '@/services/supabase/client';
 
 const statusCfg: Record<string, { label: string; dot: string; bg: string; text: string }> = {
@@ -37,6 +37,7 @@ export default function AssignmentsPage() {
   const [users, setUsers] = useState<PlatformUserBrief[]>([]);
   const [tenants, setTenants] = useState<{ id: string; name: string }[]>([]);
   const [roles, setRoles] = useState<{ id: string; name: string }[]>([]);
+  const [categories, setCategories] = useState<AppCategory[]>([]);
   const { can } = useSuitePermissions();
   const ctx = useTenantContext();
   const [loading, setLoading] = useState(true);
@@ -63,14 +64,16 @@ export default function AssignmentsPage() {
     setLoading(true);
     setError(null);
     try {
-      const [usersRes, tenantsRes, rolesRes] = await Promise.all([
+      const [usersRes, tenantsRes, rolesRes, catsRes] = await Promise.all([
         fetchPlatformUsers(),
         supabase.from('tenants').select('id, name, country_id').order('name'),
         supabase.from('roles').select('id, name').order('name'),
+        fetchCategories(),
       ]);
       setUsers(usersRes.data);
       if (tenantsRes.data) setTenants(tenantsRes.data);
       if (rolesRes.data) setRoles(rolesRes.data);
+      if (catsRes.data) setCategories(catsRes.data);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -163,6 +166,43 @@ export default function AssignmentsPage() {
     if (!assignForm.application_id) return [];
     return instances.filter((i) => i.application_id === assignForm.application_id);
   }, [instances, assignForm.application_id]);
+
+  // Apps que el usuario ya tiene asignadas (o pendientes) para no repetirlas
+  const assignedAppIds = useMemo(() => {
+    const ids = new Set<string>();
+    userAccesses.forEach((a) => {
+      if (a.access_status === 'assigned' || a.access_status === 'pending') {
+        ids.add(a.application_id);
+      }
+    });
+    return ids;
+  }, [userAccesses]);
+
+  const availableApplications = useMemo(() => {
+    return applications.filter((a) => !assignedAppIds.has(a.id));
+  }, [applications, assignedAppIds]);
+
+  // Agrupa las apps disponibles por categoria (respetando el orden de categorias)
+  const groupedApplications = useMemo(() => {
+    const catNameById = new Map<string, string>();
+    categories.forEach((c) => catNameById.set(c.id, c.name));
+
+    const groups: { label: string; apps: Application[] }[] = [];
+
+    categories.forEach((c) => {
+      const appsInCat = availableApplications.filter((a) => a.category_id === c.id);
+      if (appsInCat.length > 0) {
+        groups.push({ label: c.name, apps: appsInCat });
+      }
+    });
+
+    const uncategorized = availableApplications.filter((a) => !a.category_id || !catNameById.has(a.category_id));
+    if (uncategorized.length > 0) {
+      groups.push({ label: 'Sin categoria', apps: uncategorized });
+    }
+
+    return groups;
+  }, [availableApplications, categories]);
 
   const handleRevoke = async (id: string) => {
     setActionLoading(id);
@@ -490,8 +530,15 @@ export default function AssignmentsPage() {
                       className="w-full h-9 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-300 outline-none focus:border-primary-500/40"
                     >
                       <option value="">Seleccionar...</option>
-                      {applications.map((app) => (
-                        <option key={app.id} value={app.id}>{app.name}</option>
+                      {groupedApplications.length === 0 && (
+                        <option value="" disabled>Sin aplicaciones disponibles</option>
+                      )}
+                      {groupedApplications.map((group) => (
+                        <optgroup key={group.label} label={group.label}>
+                          {group.apps.map((app) => (
+                            <option key={app.id} value={app.id}>{app.name}</option>
+                          ))}
+                        </optgroup>
                       ))}
                     </select>
                   </div>

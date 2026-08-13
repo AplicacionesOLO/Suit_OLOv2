@@ -31,7 +31,7 @@ Deno.serve(async (req: Request) => {
       if (fetchError) throw new Error(fetchError.message)
       if (!platformUser) throw new Error('Usuario no encontrado en platform_users')
 
-      // Step 1: Clean all bridge/reference tables
+      // Step 1: Clean all bridge/reference tables (where user_id belongs to this user)
       const cleanupResults = await Promise.allSettled([
         supabaseAdmin.from('user_tenants').delete().eq('user_id', user_id),
         supabaseAdmin.from('user_countries').delete().eq('user_id', user_id),
@@ -47,10 +47,11 @@ Deno.serve(async (req: Request) => {
         }
       }
 
-      // Step 2: Null out soft references
+      // Step 2: Null out soft references (records that belong to others but point to this user)
       await Promise.allSettled([
         supabaseAdmin.from('audit_logs').update({ user_id: null }).eq('user_id', user_id),
         supabaseAdmin.from('user_invitations').update({ invited_by: null }).eq('invited_by', user_id),
+        supabaseAdmin.from('user_application_access').update({ granted_by: null }).eq('granted_by', user_id),
       ])
 
       // Step 3: Delete platform_user record

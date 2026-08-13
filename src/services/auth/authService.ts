@@ -58,10 +58,10 @@ export async function loginWithEmail({ email, password }: LoginCredentials): Pro
     }
 
     try {
-      const { data: pu } = await supabase.from('platform_users').select('tenant_id').eq('auth_user_id', data.user.id).maybeSingle();
+      const { data: pu } = await supabase.from('platform_users').select('id, tenant_id').eq('auth_user_id', data.user.id).maybeSingle();
       await supabase.from('audit_logs').insert({
         tenant_id: pu?.tenant_id || null,
-        user_id: null,
+        user_id: pu?.id || null,
         action: 'login',
         entity_type: 'auth',
         entity_id: data.user.id,
@@ -189,6 +189,16 @@ export async function getCurrentUser(): Promise<User | null> {
       return null;
     }
     throw err;
+  }
+}
+
+export async function userHasPassword(): Promise<boolean | null> {
+  try {
+    const { data, error } = await supabase.rpc('user_has_password');
+    if (error) return null;
+    return !!data;
+  } catch {
+    return null;
   }
 }
 

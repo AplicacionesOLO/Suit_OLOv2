@@ -3,6 +3,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 interface MultiSelectOption {
   id: string;
   label: string;
+  group?: string;
 }
 
 interface MultiSelectProps {
@@ -13,6 +14,13 @@ interface MultiSelectProps {
   searchPlaceholder?: string;
   disabled?: boolean;
   emptyMessage?: string;
+  groupOrder?: string[];
+  uncategorizedLabel?: string;
+}
+
+interface GroupedOptions {
+  label: string;
+  options: MultiSelectOption[];
 }
 
 export default function MultiSelect({
@@ -23,9 +31,12 @@ export default function MultiSelect({
   searchPlaceholder = 'Buscar...',
   disabled = false,
   emptyMessage = 'Sin opciones',
+  groupOrder = [],
+  uncategorizedLabel = 'Sin categoría',
 }: MultiSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -38,11 +49,38 @@ export default function MultiSelect({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const hasGroups = useMemo(() => options.some((o) => Boolean(o.group)), [options]);
+
   const filtered = useMemo(() => {
     if (!search) return options;
     const q = search.toLowerCase();
     return options.filter((o) => o.label.toLowerCase().includes(q));
   }, [options, search]);
+
+  const grouped = useMemo<GroupedOptions[]>(() => {
+    if (!hasGroups) return [];
+
+    const orderMap = new Map<string, number>(groupOrder.map((g, i) => [g, i]));
+    const groupsMap = new Map<string, MultiSelectOption[]>();
+    const keys: string[] = [];
+
+    filtered.forEach((o) => {
+      const key = o.group || uncategorizedLabel;
+      if (!groupsMap.has(key)) {
+        groupsMap.set(key, []);
+        keys.push(key);
+      }
+      groupsMap.get(key)!.push(o);
+    });
+
+    keys.sort((a, b) => {
+      const aIdx = orderMap.has(a) ? orderMap.get(a)! : Number.MAX_SAFE_INTEGER;
+      const bIdx = orderMap.has(b) ? orderMap.get(b)! : Number.MAX_SAFE_INTEGER;
+      return aIdx - bIdx;
+    });
+
+    return keys.map((key) => ({ label: key, options: groupsMap.get(key)! }));
+  }, [filtered, hasGroups, groupOrder, uncategorizedLabel]);
 
   const selectedLabels = useMemo(() => {
     return options.filter((o) => selected.includes(o.id)).map((o) => o.label);
@@ -63,8 +101,44 @@ export default function MultiSelect({
     onChange([]);
   };
 
+  const toggleCollapse = (label: string) => {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      return next;
+    });
+  };
+
   const allSelected = options.length > 0 && selected.length === options.length;
   const someSelected = selected.length > 0 && selected.length < options.length;
+
+  const renderOption = (opt: MultiSelectOption) => {
+    const isSel = selected.includes(opt.id);
+    return (
+      <button
+        key={opt.id}
+        type="button"
+        onClick={() => toggle(opt.id)}
+        className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left transition-colors ${
+          isSel
+            ? 'text-primary-400 bg-primary-500/5'
+            : 'text-foreground-400 hover:text-foreground-200 hover:bg-background-200/50'
+        }`}
+      >
+        <span
+          className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-all ${
+            isSel
+              ? 'bg-primary-500 border-primary-500'
+              : 'border-secondary-500/30'
+          }`}
+        >
+          {isSel && <i className="ri-check-line text-xs text-white"></i>}
+        </span>
+        <span className="truncate">{opt.label}</span>
+      </button>
+    );
+  };
 
   return (
     <div ref={containerRef} className="relative">
@@ -83,7 +157,7 @@ export default function MultiSelect({
         <span className={`truncate flex-1 ${selected.length === 0 ? 'text-foreground-500' : 'text-foreground-200'}`}>
           {selected.length === 0
             ? placeholder
-            : selected.length === options.length
+            : allSelected
               ? `Todos (${selected.length})`
               : selected.length === 1
                 ? selectedLabels[0]
@@ -126,36 +200,41 @@ export default function MultiSelect({
             >
               Limpiar
             </button>
+            {someSelected && (
+              <span className="ml-auto text-2xs text-foreground-600">{selected.length} seleccionados</span>
+            )}
           </div>
 
           <div className="overflow-y-auto flex-1 py-1">
-            {filtered.length === 0 ? (
+            {grouped.length === 0 && filtered.length === 0 ? (
               <p className="px-4 py-3 text-xs text-foreground-500 text-center">{emptyMessage}</p>
-            ) : (
-              filtered.map((opt) => {
-                const isSel = selected.includes(opt.id);
+            ) : grouped.length > 0 ? (
+              grouped.map((group) => {
+                const isCollapsed = collapsed.has(group.label);
+                const groupSelected = group.options.filter((o) => selected.includes(o.id)).length;
                 return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => toggle(opt.id)}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left transition-colors ${
-                      isSel
-                        ? 'text-primary-400 bg-primary-500/5'
-                        : 'text-foreground-400 hover:text-foreground-200 hover:bg-background-200/50'
-                    }`}
-                  >
-                    <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-all ${
-                      isSel
-                        ? 'bg-primary-500 border-primary-500'
-                        : 'border-secondary-500/30'
-                    }`}>
-                      {isSel && <i className="ri-check-line text-xs text-white"></i>}
-                    </span>
-                    <span className="truncate">{opt.label}</span>
-                  </button>
+                  <div key={group.label}>
+                    <button
+                      type="button"
+                      onClick={() => toggleCollapse(group.label)}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-background-200/40 transition-colors cursor-pointer"
+                    >
+                      <span className="w-4 h-4 flex items-center justify-center shrink-0 text-foreground-500">
+                        <i className={`text-xs ${isCollapsed ? 'ri-arrow-right-s-line' : 'ri-arrow-down-s-line'}`}></i>
+                      </span>
+                      <span className="flex-1 truncate text-xs font-semibold uppercase tracking-wide text-foreground-400">
+                        {group.label}
+                      </span>
+                      <span className="text-2xs text-foreground-600 shrink-0">
+                        {groupSelected}/{group.options.length}
+                      </span>
+                    </button>
+                    {!isCollapsed && group.options.map(renderOption)}
+                  </div>
                 );
               })
+            ) : (
+              filtered.map(renderOption)
             )}
           </div>
 

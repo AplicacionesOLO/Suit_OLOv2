@@ -1,13 +1,15 @@
 import { useState, useMemo, useCallback } from 'react';
 import AppLayout from '@/components/feature/AppLayout';
-import { useUsers } from '@/hooks/useUsers';
+import { useUsers, sendInvitationEmail } from '@/hooks/useUsers';
 import { useSuitePermissions } from '@/hooks/useSuitePermissions';
 import { useTenantContext } from '@/hooks/useTenantContext';
-import type { PlatformUserFull, CreateInvitationInput } from '@/services/auth/usersService';
+import type { PlatformUserFull, CreateInvitationInput, UserInvitation } from '@/services/auth/usersService';
+import { extendInvitation } from '@/services/auth/usersService';
 import MultiSelect from '@/components/base/MultiSelect';
 import EditUserModal from './components/EditUserModal';
+import ClustersTab from './components/ClustersTab';
 
-type Tab = 'active' | 'invitations';
+type Tab = 'active' | 'invitations' | 'clusters';
 
 export default function UsersPage() {
   const { users, invitations, tenants, roles, countries, warehouses, clients, tenantCountries, loading, error, sendInvitation, cancelInvitation, editUser, removeUser, refresh } = useUsers();
@@ -23,7 +25,9 @@ export default function UsersPage() {
   const [editingUser, setEditingUser] = useState<PlatformUserFull | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<PlatformUserFull | null>(null);
   const [confirmRevoke, setConfirmRevoke] = useState<string | null>(null);
+  const [resendingId, setResendingId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const [inviteForm, setInviteForm] = useState<CreateInvitationInput>({
     email: '', tenant_id: '', role_id: '',
@@ -158,22 +162,56 @@ export default function UsersPage() {
     setSaving(true);
     setFormError('');
     const result = await sendInvitation(inviteForm);
-    setSaving(false);
 
     if (result.error) {
+      setSaving(false);
       setFormError(result.error);
       return;
     }
 
+    // Send invitation email via Gmail SMTP
+    const selectedTenant = tenants.find((t) => t.id === inviteForm.tenant_id);
+    const selectedRole = roles.find((r) => r.id === inviteForm.role_id);
+    const basePath = window.location.pathname.replace(/(\/[^/]+){1}$/, '');
+    const appUrl = `${window.location.protocol}//${window.location.host}${basePath || ''}/login`;
+
+    const newInvitation = result.invitation;
+
+    const emailResult = await sendInvitationEmail({
+      invitation_id: newInvitation?.id || 'unknown',
+      to_email: inviteForm.email.trim().toLowerCase(),
+      to_first_name: inviteForm.first_name || undefined,
+      to_last_name: inviteForm.last_name || undefined,
+      tenant_name: selectedTenant?.name || '',
+      role_name: selectedRole?.name || '',
+      invited_by_name: 'El administrador',
+      expires_at: newInvitation?.expires_at || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      app_url: appUrl,
+    });
+
+    setSaving(false);
     setShowInviteModal(false);
     resetInviteForm();
     setActiveTab('invitations');
-    showToast('success', 'Invitacion creada correctamente. El usuario podra activarse al iniciar sesion.');
+
+    if (emailResult.error) {
+      showToast('success', `Invitacion creada. Nota: el correo no pudo enviarse (${emailResult.error}). El usuario puede iniciar sesion directamente.`);
+    } else {
+      showToast('success', 'Invitacion creada y correo de bienvenida enviado correctamente.');
+    }
   };
 
   const handleDelete = async () => {
     if (!confirmDelete) return;
-    await removeUser(confirmDelete.id);
+    setDeleting(true);
+    const result = await removeUser(confirmDelete.id);
+    setDeleting(false);
+
+    if (result.error) {
+      showToast('error', result.error);
+      return;
+    }
+
     setConfirmDelete(null);
     showToast('success', 'Usuario eliminado');
   };
@@ -183,6 +221,44 @@ export default function UsersPage() {
     await cancelInvitation(confirmRevoke);
     setConfirmRevoke(null);
     showToast('success', 'Invitacion revocada');
+  };
+
+  const handleResend = async (inv: UserInvitation) => {
+    if (resendingId) return;
+    setResendingId(inv.id);
+
+    // Extender la expiración para que invitaciones vencidas vuelvan a ser válidas
+    const { invitation: updatedInv, error: extendError } = await extendInvitation(inv.id);
+    const targetInv: UserInvitation = updatedInv ? { ...inv, expires_at: updatedInv.expires_at } : inv;
+
+    const basePath = window.location.pathname.replace(/(\/[^/]+){1}$/, '');
+    const appUrl = `${window.location.protocol}//${window.location.host}${basePath || ''}/login`;
+
+    const emailResult = await sendInvitationEmail({
+      invitation_id: targetInv.id,
+      to_email: targetInv.email,
+      to_first_name: targetInv.first_name || undefined,
+      to_last_name: targetInv.last_name || undefined,
+      tenant_name: targetInv.tenant_name || '',
+      role_name: targetInv.role_name || '',
+      invited_by_name: targetInv.invited_by_name || 'El administrador',
+      expires_at: targetInv.expires_at,
+      app_url: appUrl,
+    });
+
+    setResendingId(null);
+
+    if (extendError) {
+      showToast('error', `No se pudo actualizar la invitacion: ${extendError}`);
+      return;
+    }
+    if (emailResult.error) {
+      showToast('error', `No se pudo reenviar el correo: ${emailResult.error}`);
+      return;
+    }
+
+    await refresh();
+    showToast('success', `Correo reenviado a ${targetInv.email}`);
   };
 
   const roleLevelBadge = (level: number) => {
@@ -313,9 +389,21 @@ export default function UsersPage() {
                 <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 text-2xs font-medium">{invitations.length}</span>
               )}
             </button>
+            <button
+              onClick={() => setActiveTab('clusters')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                activeTab === 'clusters'
+                  ? 'bg-primary-500/10 text-primary-400'
+                  : 'text-foreground-500 hover:text-foreground-300 hover:bg-background-200/50'
+              }`}
+            >
+              <span className="w-4 h-4 inline-flex items-center justify-center mr-1.5"><i className="ri-stack-line text-sm"></i></span>
+              Clusters
+            </button>
           </div>
 
           {/* Filters */}
+          {activeTab !== 'clusters' && (
           <div className="p-4 border-b border-secondary-500/10 flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1 max-w-sm">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground-500 w-4 h-4 flex items-center justify-center"><i className="ri-search-line text-sm"></i></span>
@@ -337,6 +425,7 @@ export default function UsersPage() {
               </>
             )}
           </div>
+          )}
 
           {/* Tab: Active Users */}
           {activeTab === 'active' && (
@@ -468,6 +557,20 @@ export default function UsersPage() {
                       </td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center justify-end gap-1">
+                          {can('users', 'create') && (
+                            <button
+                              onClick={() => handleResend(inv)}
+                              disabled={resendingId === inv.id}
+                              className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-primary-400 hover:bg-primary-500/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="Reenviar correo"
+                            >
+                              {resendingId === inv.id ? (
+                                <span className="w-4 h-4 flex items-center justify-center"><i className="ri-loader-4-line text-sm animate-spin"></i></span>
+                              ) : (
+                                <span className="w-4 h-4 flex items-center justify-center"><i className="ri-mail-send-line text-sm"></i></span>
+                              )}
+                            </button>
+                          )}
                           {can('users', 'revoke') && (
                             <button onClick={() => setConfirmRevoke(inv.id)} className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-500 hover:text-red-400 hover:bg-red-500/10 transition-all" title="Revocar invitacion">
                               <span className="w-4 h-4 flex items-center justify-center"><i className="ri-close-circle-line text-sm"></i></span>
@@ -491,6 +594,13 @@ export default function UsersPage() {
               <div className="p-4 border-t border-secondary-500/10 flex items-center justify-between">
                 <span className="text-xs text-foreground-600">{filteredInvitations.length} invitaciones pendientes</span>
               </div>
+            </div>
+          )}
+
+          {/* Tab: Clusters */}
+          {activeTab === 'clusters' && (
+            <div className="p-4">
+              <ClustersTab users={users} tenants={tenants} can={can} />
             </div>
           )}
         </div>
@@ -724,7 +834,9 @@ export default function UsersPage() {
             <p className="text-xs text-red-400 mb-6">Esta accion no se puede deshacer.</p>
             <div className="flex items-center justify-center gap-3">
               <button onClick={() => setConfirmDelete(null)} className="h-9 px-4 rounded-lg border border-secondary-500/20 text-sm text-foreground-400 hover:text-foreground-200 transition-all whitespace-nowrap">Cancelar</button>
-              <button onClick={handleDelete} className="h-9 px-4 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors text-sm font-medium whitespace-nowrap">Eliminar</button>
+              <button onClick={handleDelete} disabled={deleting} className="h-9 px-4 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors text-sm font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed">
+                {deleting ? 'Eliminando...' : 'Eliminar'}
+              </button>
             </div>
           </div>
         </div>
