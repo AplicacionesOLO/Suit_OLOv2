@@ -708,68 +708,6 @@ src/components/feature/Topbar.tsx              — Selectores País + Tenant en 
 src/pages/my-access/page.tsx                   — Sección Mis Alcances (País→Tenant→Cliente)
 ```
 
-### Fase 7.1: Clusters de Usuarios y Aplicaciones ✅ COMPLETADO (Jun 2026)
-
-**Objetivo:** Permitir agrupar usuarios y aplicaciones en "clusters" para asignar accesos de forma masiva pero controlada (todas las apps del cluster → todos los usuarios del cluster).
-
-**Nuevo modelo:**
-```
-CLUSTER (tenant-scoped)
-├── Apps (cluster_apps)
-├── Usuarios (cluster_users)
-└── "Asignar acceso" → crea user_application_access (app × usuario)
-```
-
-**Base de Datos:**
-
-| Tabla | Columnas | Descripción |
-|-------|----------|-------------|
-| `clusters` | id, tenant_id, name, description, created_by, created_at, updated_at, deleted_at, deleted_by | Grupo de apps + usuarios |
-| `cluster_apps` | id, tenant_id, cluster_id (FK cascade), application_id, created_at + UNIQUE(cluster_id, application_id) | Apps del cluster |
-| `cluster_users` | id, tenant_id, cluster_id (FK cascade), user_id, created_at + UNIQUE(cluster_id, user_id) | Usuarios del cluster |
-
-**RLS aplicada:**
-- SELECT: `is_super_admin() OR tenant_id = get_user_tenant_id()`
-- INSERT/UPDATE/DELETE: admin (`get_user_role_level() >= 80`) dentro de su tenant
-- Soft delete en `clusters` (deleted_at); borrado físico en `cluster_apps`/`cluster_users`
-
-**Función RPC `assign_cluster_access(p_cluster_id)`:**
-- SECURITY DEFINER, valida autenticación + rol >= 80 + tenant del cluster
-- INSERT masivo en `user_application_access` (CROSS JOIN cluster_users × cluster_apps)
-- `ON CONFLICT (user_id, application_id, instance_id) DO NOTHING` (no duplica accesos)
-- Retorna JSONB `{ apps, users, assigned }` para feedback al usuario
-
-**Frontend:**
-- Nueva pestaña **"Clusters"** en `/users`
-- `ClustersTab`: grid de clusters con búsqueda, contadores de apps/usuarios, crear cluster (nombre/descripción/tenant)
-- `ClusterDetailModal`: gestiona apps y usuarios del cluster, agrega/quita con MultiSelect, edita nombre/descripción, botón "Asignar acceso masivo" con confirmación y resumen de resultado, eliminar cluster
-- Servicio `clustersService` + hook `useClusters`
-
-**Reglas de negocio:**
-- ✅ Cluster pertenece a un tenant (opciones de apps/usuarios filtradas por tenant del cluster)
-- ✅ Asignación masiva pero controlada: solo apps y usuarios del cluster
-- ✅ Accesos existentes no se duplican (ON CONFLICT)
-- ✅ Permisos reutilizan módulo `users` (create/update/delete)
-
-**Archivos creados/modificados:**
-```
-SQL (ejecutado en Supabase):
-- CREATE TABLE clusters, cluster_apps, cluster_users + índices
-- RLS policies (select/insert/update/delete)
-- CREATE FUNCTION assign_cluster_access(uuid) + grants
-
-NUEVOS:
-src/services/auth/clustersService.ts        — Servicio CRUD + asignación
-src/hooks/useClusters.ts                     — Hook de clusters + catálogo de apps
-src/pages/users/components/ClustersTab.tsx   — Lista de clusters + modal crear
-src/pages/users/components/ClusterDetailModal.tsx — Gestión apps/usuarios + asignar
-
-MODIFICADOS:
-src/pages/users/page.tsx                     — Nueva pestaña Clusters
-```
-
----
-
 ### Fase Organizacional: ARQUITECTURA CERRADA — v1.0 ✅ APROBADA (Jun 2026)
 
 **Estado:** CERRADA  

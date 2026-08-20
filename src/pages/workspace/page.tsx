@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/feature/AppLayout';
+import AppLogoImage from '@/components/base/AppLogoImage';
 import { fetchInstanceById, type AppInstance } from '@/services/applications/applicationsService';
 import { canAccessInstance, logAuditEvent } from '@/services/security/accessService';
 
@@ -152,19 +153,6 @@ export default function WorkspacePage() {
     return () => { cancelled = true; };
   }, [instanceId]);
 
-  const colorMap: Record<string, { bg: string; text: string; border: string }> = {
-    emerald: { bg: 'bg-primary-500/10', text: 'text-primary-400', border: 'border-primary-500/20' },
-    cyan: { bg: 'bg-cyan-500/10', text: 'text-cyan-400', border: 'border-cyan-500/20' },
-    amber: { bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20' },
-    violet: { bg: 'bg-violet-500/10', text: 'text-violet-400', border: 'border-violet-500/20' },
-    rose: { bg: 'bg-rose-500/10', text: 'text-rose-400', border: 'border-rose-500/20' },
-    indigo: { bg: 'bg-indigo-500/10', text: 'text-indigo-400', border: 'border-indigo-500/20' },
-    red: { bg: 'bg-red-500/10', text: 'text-red-400', border: 'border-red-500/20' },
-    slate: { bg: 'bg-slate-500/10', text: 'text-slate-400', border: 'border-slate-500/20' },
-  };
-
-  function getColors(c: string) { return colorMap[c] || colorMap.emerald; }
-
   // Loading state
   if (status === 'loading' || status === 'validating') {
     return (
@@ -301,7 +289,6 @@ export default function WorkspacePage() {
 
   // Ready state
   if (!instance) return null;
-  const colors = getColors(instance.application_color || 'emerald');
 
   // If not embedded mode, show external launch screen
   if (!canEmbed) {
@@ -309,9 +296,15 @@ export default function WorkspacePage() {
       <AppLayout>
         <div className="flex items-center justify-center h-[calc(100vh-12rem)]">
           <div className="text-center space-y-6 max-w-lg w-full">
-            <div className={`w-20 h-20 rounded-2xl ${colors.bg} border ${colors.border} flex items-center justify-center mx-auto`}>
-              <i className={`${instance.application_icon || 'ri-apps-2-line'} ${colors.text} text-3xl`}></i>
-            </div>
+            <AppLogoImage
+              appName={instance.application_name}
+              sizeClass="w-20 h-20"
+              roundedClass="rounded-2xl"
+              icon={instance.application_icon || 'ri-apps-2-line'}
+              color={instance.application_color || 'emerald'}
+              textSizeClass="text-3xl"
+              className="mx-auto"
+            />
 
             <div>
               <h2 className="text-xl font-bold text-foreground-100 mb-2">{instance.application_name || instance.instance_name}</h2>
@@ -363,9 +356,7 @@ export default function WorkspacePage() {
       {/* Workspace toolbar */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-secondary-500/10 bg-background-50/95 backdrop-blur-sm">
         <div className="flex items-center gap-3">
-          <div className={`w-8 h-8 rounded-lg ${colors.bg} border ${colors.border} flex items-center justify-center shrink-0`}>
-            <i className={`${instance.application_icon || 'ri-apps-2-line'} ${colors.text} text-sm`}></i>
-          </div>
+          <AppLogoImage appName={instance.application_name} sizeClass="w-8 h-8" roundedClass="rounded-lg" icon={instance.application_icon || 'ri-apps-2-line'} color={instance.application_color || 'emerald'} textSizeClass="text-sm" />
           <div className="min-w-0">
             <p className="text-sm font-semibold text-foreground-200 truncate">{instance.application_name || instance.instance_name}</p>
             <p className="text-2xs text-foreground-500 truncate">{instance.instance_name}{instance.tenant_name ? ` · ${instance.tenant_name}` : ''}</p>

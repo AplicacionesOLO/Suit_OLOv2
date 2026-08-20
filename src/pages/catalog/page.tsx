@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/feature/AppLayout';
+import AppLogoImage from '@/components/base/AppLogoImage';
 import { fetchCategories, fetchApplications, type Application as SupaApplication, type AppCategory as SupaCategory } from '@/services/applications/applicationsService';
 import { requestApplicationAccess } from '@/services/security/accessService';
 
@@ -39,17 +40,17 @@ const statusConfig: Record<string, { label: string; dot: string; bg: string; tex
   active: { label: 'Activo', dot: 'bg-primary-400', bg: 'bg-primary-500/10', text: 'text-primary-400' },
   maintenance: { label: 'Mantenimiento', dot: 'bg-amber-400', bg: 'bg-amber-500/10', text: 'text-amber-400' },
   offline: { label: 'Offline', dot: 'bg-red-400', bg: 'bg-red-500/10', text: 'text-red-400' },
-  beta: { label: 'Beta', dot: 'bg-violet-400', bg: 'bg-violet-500/10', text: 'text-violet-400' },
+  beta: { label: 'Beta', dot: 'bg-primary-400', bg: 'bg-primary-500/10', text: 'text-primary-400' },
 };
 
 const colorMap: Record<string, { bgColor: string; textColor: string; borderColor: string }> = {
   emerald: { bgColor: 'bg-primary-500/10', textColor: 'text-primary-400', borderColor: 'border-primary-500/20' },
-  cyan: { bgColor: 'bg-cyan-500/10', textColor: 'text-cyan-400', borderColor: 'border-cyan-500/20' },
+  cyan: { bgColor: 'bg-primary-500/10', textColor: 'text-primary-400', borderColor: 'border-primary-500/20' },
   amber: { bgColor: 'bg-amber-500/10', textColor: 'text-amber-400', borderColor: 'border-amber-500/20' },
-  slate: { bgColor: 'bg-slate-500/10', textColor: 'text-slate-400', borderColor: 'border-slate-500/20' },
+  slate: { bgColor: 'bg-secondary-500/10', textColor: 'text-secondary-400', borderColor: 'border-secondary-500/20' },
   rose: { bgColor: 'bg-rose-500/10', textColor: 'text-rose-400', borderColor: 'border-rose-500/20' },
-  violet: { bgColor: 'bg-violet-500/10', textColor: 'text-violet-400', borderColor: 'border-violet-500/20' },
-  indigo: { bgColor: 'bg-indigo-500/10', textColor: 'text-indigo-400', borderColor: 'border-indigo-500/20' },
+  violet: { bgColor: 'bg-primary-500/10', textColor: 'text-primary-400', borderColor: 'border-primary-500/20' },
+  indigo: { bgColor: 'bg-primary-500/10', textColor: 'text-primary-400', borderColor: 'border-primary-500/20' },
   red: { bgColor: 'bg-red-500/10', textColor: 'text-red-400', borderColor: 'border-red-500/20' },
 };
 
@@ -254,9 +255,7 @@ export default function CatalogPage() {
                     return (
                       <div key={app.id} className="glass-panel rounded-2xl p-5 hover:border-secondary-500/20 transition-all duration-200 cursor-pointer group animate-fade-in" data-product-shop>
                         <div className="flex items-start justify-between mb-4">
-                          <div className={`w-12 h-12 rounded-2xl ${app.bgColor} border ${app.borderColor} flex items-center justify-center group-hover:scale-110 transition-transform duration-200`}>
-                            <i className={`${app.icon} ${app.textColor} text-xl`}></i>
-                          </div>
+                          <AppLogoImage appName={app.name} appCode={app.code} sizeClass="w-12 h-12" roundedClass="rounded-2xl" icon={app.icon} color={app.color} textSizeClass="text-xl" className="group-hover:scale-110 transition-transform duration-200" />
                           <span className={`px-2 py-0.5 rounded-full text-2xs font-medium ${status.bg} ${status.text}`}>{status.label}</span>
                         </div>
                         <h3 className="text-sm font-semibold text-foreground-200 mb-1.5">{app.name}</h3>
@@ -290,9 +289,7 @@ export default function CatalogPage() {
           <div className="relative glass-panel-strong rounded-2xl w-full max-w-md p-6 animate-scale-in">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className={`w-11 h-11 rounded-xl ${requestApp.bgColor} border ${requestApp.borderColor} flex items-center justify-center`}>
-                  <i className={`${requestApp.icon} ${requestApp.textColor} text-xl`}></i>
-                </div>
+                <AppLogoImage appName={requestApp.name} appCode={requestApp.code} sizeClass="w-11 h-11" roundedClass="rounded-xl" icon={requestApp.icon} color={requestApp.color} textSizeClass="text-xl" />
                 <div>
                   <h2 className="text-base font-semibold text-foreground-200">Solicitar acceso</h2>
                   <p className="text-sm text-foreground-500 mt-0.5">{requestApp.name}</p>

@@ -193,8 +193,8 @@ export default function TenantDetailPage() {
           <h2 className="text-sm font-semibold text-foreground-200 mb-4">Estadisticas</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             {[
-              { label: 'Paises', value: tenant.country_count, icon: 'ri-global-line', bg: 'bg-violet-500/10', text: 'text-violet-400', path: '/countries' },
-              { label: 'Almacenes', value: tenant.warehouse_count, icon: 'ri-store-2-line', bg: 'bg-cyan-500/10', text: 'text-cyan-400', path: '/warehouses' },
+              { label: 'Paises', value: tenant.country_count, icon: 'ri-global-line', bg: 'bg-primary-500/10', text: 'text-primary-400', path: '/countries' },
+              { label: 'Almacenes', value: tenant.warehouse_count, icon: 'ri-store-2-line', bg: 'bg-primary-500/10', text: 'text-primary-400', path: '/warehouses' },
               { label: 'Clientes', value: tenant.client_count, icon: 'ri-building-2-line', bg: 'bg-rose-500/10', text: 'text-rose-400', path: '/clients' },
               { label: 'Usuarios', value: tenant.user_count, icon: 'ri-team-line', bg: 'bg-amber-500/10', text: 'text-amber-400', path: '/users' },
               { label: 'Aplicaciones', value: tenant.instance_count, icon: 'ri-apps-2-line', bg: 'bg-primary-500/10', text: 'text-primary-400', path: '/instances' },

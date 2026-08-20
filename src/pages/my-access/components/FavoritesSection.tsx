@@ -18,18 +18,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { groupApps } from '@/utils/groupApps';
 import type { FavoriteWithDetails } from '@/services/security/favoritesService';
-
-const colorMap: Record<string, { bg: string; text: string; border: string }> = {
-  emerald: { bg: 'bg-primary-500/20', text: 'text-primary-600', border: 'border-primary-500/30' },
-  cyan: { bg: 'bg-cyan-500/20', text: 'text-cyan-600', border: 'border-cyan-500/30' },
-  amber: { bg: 'bg-amber-500/20', text: 'text-amber-600', border: 'border-amber-500/30' },
-  violet: { bg: 'bg-violet-500/20', text: 'text-violet-600', border: 'border-violet-500/30' },
-  rose: { bg: 'bg-rose-500/20', text: 'text-rose-600', border: 'border-rose-500/30' },
-  indigo: { bg: 'bg-indigo-500/20', text: 'text-indigo-600', border: 'border-indigo-500/30' },
-  red: { bg: 'bg-red-500/20', text: 'text-red-600', border: 'border-red-500/30' },
-};
-
-function getColors(c: string) { return colorMap[c] || colorMap.emerald; }
+import AppLogoImage from '@/components/base/AppLogoImage';
 
 interface SortableCardProps {
   fav: FavoriteWithDetails;
@@ -54,7 +43,6 @@ function SortableCard({ fav, isEditing, onOpen }: SortableCardProps) {
     zIndex: isDragging ? 50 : 'auto',
   };
 
-  const colors = getColors(fav.application_color || 'emerald');
   const isEmbedded = fav.instance_open_mode === 'embedded';
 
   return (
@@ -79,9 +67,15 @@ function SortableCard({ fav, isEditing, onOpen }: SortableCardProps) {
             <i className="ri-draggable text-sm"></i>
           </button>
         )}
-        <div className={`w-8 h-8 rounded-lg ${colors.bg} border ${colors.border} flex items-center justify-center shrink-0`}>
-          <i className={`${fav.application_icon || 'ri-apps-line'} ${colors.text} text-base`}></i>
-        </div>
+        <AppLogoImage
+          appName={fav.application_name}
+          appCode={fav.application_code}
+          sizeClass="w-8 h-8"
+          roundedClass="rounded-lg"
+          icon={fav.application_icon || 'ri-apps-line'}
+          color={fav.application_color || 'emerald'}
+          textSizeClass="text-base"
+        />
         <div className="min-w-0 flex-1">
           <h4 className="text-xs font-semibold text-foreground-200 truncate">{fav.application_name}</h4>
           <div className="flex items-center gap-1.5 mt-0.5">

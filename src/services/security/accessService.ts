@@ -529,22 +529,34 @@ export async function validateUserClientAccess(userId: string, clientId: string)
       return { hasAccess: true, error: null };
     }
 
-    // Check role level for scope_all_clients
+    // Check direct client assignment on the user record + scope_all_clients + role level
     const { data: pu } = await supabase
       .from('platform_users')
-      .select('role_id, tenant_context_override')
+      .select('role_id, tenant_context_override, client_id, scope_all_clients')
       .eq('id', userId)
       .maybeSingle();
 
-    if (pu?.role_id) {
-      const { data: role } = await supabase
-        .from('roles')
-        .select('level')
-        .eq('id', pu.role_id)
-        .maybeSingle();
-
-      if (role && (role.level || 0) >= 100) {
+    if (pu) {
+      // Super admin scope flag grants access to every client
+      if (pu.scope_all_clients === true) {
         return { hasAccess: true, error: null };
+      }
+
+      // Direct single-client assignment stored on platform_users.client_id
+      if (pu.client_id && pu.client_id === clientId) {
+        return { hasAccess: true, error: null };
+      }
+
+      if (pu.role_id) {
+        const { data: role } = await supabase
+          .from('roles')
+          .select('level')
+          .eq('id', pu.role_id)
+          .maybeSingle();
+
+        if (role && (role.level || 0) >= 100) {
+          return { hasAccess: true, error: null };
+        }
       }
     }
 

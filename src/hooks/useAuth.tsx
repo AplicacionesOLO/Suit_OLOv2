@@ -13,6 +13,7 @@ import {
   type PlatformUser,
 } from '@/services/auth/authService';
 import { supabase } from '@/services/supabase/client';
+import { isSessionExpiredError } from '@/utils/sessionErrors';
 
 interface AuthContextValue {
   session: Session | null;
@@ -64,13 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (sessionErr: unknown) {
         // Refresh token expirado o inválido — limpiar sesión local y seguir
         if (!mounted) return;
-        const msg = sessionErr instanceof Error ? sessionErr.message : String(sessionErr);
-        if (
-          msg.includes('Refresh Token Not Found') ||
-          msg.includes('Invalid Refresh Token') ||
-          msg.includes('session_not_found') ||
-          msg.includes('AuthSessionMissingError')
-        ) {
+        if (isSessionExpiredError(sessionErr)) {
           console.warn('[Suite OLO] Sesión expirada durante inicialización — redirigiendo a login');
           try {
             await supabase.auth.signOut({ scope: 'local' });

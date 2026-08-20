@@ -102,8 +102,8 @@ export default function DashboardPage() {
 
   const statCards = [
     { label: 'Tenants activos', value: stats.activeTenants, icon: 'ri-building-4-line', bg: 'bg-primary-500/10', text: 'text-primary-400', path: '/tenants' },
-    { label: 'Países activos', value: stats.activeCountries, icon: 'ri-global-line', bg: 'bg-violet-500/10', text: 'text-violet-400', path: '/countries' },
-    { label: 'Almacenes', value: stats.activeWarehouses, icon: 'ri-store-2-line', bg: 'bg-cyan-500/10', text: 'text-cyan-400', path: '/warehouses' },
+    { label: 'Países activos', value: stats.activeCountries, icon: 'ri-global-line', bg: 'bg-primary-500/10', text: 'text-primary-400', path: '/countries' },
+    { label: 'Almacenes', value: stats.activeWarehouses, icon: 'ri-store-2-line', bg: 'bg-primary-500/10', text: 'text-primary-400', path: '/warehouses' },
     { label: 'Clientes', value: stats.activeClients, icon: 'ri-building-2-line', bg: 'bg-rose-500/10', text: 'text-rose-400', path: '/clients' },
     { label: 'Usuarios activos', value: stats.activeUsers, icon: 'ri-team-line', bg: 'bg-primary-500/10', text: 'text-primary-400', path: '/users' },
     { label: 'Aplicaciones', value: stats.activeApplications, icon: 'ri-apps-2-line', bg: 'bg-amber-500/10', text: 'text-amber-400', path: '/applications' },
@@ -154,7 +154,7 @@ export default function DashboardPage() {
             <h1 className="text-xl font-bold text-foreground-100">Dashboard</h1>
             <p className="text-sm text-foreground-500 mt-1">
               Resumen operativo de la plataforma{' '}
-              <span className="text-primary-400 font-medium">Suite OLO</span>
+              <span className="text-primary-500 font-medium">Suite OLO</span>
 
             </p>
           </div>
@@ -227,7 +227,7 @@ export default function DashboardPage() {
                 {[
                   { label: 'Usuarios', desc: 'Gestionar e invitar', icon: 'ri-user-add-line', path: '/users', color: 'text-primary-400', bg: 'bg-primary-500/10' },
                   { label: 'Aplicaciones', desc: 'Catálogo de apps', icon: 'ri-apps-2-line', path: '/applications', color: 'text-accent-400', bg: 'bg-accent-500/10' },
-                  { label: 'Apps Asignadas', desc: 'Gestionar accesos', icon: 'ri-shield-keyhole-line', path: '/app-access', color: 'text-violet-400', bg: 'bg-violet-500/10' },
+                  { label: 'Apps Asignadas', desc: 'Gestionar accesos', icon: 'ri-shield-keyhole-line', path: '/app-access', color: 'text-primary-400', bg: 'bg-primary-500/10' },
                   { label: 'Roles y Permisos', desc: 'Configurar seguridad', icon: 'ri-shield-user-line', path: '/roles', color: 'text-amber-400', bg: 'bg-amber-500/10' },
                   { label: 'Auditoría', desc: 'Registros del sistema', icon: 'ri-file-search-line', path: '/audit', color: 'text-rose-400', bg: 'bg-rose-500/10' },
                 ].map((action) => (

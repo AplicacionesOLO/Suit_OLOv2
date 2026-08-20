@@ -246,8 +246,8 @@ export default function ClientsPage() {
               label: 'Total clientes',
               value: clients.length,
               icon: 'ri-building-2-line',
-              bg: 'bg-violet-500/10',
-              text: 'text-violet-400',
+              bg: 'bg-primary-500/10',
+              text: 'text-primary-400',
             },
             {
               label: 'Activos',
@@ -400,8 +400,8 @@ export default function ClientsPage() {
                   >
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
-                          <i className="ri-building-2-line text-violet-400 text-base"></i>
+                        <div className="w-9 h-9 rounded-lg bg-primary-500/10 border border-primary-500/20 flex items-center justify-center shrink-0">
+                          <i className="ri-building-2-line text-primary-400 text-base"></i>
                         </div>
                         <div>
                           <p className="text-sm font-medium text-foreground-200">

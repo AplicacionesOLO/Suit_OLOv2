@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import AppLayout from '@/components/feature/AppLayout';
+import AppLogoImage from '@/components/base/AppLogoImage';
 import { useApplicationAccess } from '@/hooks/useApplicationAccess';
 import { useRoles } from '@/hooks/useRoles';
 import { useSuitePermissions } from '@/hooks/useSuitePermissions';
@@ -8,21 +9,9 @@ const statusConfig: Record<string, { label: string; bg: string; text: string; bo
   active: { label: 'Activo', bg: 'bg-primary-500/10', text: 'text-primary-400', border: 'border-primary-500/20' },
   pending: { label: 'Pendiente', bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20' },
   revoked: { label: 'Revocado', bg: 'bg-red-500/10', text: 'text-red-400', border: 'border-red-500/20' },
-  expired: { label: 'Expirado', bg: 'bg-slate-500/10', text: 'text-slate-400', border: 'border-slate-500/20' },
+  expired: { label: 'Expirado', bg: 'bg-secondary-500/10', text: 'text-secondary-400', border: 'border-secondary-500/20' },
   denied: { label: 'Denegado', bg: 'bg-red-500/10', text: 'text-red-400', border: 'border-red-500/20' },
 };
-
-const colorMap: Record<string, { bg: string; text: string; border: string }> = {
-  emerald: { bg: 'bg-primary-500/10', text: 'text-primary-400', border: 'border-primary-500/20' },
-  cyan: { bg: 'bg-cyan-500/10', text: 'text-cyan-400', border: 'border-cyan-500/20' },
-  amber: { bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20' },
-  violet: { bg: 'bg-violet-500/10', text: 'text-violet-400', border: 'border-violet-500/20' },
-  rose: { bg: 'bg-rose-500/10', text: 'text-rose-400', border: 'border-rose-500/20' },
-  indigo: { bg: 'bg-indigo-500/10', text: 'text-indigo-400', border: 'border-indigo-500/20' },
-  red: { bg: 'bg-red-500/10', text: 'text-red-400', border: 'border-red-500/20' },
-};
-
-function getColors(c: string) { return colorMap[c] || colorMap.emerald; }
 
 export default function AppAccessPage() {
   const { accesses, loading, assignAccess, revokeAccess, approveAccess, denyAccess } = useApplicationAccess();
@@ -147,7 +136,6 @@ export default function AppAccessPage() {
                 <tbody>
                   {filtered.map((acc) => {
                     const st = statusConfig[acc.access_status] || statusConfig.pending;
-                    const colors = getColors(acc.application_color || 'emerald');
                     return (
                       <tr key={acc.id} className="border-b border-secondary-500/5 hover:bg-background-100/50 transition-colors">
                         <td className="px-5 py-3.5">
@@ -158,9 +146,7 @@ export default function AppAccessPage() {
                         </td>
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-2">
-                            <div className={`w-7 h-7 rounded-md ${colors.bg} border ${colors.border} flex items-center justify-center`}>
-                              <i className={`${acc.application_icon || 'ri-apps-line'} ${colors.text} text-xs`}></i>
-                            </div>
+                            <AppLogoImage appName={acc.application_name} sizeClass="w-7 h-7" roundedClass="rounded-md" icon={acc.application_icon || 'ri-apps-line'} color={acc.application_color || 'emerald'} textSizeClass="text-xs" />
                             <div>
                               <p className="text-sm font-medium text-foreground-200">{acc.application_name || '—'}</p>
                               {acc.instance_name && <p className="text-2xs text-foreground-600">{acc.instance_name}</p>}

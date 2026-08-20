@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { isSessionExpiredMessage } from '@/utils/sessionErrors';
 
 const supabaseUrl = import.meta.env.VITE_PUBLIC_SUPABASE_URL as string;
 const supabaseAnonKey = import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY as string;
@@ -17,20 +18,19 @@ export function getSupabaseClient(): SupabaseClient {
         fetch: async (input, init) => {
           const response = await fetch(input, init);
 
-          if (!response.ok && response.status === 400) {
+          if (!response.ok && (response.status === 400 || response.status === 401)) {
             try {
               const cloned = response.clone();
               const body = await cloned.json();
-              const errorMessage: string = body?.error_description || body?.message || body?.error || '';
+              const errorMessage: string =
+                body?.error_description || body?.message || body?.error || body?.msg || '';
+              const errorCode: string = body?.error_code || body?.error || '';
 
               const isRefreshTokenError =
-                errorMessage.includes('Refresh Token Not Found') ||
-                errorMessage.includes('Invalid Refresh Token') ||
-                errorMessage.includes('refresh_token') ||
-                errorMessage.includes('Refresh Token');
+                isSessionExpiredMessage(errorMessage) || isSessionExpiredMessage(errorCode);
 
               if (isRefreshTokenError) {
-                console.warn('[Suite OLO] Refresh token inválido — cerrando sesión automáticamente');
+                console.warn('[Suite OLO] Sesión expirada — cerrando sesión automáticamente');
 
                 setTimeout(async () => {
                   try {

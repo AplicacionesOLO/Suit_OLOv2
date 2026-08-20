@@ -6,7 +6,6 @@ import {
   revokeInvitation,
   updatePlatformUser,
   deletePlatformUser,
-  sendInvitationEmail,
   type PlatformUserFull,
   type UserInvitation,
   type CreateInvitationInput,
@@ -16,8 +15,6 @@ import { supabase } from '@/services/supabase/client';
 import { auditCascadeData } from '@/utils/organizationCascade';
 import type { TenantCountryRelation } from '@/types/organization';
 import { useTenantContext } from '@/hooks/useTenantContext';
-
-export { sendInvitationEmail };
 
 interface UseUsersReturn {
   users: PlatformUserFull[];
@@ -30,7 +27,7 @@ interface UseUsersReturn {
   tenantCountries: TenantCountryRelation[];
   loading: boolean;
   error: string | null;
-  sendInvitation: (input: CreateInvitationInput) => Promise<{ invitation: UserInvitation | null; error: string | null }>;
+  sendInvitation: (input: CreateInvitationInput) => Promise<{ error: string | null }>;
   cancelInvitation: (invitationId: string) => Promise<{ error: string | null }>;
   editUser: (userId: string, input: UpdateUserInput) => Promise<{ error: string | null }>;
   removeUser: (userId: string) => Promise<{ error: string | null }>;

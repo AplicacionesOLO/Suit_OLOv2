@@ -25,13 +25,14 @@ import {
   type ClientBrief,
   type TenantCountryBrief,
 } from '@/services/applications/applicationsService';
+import AppLogoImage from '@/components/base/AppLogoImage';
 
 const statusConfig: Record<string, { label: string; dot: string; badgeBg: string; badgeText: string }> = {
   active: { label: 'Activo', dot: 'bg-primary-400', badgeBg: 'bg-primary-500/10', badgeText: 'text-primary-400' },
   maintenance: { label: 'Mantenimiento', dot: 'bg-amber-400', badgeBg: 'bg-amber-500/10', badgeText: 'text-amber-400' },
   offline: { label: 'Offline', dot: 'bg-red-400', badgeBg: 'bg-red-500/10', badgeText: 'text-red-400' },
-  beta: { label: 'Beta', dot: 'bg-violet-400', badgeBg: 'bg-violet-500/10', badgeText: 'text-violet-400' },
-  inactive: { label: 'Inactivo', dot: 'bg-slate-400', badgeBg: 'bg-slate-500/10', badgeText: 'text-slate-400' },
+  beta: { label: 'Beta', dot: 'bg-primary-400', badgeBg: 'bg-primary-500/10', badgeText: 'text-primary-400' },
+  inactive: { label: 'Inactivo', dot: 'bg-secondary-400', badgeBg: 'bg-secondary-500/10', badgeText: 'text-secondary-400' },
 };
 
 interface AppItem {
@@ -102,12 +103,12 @@ const emptyForm: FormData = {
 
 const colorMap: Record<string, { bgColor: string; textColor: string; borderColor: string }> = {
   emerald: { bgColor: 'bg-primary-500/10', textColor: 'text-primary-400', borderColor: 'border-primary-500/20' },
-  cyan: { bgColor: 'bg-cyan-500/10', textColor: 'text-cyan-400', borderColor: 'border-cyan-500/20' },
+  cyan: { bgColor: 'bg-primary-500/10', textColor: 'text-primary-400', borderColor: 'border-primary-500/20' },
   amber: { bgColor: 'bg-amber-500/10', textColor: 'text-amber-400', borderColor: 'border-amber-500/20' },
-  slate: { bgColor: 'bg-slate-500/10', textColor: 'text-slate-400', borderColor: 'border-slate-500/20' },
+  slate: { bgColor: 'bg-secondary-500/10', textColor: 'text-secondary-400', borderColor: 'border-slate-500/20' },
   rose: { bgColor: 'bg-rose-500/10', textColor: 'text-rose-400', borderColor: 'border-rose-500/20' },
-  violet: { bgColor: 'bg-violet-500/10', textColor: 'text-violet-400', borderColor: 'border-violet-500/20' },
-  indigo: { bgColor: 'bg-indigo-500/10', textColor: 'text-indigo-400', borderColor: 'border-indigo-500/20' },
+  violet: { bgColor: 'bg-primary-500/10', textColor: 'text-primary-400', borderColor: 'border-primary-500/20' },
+  indigo: { bgColor: 'bg-primary-500/10', textColor: 'text-primary-400', borderColor: 'border-primary-500/20' },
   red: { bgColor: 'bg-red-500/10', textColor: 'text-red-400', borderColor: 'border-red-500/20' },
 };
 
@@ -452,9 +453,7 @@ export default function ApplicationsPage() {
                     <tr key={app.id} className={`border-b border-secondary-500/5 hover:bg-background-100/50 transition-colors ${selectedAppId === app.id ? 'bg-primary-500/5' : ''} ${isDeleted ? 'opacity-50' : ''}`}>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
-                          <div className={`w-9 h-9 rounded-lg ${app.bgColor} border ${app.borderColor} flex items-center justify-center`}>
-                            <i className={`${app.icon} ${app.textColor} text-base`}></i>
-                          </div>
+                          <AppLogoImage appName={app.name} appCode={app.code} sizeClass="w-9 h-9" roundedClass="rounded-lg" icon={app.icon} color={app.color} textSizeClass="text-base" />
                           <div>
                             <p className="text-sm font-medium text-foreground-200">{app.name}</p>
                             <code className="text-2xs text-foreground-600 font-mono">{app.code}</code>
@@ -509,9 +508,7 @@ export default function ApplicationsPage() {
         {selectedApp && (
           <div className="glass-panel rounded-2xl p-6 animate-slide-up">
             <div className="flex items-start gap-4 mb-6">
-              <div className={`w-14 h-14 rounded-2xl ${selectedApp.bgColor} border ${selectedApp.borderColor} flex items-center justify-center`}>
-                <i className={`${selectedApp.icon} ${selectedApp.textColor} text-2xl`}></i>
-              </div>
+              <AppLogoImage appName={selectedApp.name} appCode={selectedApp.code} sizeClass="w-14 h-14" roundedClass="rounded-2xl" icon={selectedApp.icon} color={selectedApp.color} textSizeClass="text-2xl" />
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <h2 className="text-lg font-semibold text-foreground-100">{selectedApp.name}</h2>

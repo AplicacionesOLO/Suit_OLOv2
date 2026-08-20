@@ -187,8 +187,8 @@ export default function WarehousesPage() {
               label: 'Clientes asociados',
               value: warehouses.reduce((s, w) => s + w.client_count, 0),
               icon: 'ri-building-2-line',
-              bg: 'bg-violet-500/10',
-              text: 'text-violet-400',
+              bg: 'bg-primary-500/10',
+              text: 'text-primary-400',
             },
           ].map((stat) => (
             <div key={stat.label} className="glass-panel rounded-xl p-4">

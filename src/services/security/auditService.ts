@@ -137,18 +137,3 @@ export function exportAuditCSV(logs: AuditLog[]): void {
   a.click();
   URL.revokeObjectURL(url);
 }
-
-export async function fetchUserActivity(userId: string, limit = 8): Promise<{ data: AuditLog[]; error: string | null }> {
-  try {
-    const { data, error } = await supabase
-      .from('audit_logs')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-    if (error) throw error;
-    return { data: (data || []) as AuditLog[], error: null };
-  } catch (err) {
-    return { data: [], error: err instanceof Error ? err.message : 'Error al cargar actividad' };
-  }
-}

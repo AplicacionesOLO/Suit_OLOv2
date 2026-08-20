@@ -40,7 +40,7 @@ export default function AppLogo({ showText = true, direction = 'col', size = 'md
         <img src={logoUrl} alt="SuiteOLO Logo" className={`${logoSize} object-contain shrink-0`} />
         <div className="whitespace-nowrap">
           <span className={`text-foreground-100 font-bold ${textSize} tracking-tight`}>Suite</span>
-          <span className={`text-primary-400 font-bold ${textSize} tracking-tight`}>OLO</span>
+          <span className={`text-primary-500 font-bold ${textSize} tracking-tight`}>OLO</span>
         </div>
       </div>
     );
@@ -51,7 +51,7 @@ export default function AppLogo({ showText = true, direction = 'col', size = 'md
       <img src={logoUrl} alt="SuiteOLO Logo" className={`${logoSize} object-contain`} />
       <div className="whitespace-nowrap mt-1">
         <span className={`text-foreground-100 font-bold ${textSize} tracking-tight`}>Suite</span>
-        <span className={`text-primary-400 font-bold ${textSize} tracking-tight`}>OLO</span>
+        <span className={`text-primary-500 font-bold ${textSize} tracking-tight`}>OLO</span>
       </div>
     </div>
   );

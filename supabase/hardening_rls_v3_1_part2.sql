@@ -466,17 +466,84 @@ CREATE OR REPLACE FUNCTION public.handle_new_auth_user()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path TO ''
 AS $$
 DECLARE default_tenant_id uuid; pu_id uuid;
+  v_full_name text; v_first_name text; v_last_name text;
+  inv_row public.user_invitations;
+  primary_applied boolean := false;
 BEGIN
+  -- Google OAuth entrega 'name' y 'full_name' (NO 'first_name'/'last_name').
+  -- Si solo leemos first_name/last_name, los usuarios de Google quedan con
+  -- nombre vacio y la UI cae al fallback de mostrar solo el email.
+  v_full_name := COALESCE(
+    NULLIF(TRIM(NEW.raw_user_meta_data->>'name'), ''),
+    NULLIF(TRIM(NEW.raw_user_meta_data->>'full_name'), ''),
+    ''
+  );
+  v_first_name := COALESCE(
+    NULLIF(TRIM(NEW.raw_user_meta_data->>'first_name'), ''),
+    NULLIF(TRIM(NEW.raw_user_meta_data->>'given_name'), ''),
+    CASE WHEN v_full_name <> '' THEN split_part(v_full_name, ' ', 1) ELSE '' END
+  );
+  v_last_name := COALESCE(
+    NULLIF(TRIM(NEW.raw_user_meta_data->>'last_name'), ''),
+    NULLIF(TRIM(NEW.raw_user_meta_data->>'family_name'), ''),
+    CASE WHEN v_full_name <> '' AND position(' ' in v_full_name) > 0
+         THEN TRIM(substr(v_full_name, position(' ' in v_full_name) + 1))
+         ELSE '' END
+  );
+
   INSERT INTO public.platform_users (auth_user_id, email, status, tenant_id, role_id,
     first_name, last_name, created_at, updated_at)
   VALUES (NEW.id, NEW.email, 'pending', NULL, NULL,
-    COALESCE(NEW.raw_user_meta_data->>'first_name', ''), COALESCE(NEW.raw_user_meta_data->>'last_name', ''), NOW(), NOW())
+    v_first_name, v_last_name, NOW(), NOW())
   ON CONFLICT (auth_user_id) DO NOTHING RETURNING id INTO pu_id;
   IF pu_id IS NULL THEN RETURN NEW; END IF;
+
+  -- FIX: aplicar invitaciones pendientes para este email. Antes el usuario nuevo
+  -- quedaba con tenant/rol/cliente vacios y las tablas puente (user_clients, etc.)
+  -- nunca se poblaban, rompiendo el modulo de Asignaciones.
+  FOR inv_row IN
+    SELECT * FROM public.user_invitations
+    WHERE lower(email) = lower(NEW.email)
+      AND status = 'pending'
+      AND (expires_at IS NULL OR expires_at > NOW())
+    ORDER BY created_at ASC
+  LOOP
+    IF NOT primary_applied THEN
+      UPDATE public.platform_users SET
+        tenant_id = COALESCE(inv_row.tenant_id, tenant_id),
+        role_id = COALESCE(inv_row.role_id, role_id),
+        country_id = COALESCE(inv_row.country_id, country_id),
+        warehouse_id = COALESCE(inv_row.warehouse_id, warehouse_id),
+        client_id = COALESCE(inv_row.client_id, client_id),
+        profile_id = COALESCE(inv_row.profile_id, profile_id),
+        scope_all_tenants = COALESCE(inv_row.scope_all_tenants, false),
+        scope_all_countries = COALESCE(inv_row.scope_all_countries, false),
+        scope_all_warehouses = COALESCE(inv_row.scope_all_warehouses, false),
+        scope_all_clients = COALESCE(inv_row.scope_all_clients, false),
+        first_name = COALESCE(NULLIF(first_name, ''), NULLIF(inv_row.first_name, ''), first_name),
+        last_name = COALESCE(NULLIF(last_name, ''), NULLIF(inv_row.last_name, ''), last_name),
+        status = 'active',
+        updated_at = NOW()
+      WHERE id = pu_id;
+      primary_applied := true;
+    END IF;
+
+    BEGIN
+      PERFORM public._populate_user_scopes(pu_id, inv_row);
+    EXCEPTION WHEN OTHERS THEN
+      RAISE WARNING 'handle_new_auth_user: no se pudo poblar scopes para %: %', NEW.email, SQLERRM;
+    END;
+
+    UPDATE public.user_invitations
+    SET status = 'accepted', accepted_at = NOW(), updated_at = NOW()
+    WHERE id = inv_row.id;
+  END LOOP;
+
   BEGIN
     SELECT id INTO default_tenant_id FROM public.tenants WHERE status = 'active' ORDER BY created_at ASC LIMIT 1;
     PERFORM public.write_audit_log('USER_REGISTERED', default_tenant_id, pu_id, 'platform_users', pu_id, 'info',
-      jsonb_build_object('email', NEW.email, 'auth_user_id', NEW.id, 'status', 'pending'));
+      jsonb_build_object('email', NEW.email, 'auth_user_id', NEW.id,
+        'status', CASE WHEN primary_applied THEN 'active' ELSE 'pending' END));
   EXCEPTION WHEN OTHERS THEN
     RAISE WARNING 'handle_new_auth_user: No se pudo registrar audit_log para %', NEW.email;
   END;

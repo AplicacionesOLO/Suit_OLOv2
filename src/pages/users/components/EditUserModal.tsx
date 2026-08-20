@@ -660,7 +660,7 @@ export default function EditUserModal({ user, isOpen, onClose, onSaved, onEditUs
               {/* CLIENTE */}
               <div>
                 <label className="block text-xs font-medium text-foreground-400 mb-1.5">
-                  <span className="w-3 h-3 inline-flex items-center justify-center mr-1 text-violet-400"><i className="ri-building-2-line text-xs"></i></span>
+                  <span className="w-3 h-3 inline-flex items-center justify-center mr-1 text-primary-400"><i className="ri-building-2-line text-xs"></i></span>
                   Cliente principal
                 </label>
                 <select
@@ -683,7 +683,7 @@ export default function EditUserModal({ user, isOpen, onClose, onSaved, onEditUs
                   editForm.tenant_id ? (
                     editForm.warehouse_id ? (
                       editForm.client_id ? (
-                        <>Contexto: <span className="text-primary-400 font-medium">{countries.find(c => c.id === editForm.country_id)?.name}</span> → <span className="text-primary-400 font-medium">{tenants.find(t => t.id === editForm.tenant_id)?.name}</span> → <span className="text-amber-400 font-medium">{warehouses.find(w => w.id === editForm.warehouse_id)?.name}</span> → <span className="text-violet-400 font-medium">{clients.find(c => c.id === editForm.client_id)?.name}</span></>
+                        <>Contexto: <span className="text-primary-400 font-medium">{countries.find(c => c.id === editForm.country_id)?.name}</span> → <span className="text-primary-400 font-medium">{tenants.find(t => t.id === editForm.tenant_id)?.name}</span> → <span className="text-amber-400 font-medium">{warehouses.find(w => w.id === editForm.warehouse_id)?.name}</span> → <span className="text-primary-400 font-medium">{clients.find(c => c.id === editForm.client_id)?.name}</span></>
                       ) : (
                         <>Contexto: <span className="text-primary-400 font-medium">{countries.find(c => c.id === editForm.country_id)?.name}</span> → <span className="text-primary-400 font-medium">{tenants.find(t => t.id === editForm.tenant_id)?.name}</span> → <span className="text-amber-400 font-medium">{warehouses.find(w => w.id === editForm.warehouse_id)?.name}</span> → <span className="text-foreground-600">sin cliente</span></>
                       )
@@ -779,7 +779,7 @@ export default function EditUserModal({ user, isOpen, onClose, onSaved, onEditUs
               {/* CLIENTES */}
               <div>
                 <label className="block text-xs font-medium text-foreground-400 mb-1.5">
-                  <i className="ri-building-2-line text-violet-400 text-xs mr-1"></i>
+                  <i className="ri-building-2-line text-primary-400 text-xs mr-1"></i>
                   Clientes adicionales
                 </label>
                 <MultiSelect
@@ -1003,7 +1003,7 @@ export default function EditUserModal({ user, isOpen, onClose, onSaved, onEditUs
               </div>
               <div className="p-4 rounded-xl bg-background-100/70 border border-secondary-500/10">
                 <p className="text-xs font-medium text-foreground-500 mb-2 flex items-center gap-1.5">
-                  <span className="w-3 h-3 flex items-center justify-center text-violet-400"><i className="ri-building-2-line text-xs"></i></span>
+                  <span className="w-3 h-3 flex items-center justify-center text-primary-400"><i className="ri-building-2-line text-xs"></i></span>
                   Clientes
                 </p>
                 <ul className="space-y-1">
@@ -1011,7 +1011,7 @@ export default function EditUserModal({ user, isOpen, onClose, onSaved, onEditUs
                     <li className="text-xs text-foreground-600 italic">Ningun cliente</li>
                   ) : availableClientNames.map((name) => (
                     <li key={name} className="flex items-center gap-2 text-xs text-foreground-300">
-                      <span className="w-1.5 h-1.5 rounded-full bg-violet-400/60"></span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary-400/60"></span>
                       {name}
                     </li>
                   ))}

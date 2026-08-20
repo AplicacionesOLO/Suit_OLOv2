@@ -17,8 +17,8 @@ const levelColors: Record<number, { bg: string; text: string; border: string }> 
   60: { bg: 'bg-primary-500/10', text: 'text-primary-400', border: 'border-primary-500/20' },
   55: { bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20' },
   50: { bg: 'bg-accent-500/10', text: 'text-accent-400', border: 'border-accent-500/20' },
-  40: { bg: 'bg-violet-500/10', text: 'text-violet-400', border: 'border-violet-500/20' },
-  30: { bg: 'bg-cyan-500/10', text: 'text-cyan-400', border: 'border-cyan-500/20' },
+  40: { bg: 'bg-primary-500/10', text: 'text-primary-400', border: 'border-primary-500/20' },
+  30: { bg: 'bg-primary-500/10', text: 'text-primary-400', border: 'border-primary-500/20' },
   10: { bg: 'bg-secondary-500/10', text: 'text-secondary-400', border: 'border-secondary-500/20' },
 };
 
@@ -196,7 +196,7 @@ export default function RolesPage() {
           {[
             { label: 'Total roles', value: roles.length, icon: 'ri-shield-user-line', bg: 'bg-primary-500/10', text: 'text-primary-400' },
             { label: 'Sistema', value: roles.filter((r) => r.is_system).length, icon: 'ri-settings-3-line', bg: 'bg-accent-500/10', text: 'text-accent-400' },
-            { label: 'Personalizados', value: roles.filter((r) => !r.is_system).length, icon: 'ri-user-settings-line', bg: 'bg-violet-500/10', text: 'text-violet-400' },
+            { label: 'Personalizados', value: roles.filter((r) => !r.is_system).length, icon: 'ri-user-settings-line', bg: 'bg-primary-500/10', text: 'text-primary-400' },
             { label: 'Usuarios asignados', value: roles.reduce((s, r) => s + r.user_count, 0), icon: 'ri-team-line', bg: 'bg-primary-500/10', text: 'text-primary-400' },
           ].map((stat) => (
             <div key={stat.label} className="glass-panel rounded-xl p-4">

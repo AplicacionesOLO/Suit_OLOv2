@@ -10,18 +10,7 @@ import FavoritesSection from '@/pages/my-access/components/FavoritesSection';
 import { groupApps } from '@/utils/groupApps';
 import type { FavoriteWithDetails } from '@/services/security/favoritesService';
 import type { AccessWithDetails } from '@/services/security/accessService';
-
-const colorMap: Record<string, { bg: string; text: string; border: string }> = {
-  emerald: { bg: 'bg-primary-500/20', text: 'text-primary-600', border: 'border-primary-500/30' },
-  cyan: { bg: 'bg-cyan-500/20', text: 'text-cyan-600', border: 'border-cyan-500/30' },
-  amber: { bg: 'bg-amber-500/20', text: 'text-amber-600', border: 'border-amber-500/30' },
-  violet: { bg: 'bg-violet-500/20', text: 'text-violet-600', border: 'border-violet-500/30' },
-  rose: { bg: 'bg-rose-500/20', text: 'text-rose-600', border: 'border-rose-500/30' },
-  indigo: { bg: 'bg-indigo-500/20', text: 'text-indigo-600', border: 'border-indigo-500/30' },
-  red: { bg: 'bg-red-500/20', text: 'text-red-600', border: 'border-red-500/30' },
-};
-
-function getColors(c: string) { return colorMap[c] || colorMap.emerald; }
+import AppLogoImage from '@/components/base/AppLogoImage';
 
 function AppCard({ acc, isFav, isToggling, onToggle, onOpen, pending = false }: {
   acc: AccessWithDetails;
@@ -31,7 +20,6 @@ function AppCard({ acc, isFav, isToggling, onToggle, onOpen, pending = false }: 
   onOpen: (acc: AccessWithDetails) => void;
   pending?: boolean;
 }) {
-  const colors = getColors(acc.application_color || 'emerald');
   const openMode = acc.instance_open_mode || 'external';
   const isEmbedded = openMode === 'embedded';
 
@@ -45,9 +33,7 @@ function AppCard({ acc, isFav, isToggling, onToggle, onOpen, pending = false }: 
       }`}
     >
       <div className="flex items-start gap-3">
-        <div className={`w-10 h-10 rounded-lg ${colors.bg} border ${colors.border} flex items-center justify-center shrink-0 ${pending ? '' : 'group-hover:scale-110'} transition-transform duration-200`}>
-          <i className={`${acc.application_icon || 'ri-apps-line'} ${colors.text} text-lg`}></i>
-        </div>
+        <AppLogoImage appName={acc.application_name} appCode={acc.application_code} sizeClass="w-10 h-10" roundedClass={`rounded-lg ${pending ? '' : 'group-hover:scale-110'}`} icon={acc.application_icon || 'ri-apps-line'} color={acc.application_color || 'emerald'} textSizeClass="text-lg" className="shrink-0 transition-transform duration-200" />
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -333,7 +319,7 @@ export default function MyAccessPage() {
                   <ul className="space-y-1">
                     {ctx.accessibleClients.map((cl) => (
                       <li key={cl.id} className="flex items-center gap-2 text-xs text-foreground-300">
-                        <span className={`w-1.5 h-1.5 rounded-full ${cl.id === ctx.currentClientId ? 'bg-violet-500' : 'bg-amber-400/50'}`}></span>
+                        <span className={`w-1.5 h-1.5 rounded-full ${cl.id === ctx.currentClientId ? 'bg-primary-500' : 'bg-amber-400/50'}`}></span>
                         {cl.name}
                       </li>
                     ))}
