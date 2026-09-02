@@ -97,6 +97,26 @@ export const appLogoMap: Record<string, { light: string; dark: string }> = {
     dark: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/bb585c92-64f2-42b9-bf04-474c0db6de66_compressed_reportes-dark-web-dark.webp',
   },
 
+  // ===== CUARTA TANDA (2 apps) =====
+  'Monitor TMS': {
+    light: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/54edd5bb-8540-4ceb-9933-22339bbcf502_compressed_Monitor-TMS-claro.webp',
+    dark: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/831715b8-f053-4953-8d37-a7d0f941700a_compressed_Monitor-TMS-dark.webp',
+  },
+  'Portafolio Xperiece': {
+    light: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/5086811f-d1f2-43c3-b256-5c3d437245ad_compressed_Portafolio-Xperiece.webp',
+    dark: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/5df2c141-e3af-47a7-89ea-c8a900c14822_compressed_Portafolio-Xperiece-dark.webp',
+  },
+
+  // ===== QUINTA TANDA (2 apps) =====
+  'Dashboard Personal': {
+    light: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/5122200b-82f3-40ad-a101-4a7399a65e32_compressed_Dashboards-Personal.webp',
+    dark: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/c01066df-ab7e-4361-a6b7-7c939b0dd0ef_compressed_Dashboard-Personal-dark.webp',
+  },
+  'Cedi Horas': {
+    light: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/5c893a27-b0c9-495f-b2d2-ad2978ba5f6f_compressed_Cedi-Hora.webp',
+    dark: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/b64ad836-0f14-4f50-9978-a2e6304be0bd_compressed_Cedi-Hora-dark.webp',
+  },
+
   // ===== Fallbacks by app code (primer tanda) =====
   'FLETES': {
     light: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/f4234750-fce9-4ff8-a051-c10f974efec4_compressed_fletes-y-transporte.webp',
@@ -189,6 +209,26 @@ export const appLogoMap: Record<string, { light: string; dark: string }> = {
   'DARK_WEB': {
     light: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/18e72ec9-4d64-49a7-a7f7-a13cf5cbf5a8_compressed_repportes.webp',
     dark: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/bb585c92-64f2-42b9-bf04-474c0db6de66_compressed_reportes-dark-web-dark.webp',
+  },
+
+  // ===== Fallbacks by app code (cuarta tanda) =====
+  'APP_MONITOR TMS': {
+    light: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/54edd5bb-8540-4ceb-9933-22339bbcf502_compressed_Monitor-TMS-claro.webp',
+    dark: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/831715b8-f053-4953-8d37-a7d0f941700a_compressed_Monitor-TMS-dark.webp',
+  },
+  'APP_PORTAFOLIO XPERIECE': {
+    light: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/5086811f-d1f2-43c3-b256-5c3d437245ad_compressed_Portafolio-Xperiece.webp',
+    dark: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/5df2c141-e3af-47a7-89ea-c8a900c14822_compressed_Portafolio-Xperiece-dark.webp',
+  },
+
+  // ===== Fallbacks by app code (quinta tanda) =====
+  'APP_DASHBOARD PERSONAL': {
+    light: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/5122200b-82f3-40ad-a101-4a7399a65e32_compressed_Dashboards-Personal.webp',
+    dark: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/c01066df-ab7e-4361-a6b7-7c939b0dd0ef_compressed_Dashboard-Personal-dark.webp',
+  },
+  'APP_CEDI HORAS': {
+    light: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/5c893a27-b0c9-495f-b2d2-ad2978ba5f6f_compressed_Cedi-Hora.webp',
+    dark: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/b64ad836-0f14-4f50-9978-a2e6304be0bd_compressed_Cedi-Hora-dark.webp',
   },
 };
 
