@@ -1,132 +1,71 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/services/supabase/client';
 import AppLogo from '@/components/feature/AppLogo';
 
-const MAX_RETRIES = 10;
-const INITIAL_DELAY_MS = 500;
-const MAX_DELAY_MS = 4000;
-
 export default function AuthCallbackPage() {
   const navigate = useNavigate();
   const [status, setStatus] = useState('Conectando con Google...');
-  const [allRetriesExhausted, setAllRetriesExhausted] = useState(false);
-  const [manualRetrying, setManualRetrying] = useState(false);
-  const processed = useRef(false);
-  const mountedRef = useRef(true);
-
-  const tryGetSessionOnce = useCallback(async (): Promise<boolean> => {
-    try {
-      const { data } = await supabase.auth.getSession();
-      if (data?.session) {
-        return true;
-      }
-      return false;
-    } catch {
-      return false;
-    }
-  }, []);
-
-  const onSessionFound = useCallback(() => {
-    if (!mountedRef.current) return;
-    setStatus('Sesión verificada. Redirigiendo...');
-
-    // Clean residual OAuth hash/fragment AFTER session is confirmed
-    if (window.location.hash) {
-      window.history.replaceState({}, document.title, window.location.pathname + window.location.search.replace(/[?&]code=[^&]*/, ''));
-    }
-
-    setTimeout(() => {
-      if (mountedRef.current) navigate('/dashboard', { replace: true });
-    }, 300);
-  }, [navigate]);
-
-  const startPolling = useCallback((startDelay: number) => {
-    let attempts = 0;
-    let timeoutId: ReturnType<typeof setTimeout>;
-
-    const poll = () => {
-      if (!mountedRef.current) return;
-
-      attempts++;
-      setStatus(attempts === 1
-        ? 'Verificando sesión...'
-        : `Esperando autenticación... (intento ${attempts}/${MAX_RETRIES})`);
-
-      tryGetSessionOnce().then((hasSession) => {
-        if (!mountedRef.current) return;
-
-        if (hasSession) {
-          onSessionFound();
-          return;
-        }
-
-        if (attempts < MAX_RETRIES) {
-          const delay = Math.min(INITIAL_DELAY_MS * Math.pow(1.4, attempts), MAX_DELAY_MS);
-          timeoutId = setTimeout(poll, delay);
-        } else {
-          setAllRetriesExhausted(true);
-          setStatus('No se pudo verificar la sesión. Verifica tu conexión e intenta de nuevo.');
-        }
-      });
-    };
-
-    timeoutId = setTimeout(poll, startDelay);
-
-    return () => clearTimeout(timeoutId);
-  }, [tryGetSessionOnce, onSessionFound]);
-
-  const handleManualRetry = useCallback(() => {
-    setManualRetrying(true);
-    setAllRetriesExhausted(false);
-    setStatus('Reintentando verificación de sesión...');
-
-    // Try once immediately
-    tryGetSessionOnce().then((hasSession) => {
-      if (!mountedRef.current) return;
-
-      if (hasSession) {
-        onSessionFound();
-        return;
-      }
-
-      // Start fresh polling
-      startPolling(500);
-    });
-  }, [tryGetSessionOnce, onSessionFound, startPolling]);
-
-  useEffect(() => {
-    if (processed.current) return;
-    processed.current = true;
-
-    let cleanupPolling: (() => void) | undefined;
-
-    // IMPORTANTE: NO limpiar el hash ANTES de que Supabase SDK lo procese.
-    // detectSessionInUrl=true en el cliente de Supabase necesita el hash/code
-    // para extraer la sesión. Limpiarlo antes rompe el flujo en conexiones lentas.
-
-    // Registrar listener de onAuthStateChange ANTES de iniciar el polling.
-    // Si Supabase SDK ya procesó el código OAuth, onAuthStateChange dispara
-    // sincrónicamente al registrarse y capturamos la sesión sin polling.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session && mountedRef.current) {
-        onSessionFound();
-      }
-    });
-
-    // Iniciar polling con delay inicial. El delay da tiempo a que
-    // detectSessionInUrl + onAuthStateChange se ejecuten primero.
-    cleanupPolling = startPolling(INITIAL_DELAY_MS);
-
-    return () => {
-      mountedRef.current = false;
-      subscription.unsubscribe();
-      if (cleanupPolling) cleanupPolling();
-    };
-  }, [startPolling, onSessionFound]);
+  const [failed, setFailed] = useState(false);
 
   const handleBackToLogin = useCallback(() => {
     navigate('/login', { replace: true });
+  }, [navigate]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    // PKCE: Google devuelve el código de autorización en el query string.
+    const code = new URLSearchParams(window.location.search).get('code');
+
+    if (!code) {
+      setStatus('No se recibió el código de autenticación de Google. Vuelve a intentar el inicio de sesión.');
+      setFailed(true);
+      return;
+    }
+
+    const exchange = async () => {
+      try {
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+        if (cancelled) return;
+
+        if (error) {
+          console.error('[Suite OLO] exchangeCodeForSession error:', error.message);
+          setStatus('No se pudo verificar la sesión. Verifica tu conexión e intenta de nuevo.');
+          setFailed(true);
+          return;
+        }
+
+        // Limpiar el query string para no reprocesar el código (de un solo uso)
+        window.history.replaceState({}, document.title, window.location.pathname);
+
+        // Defensivo: este flujo de recuperación normalmente llega a /login,
+        // pero por si acaso un enlace de recuperación aterriza aquí.
+        const redirectType = (data as { redirectType?: string } | null)?.redirectType;
+        if (redirectType === 'recovery') {
+          setTimeout(() => {
+            if (!cancelled) navigate('/forgot-password', { replace: true });
+          }, 200);
+          return;
+        }
+
+        setStatus('Sesión verificada. Redirigiendo...');
+        setTimeout(() => {
+          if (!cancelled) navigate('/dashboard', { replace: true });
+        }, 300);
+      } catch (err) {
+        if (cancelled) return;
+        console.error('[Suite OLO] callback exchange error:', err);
+        setStatus('No se pudo verificar la sesión. Verifica tu conexión e intenta de nuevo.');
+        setFailed(true);
+      }
+    };
+
+    exchange();
+
+    return () => {
+      cancelled = true;
+    };
   }, [navigate]);
 
   return (
@@ -136,14 +75,14 @@ export default function AuthCallbackPage() {
         <AppLogo showText={false} size="xl" className="mx-auto" />
 
         {/* Spinner — solo cuando está cargando */}
-        {!allRetriesExhausted && (
+        {!failed && (
           <div className="flex justify-center">
             <div className="w-8 h-8 rounded-full border-2 border-primary-500/20 border-t-primary-500 animate-spin" />
           </div>
         )}
 
-        {/* Warning icon when retries exhausted */}
-        {allRetriesExhausted && (
+        {/* Warning icon cuando falla */}
+        {failed && (
           <div className="flex justify-center">
             <div className="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
               <i className="ri-wifi-off-line text-amber-500 text-lg"></i>
@@ -152,30 +91,16 @@ export default function AuthCallbackPage() {
         )}
 
         {/* Status text */}
-        <p className={`text-sm max-w-xs mx-auto leading-relaxed ${allRetriesExhausted ? 'text-foreground-700' : 'text-foreground-600 animate-pulse'}`}>
+        <p className={`text-sm max-w-xs mx-auto leading-relaxed ${failed ? 'text-foreground-700' : 'text-foreground-600 animate-pulse'}`}>
           {status}
         </p>
 
-        {/* Action buttons when retries exhausted */}
-        {allRetriesExhausted && (
+        {/* Acción cuando falla */}
+        {failed && (
           <div className="space-y-3 pt-2">
             <button
-              onClick={handleManualRetry}
-              disabled={manualRetrying}
-              className="w-full px-5 py-2.5 rounded-lg bg-primary-500 text-background-50 text-sm font-medium hover:bg-primary-600 transition-colors disabled:opacity-50 cursor-pointer whitespace-nowrap"
-            >
-              {manualRetrying ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="w-4 h-4 rounded-full border-2 border-background-50/30 border-t-background-50 animate-spin" />
-                  Reintentando...
-                </span>
-              ) : (
-                'Reintentar verificación'
-              )}
-            </button>
-            <button
               onClick={handleBackToLogin}
-              className="w-full px-5 py-2.5 rounded-lg border border-secondary-500/20 text-foreground-600 text-sm hover:bg-secondary-500/5 transition-colors cursor-pointer whitespace-nowrap"
+              className="w-full px-5 py-2.5 rounded-lg bg-primary-500 text-background-50 text-sm font-medium hover:bg-primary-600 transition-colors cursor-pointer whitespace-nowrap"
             >
               Volver al inicio de sesión
             </button>
