@@ -1,5 +1,5 @@
 -- ============================================================
--- SUITE OLO — FASE 5.3: CREACIÓN DE USUARIOS DE PRUEBA RLS
+-- OLO SITE — FASE 5.3: CREACIÓN DE USUARIOS DE PRUEBA RLS
 -- Versión: 1.0.0
 -- Fecha:   2026-06-15
 -- 

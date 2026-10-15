@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import AppLayout from '@/components/feature/AppLayout';
-import { useSuitePermissions } from '@/hooks/useSuitePermissions';
+import { useOloPermissions } from '@/hooks/useOloPermissions';
 import { useTenantContext } from '@/hooks/useTenantContext';
 import {
   fetchApplications,
@@ -26,6 +26,7 @@ import {
   type TenantCountryBrief,
 } from '@/services/applications/applicationsService';
 import AppLogoImage from '@/components/base/AppLogoImage';
+import MultiSelect from '@/components/base/MultiSelect';
 
 const statusConfig: Record<string, { label: string; dot: string; badgeBg: string; badgeText: string }> = {
   active: { label: 'Activo', dot: 'bg-primary-400', badgeBg: 'bg-primary-500/10', badgeText: 'text-primary-400' },
@@ -44,6 +45,7 @@ interface AppItem {
   tenantName: string;
   clientId: string;
   clientName: string;
+  clientIds: string[];
   countryId: string;
   countryName: string;
   warehouseId: string;
@@ -93,12 +95,14 @@ interface FormData {
   tenantId: string;
   warehouseId: string;
   clientId: string;
+  additionalClientIds: string[];
 }
 
 const emptyForm: FormData = {
   name: '', code: '', description: '', categoryId: '', icon: 'ri-apps-2-line',
   color: 'emerald', baseUrl: '', version: '1.0.0', integrationType: 'internal', tags: '',
   countryId: '', tenantId: '', warehouseId: '', clientId: '',
+  additionalClientIds: [],
 };
 
 const colorMap: Record<string, { bgColor: string; textColor: string; borderColor: string }> = {
@@ -135,7 +139,7 @@ export default function ApplicationsPage() {
   const [loading, setLoading] = useState(true);
   const [showDeleted, setShowDeleted] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-  const { can } = useSuitePermissions();
+  const { can } = useOloPermissions();
   const ctx = useTenantContext();
   const selectedAppId = searchParams.get('app');
 
@@ -183,7 +187,7 @@ export default function ApplicationsPage() {
           return {
             id: a.id, name: a.name, code: a.code, description: a.description || '',
             tenantId: a.tenant_id, tenantName: a.tenant_name || '',
-            clientId: a.client_id || '', clientName: a.client_name || '',
+            clientId: a.client_id || '', clientName: a.client_name || '', clientIds: a.client_ids || [],
             countryId: a.country_id || '', countryName: a.country_name || '',
             warehouseId: a.warehouse_id || '', warehouseName: a.warehouse_name || '',
             categoryId: a.category_id || '', categoryName: cat?.name || 'Sin categoría',
@@ -221,6 +225,12 @@ export default function ApplicationsPage() {
     if (!form.warehouseId) return [];
     return clients.filter((c) => c.warehouse_id === form.warehouseId);
   }, [form.warehouseId, clients]);
+
+  const clientMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    clients.forEach((c) => { m[c.id] = c.name; });
+    return m;
+  }, [clients]);
 
   // Reset downstream when upstream changes
   const handleCountryChange = (countryId: string) => {
@@ -285,6 +295,7 @@ export default function ApplicationsPage() {
       tenantId: app.tenantId,
       warehouseId: '',
       clientId: app.clientId,
+      additionalClientIds: (app.clientIds || []).filter((cid) => cid && cid !== app.clientId),
     });
     setFormErrors({});
     setShowModal(true);
@@ -327,6 +338,7 @@ export default function ApplicationsPage() {
         const { error } = await updateApplication(editingId, {
           ...basePayload,
           client_id: form.clientId || null,
+          additional_client_ids: form.additionalClientIds,
         } as UpdateApplicationPayload);
         if (error) { showToast(error, 'error'); return; }
         showToast('Aplicación actualizada correctamente', 'success');
@@ -335,6 +347,7 @@ export default function ApplicationsPage() {
           ...basePayload,
           tenant_id: form.tenantId,
           client_id: form.clientId || null,
+          additional_client_ids: form.additionalClientIds,
         } as CreateApplicationPayload);
         if (error) { showToast(error, 'error'); return; }
         showToast('Aplicación creada correctamente', 'success');
@@ -460,7 +473,19 @@ export default function ApplicationsPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-5 py-3.5"><span className="text-sm text-foreground-300">{app.clientName || '—'}</span></td>
+                      <td className="px-5 py-3.5">
+                        {(() => {
+                          const ids = app.clientIds && app.clientIds.length > 0 ? app.clientIds : (app.clientId ? [app.clientId] : []);
+                          if (ids.length === 0) return <span className="text-sm text-foreground-400">—</span>;
+                          return (
+                            <div className="flex flex-wrap gap-1">
+                              {ids.map((cid) => (
+                                <span key={cid} className="px-1.5 py-0.5 rounded bg-secondary-500/10 text-secondary-400 text-2xs whitespace-nowrap">{clientMap[cid] || cid}</span>
+                              ))}
+                            </div>
+                          );
+                        })()}
+                      </td>
                       <td className="px-5 py-3.5"><span className="text-sm text-foreground-400">{app.warehouseName || '—'}</span></td>
                       <td className="px-5 py-3.5"><span className="text-sm text-foreground-400">{app.tenantName || '—'}</span></td>
                       <td className="px-5 py-3.5"><span className="text-sm text-foreground-400">{app.countryName || '—'}</span></td>
@@ -578,6 +603,18 @@ export default function ApplicationsPage() {
                     <div className="border-t border-secondary-500/10" />
                   </>
                 )}
+                <div>
+                  <label className="block text-xs font-medium text-foreground-400 mb-1.5">Clientes adicionales</label>
+                  <MultiSelect
+                    options={clients.filter((c) => c.id !== form.clientId).map((c) => ({ id: c.id, label: c.code ? `${c.name} (${c.code})` : c.name }))}
+                    selected={form.additionalClientIds}
+                    onChange={(vals) => setForm({ ...form, additionalClientIds: vals })}
+                    placeholder="Ninguno (solo cliente principal)"
+                    searchPlaceholder="Buscar cliente..."
+                    emptyMessage="Sin clientes disponibles"
+                  />
+                  <p className="text-2xs text-foreground-600 mt-1">Comparte esta app con otros clientes ademas del principal.</p>
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-foreground-400 mb-1.5">Nombre *</label>

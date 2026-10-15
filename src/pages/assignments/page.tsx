@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/feature/AppLayout';
-import { useSuitePermissions } from '@/hooks/useSuitePermissions';
+import { useOloPermissions } from '@/hooks/useOloPermissions';
 import { useTenantContext } from '@/hooks/useTenantContext';
 import {
   fetchUserAccesses,
@@ -12,7 +12,7 @@ import {
   type AccessWithDetails,
   type PlatformUserBrief,
 } from '@/services/security/accessService';
-import { fetchApplications, fetchInstances, fetchClients, type Application, type AppInstance, type ClientBrief } from '@/services/applications/applicationsService';
+import { fetchApplications, fetchInstances, fetchClients, type ApplicationEnriched, type AppInstance, type ClientBrief } from '@/services/applications/applicationsService';
 import { supabase } from '@/services/supabase/client';
 
 const statusCfg: Record<string, { label: string; dot: string; bg: string; text: string }> = {
@@ -37,7 +37,7 @@ export default function AssignmentsPage() {
   const [users, setUsers] = useState<PlatformUserBrief[]>([]);
   const [tenants, setTenants] = useState<{ id: string; name: string }[]>([]);
   const [roles, setRoles] = useState<{ id: string; name: string }[]>([]);
-  const { can } = useSuitePermissions();
+  const { can } = useOloPermissions();
   const ctx = useTenantContext();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +48,7 @@ export default function AssignmentsPage() {
   const [accessLoading, setAccessLoading] = useState(false);
 
   // Assign form
-  const [applications, setApplications] = useState<Application[]>([]);
+  const [applications, setApplications] = useState<ApplicationEnriched[]>([]);
   const [instances, setInstances] = useState<AppInstance[]>([]);
   const [assignForm, setAssignForm] = useState({ application_id: '', instance_id: '', access_status: 'assigned', expires_at: '' });
   const [assignSaving, setAssignSaving] = useState(false);
@@ -117,7 +117,7 @@ export default function AssignmentsPage() {
       let contextFilteredApps = activeApps;
       if (!ctx.showAll) {
         if (ctx.currentClientId && ctx.currentClientId !== 'all') {
-          contextFilteredApps = activeApps.filter((a) => a.client_id === ctx.currentClientId);
+          contextFilteredApps = activeApps.filter((a) => (a.client_ids && a.client_ids.length > 0 ? a.client_ids : (a.client_id ? [a.client_id] : [])).includes(ctx.currentClientId as string));
         } else if (ctx.currentWarehouseId && ctx.currentWarehouseId !== 'all') {
           contextFilteredApps = activeApps.filter((a) => a.warehouse_id === ctx.currentWarehouseId);
         } else if (ctx.currentTenantId && ctx.currentTenantId !== 'all') {
@@ -131,7 +131,11 @@ export default function AssignmentsPage() {
         setApplications(contextFilteredApps);
         setAuthorizedClientIds(null); // null = show all
       } else {
-        const filteredApps = contextFilteredApps.filter((a) => !a.client_id || userClientIds.has(a.client_id));
+        const filteredApps = contextFilteredApps.filter((a) => {
+          const appClientIds = a.client_ids && a.client_ids.length > 0 ? a.client_ids : (a.client_id ? [a.client_id] : []);
+          if (appClientIds.length === 0) return true;
+          return appClientIds.some((cid) => userClientIds.has(cid));
+        });
         setApplications(filteredApps);
         setAuthorizedClientIds(userClientIds);
       }
@@ -191,14 +195,23 @@ export default function AssignmentsPage() {
     setAssignError('');
     setAssignSaving(true);
 
-    // Validate client access
+    // Validate client access against all clients the app belongs to
     const selectedApp = applications.find((a) => a.id === assignForm.application_id);
-    if (selectedApp?.client_id) {
-      const clientCheck = await validateUserClientAccess(selectedUser!.id, selectedApp.client_id);
-      if (!clientCheck.hasAccess) {
-        setAssignError(clientCheck.error || 'El usuario no tiene acceso al cliente asociado a esta aplicación.');
-        setAssignSaving(false);
-        return;
+    if (selectedApp) {
+      const appClientIds = selectedApp.client_ids && selectedApp.client_ids.length > 0 ? selectedApp.client_ids : (selectedApp.client_id ? [selectedApp.client_id] : []);
+      if (appClientIds.length > 0) {
+        let hasAny = false;
+        let lastError = '';
+        for (const cid of appClientIds) {
+          const clientCheck = await validateUserClientAccess(selectedUser!.id, cid);
+          if (clientCheck.hasAccess) { hasAny = true; break; }
+          lastError = clientCheck.error || lastError;
+        }
+        if (!hasAny) {
+          setAssignError(lastError || 'El usuario no tiene acceso a ningun cliente asociado a esta aplicacion.');
+          setAssignSaving(false);
+          return;
+        }
       }
     }
 

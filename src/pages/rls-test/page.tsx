@@ -299,7 +299,7 @@ export default function RlsTestPage() {
   if (authLoading) {
     return (
       <div className="min-h-screen bg-background-50 flex items-center justify-center">
-        <p className="text-foreground-500 text-sm animate-pulse">Cargando Suite OLO RLS Test...</p>
+        <p className="text-foreground-500 text-sm animate-pulse">Cargando OLO Site RLS Test...</p>
       </div>
     );
   }
@@ -350,7 +350,7 @@ export default function RlsTestPage() {
               </div>
               <div>
                 <h1 className="text-base font-semibold text-foreground-950">RLS Multi-Tenant Validation</h1>
-                <p className="text-xs text-foreground-500">Suite OLO — Fase 5.3 · Seguridad enterprise</p>
+                <p className="text-xs text-foreground-500">OLO Site — Fase 5.3 · Seguridad enterprise</p>
               </div>
             </div>
             <button

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { useSuitePermissions } from '@/hooks/useSuitePermissions';
+import { useOloPermissions } from '@/hooks/useOloPermissions';
 import AppLogo from '@/components/feature/AppLogo';
 
 interface NavItem {
@@ -64,7 +64,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, platformUser } = useAuth();
-  const { hasMenuAccess, can } = useSuitePermissions();
+  const { hasMenuAccess, can } = useOloPermissions();
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
     Object.fromEntries(navGroups.map((g) => [g.title, true]))
   );

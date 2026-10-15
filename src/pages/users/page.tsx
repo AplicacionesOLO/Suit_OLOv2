@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import AppLayout from '@/components/feature/AppLayout';
 import { useUsers } from '@/hooks/useUsers';
-import { useSuitePermissions } from '@/hooks/useSuitePermissions';
+import { useOloPermissions } from '@/hooks/useOloPermissions';
 import { useTenantContext } from '@/hooks/useTenantContext';
 import type { PlatformUserFull, CreateInvitationInput } from '@/services/auth/usersService';
 import MultiSelect from '@/components/base/MultiSelect';
@@ -11,7 +11,7 @@ type Tab = 'active' | 'invitations';
 
 export default function UsersPage() {
   const { users, invitations, tenants, roles, countries, warehouses, clients, tenantCountries, loading, error, sendInvitation, cancelInvitation, editUser, removeUser, refresh } = useUsers();
-  const { can } = useSuitePermissions();
+  const { can } = useOloPermissions();
   const ctx = useTenantContext();
   const [activeTab, setActiveTab] = useState<Tab>('active');
 

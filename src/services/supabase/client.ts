@@ -31,7 +31,7 @@ export function getSupabaseClient(): SupabaseClient {
                 isSessionExpiredMessage(errorMessage) || isSessionExpiredMessage(errorCode);
 
               if (isRefreshTokenError) {
-                console.warn('[Suite OLO] Sesión expirada — cerrando sesión automáticamente');
+                console.warn('[OLO Site] Sesión expirada — cerrando sesión automáticamente');
 
                 setTimeout(async () => {
                   try {

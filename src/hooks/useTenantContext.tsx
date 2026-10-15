@@ -89,11 +89,11 @@ export interface TenantContextValue {
 // ─── localStorage keys ──────────────────────────────────────────────────
 
 const LS_KEYS = {
-  countryId: 'suiteolo.currentCountryId',
-  tenantId: 'suiteolo.currentTenantId',
-  warehouseId: 'suiteolo.currentWarehouseId',
-  clientId: 'suiteolo.currentClientId',
-  showAll: 'suiteolo.showAll',
+  countryId: 'olosite.currentCountryId',
+  tenantId: 'olosite.currentTenantId',
+  warehouseId: 'olosite.currentWarehouseId',
+  clientId: 'olosite.currentClientId',
+  showAll: 'olosite.showAll',
 };
 
 function readLS(key: string): string | null {

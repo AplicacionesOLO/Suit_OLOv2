@@ -1,38 +1,38 @@
 import { useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import type { SuitePermissions } from '@/services/auth/authService';
+import type { OloPermissions } from '@/services/auth/authService';
 
-export const SUITE_MODULES = [
+export const OLO_MODULES = [
   'tenants', 'countries', 'warehouses', 'clients',
   'users', 'categories', 'applications', 'instances',
   'assignments', 'roles', 'app-access',
 ] as const;
 
-export type SuiteModule = (typeof SUITE_MODULES)[number];
+export type OloModule = (typeof OLO_MODULES)[number];
 
 export const ALL_ACTIONS = ['view', 'create', 'update', 'delete', 'revoke'] as const;
 
-export type SuiteAction = (typeof ALL_ACTIONS)[number];
+export type OloAction = (typeof ALL_ACTIONS)[number];
 
 const ALWAYS_VISIBLE = ['my-access', 'profile'];
 
 
 
-interface UseSuitePermissionsReturn {
+interface UseOloPermissionsReturn {
   can: (module: string, action: string) => boolean;
   hasMenuAccess: (module: string) => boolean;
-  modules: SuitePermissions['modules'];
+  modules: OloPermissions['modules'];
   isSuperAdmin: boolean;
   getModuleActions: (module: string) => string[];
 }
 
-export function useSuitePermissions(): UseSuitePermissionsReturn {
+export function useOloPermissions(): UseOloPermissionsReturn {
   const { platformUser, user } = useAuth();
 
   const isSuperAdmin = (platformUser?.role_level ?? 0) >= 100 ||
     user?.email === 'arojas@ologistics.com';
 
-  const modules = platformUser?.suite_permissions?.modules || {};
+  const modules = platformUser?.olo_permissions?.modules || {};
 
   const can = useCallback((module: string, action: string): boolean => {
     if (isSuperAdmin) return true;

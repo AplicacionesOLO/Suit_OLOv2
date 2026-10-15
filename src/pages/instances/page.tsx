@@ -20,7 +20,7 @@ import {
   type ClientBrief,
   type TenantCountryBrief,
 } from '@/services/applications/applicationsService';
-import { useSuitePermissions } from '@/hooks/useSuitePermissions';
+import { useOloPermissions } from '@/hooks/useOloPermissions';
 import { useTenantContext } from '@/hooks/useTenantContext';
 
 interface AppInstance {
@@ -63,7 +63,7 @@ export default function InstancesPage() {
   const [instanceList, setInstanceList] = useState<AppInstance[]>([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-  const { can } = useSuitePermissions();
+  const { can } = useOloPermissions();
   const ctx = useTenantContext();
 
   // Cascade data

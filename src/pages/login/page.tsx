@@ -354,7 +354,7 @@ export default function LoginPage() {
           </div>
 
           <p className="text-center text-xs text-foreground-700 mt-6">
-            Overseas Logistics Operations · Suite OLO
+            Overseas Logistics Operations · OLO Site
           </p>
         </div>
       </div>

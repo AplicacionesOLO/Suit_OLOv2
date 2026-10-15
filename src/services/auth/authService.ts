@@ -14,7 +14,7 @@ export interface LoginResult {
   error: AuthError | null;
 }
 
-export interface SuitePermissions {
+export interface OloPermissions {
   modules: Record<string, { menu: boolean; actions: string[] }>;
 }
 
@@ -38,7 +38,7 @@ export interface PlatformUser {
   tenant_name?: string | null;
   role_name?: string | null;
   country_name?: string | null;
-  suite_permissions?: SuitePermissions | null;
+  olo_permissions?: OloPermissions | null;
 }
 
 export async function loginWithEmail({ email, password }: LoginCredentials): Promise<LoginResult> {
@@ -122,7 +122,7 @@ export async function loginWithGoogle(): Promise<LoginResult> {
     return { user: null, session: null, error: null };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error('[Suite OLO] loginWithGoogle error:', msg);
+    console.error('[OLO Site] loginWithGoogle error:', msg);
     return {
       user: null,
       session: null,
@@ -161,7 +161,7 @@ export async function getCurrentSession(): Promise<Session | null> {
     return data.session;
   } catch (err) {
     if (isSessionExpiredError(err)) {
-      console.warn('[Suite OLO] Token refresh falló en getSession — limpiando sesión local');
+      console.warn('[OLO Site] Token refresh falló en getSession — limpiando sesión local');
       await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
       return null;
     }
@@ -175,7 +175,7 @@ export async function getCurrentUser(): Promise<User | null> {
     return data.user;
   } catch (err) {
     if (isSessionExpiredError(err)) {
-      console.warn('[Suite OLO] Token refresh falló en getUser — limpiando sesión local');
+      console.warn('[OLO Site] Token refresh falló en getUser — limpiando sesión local');
       await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
       return null;
     }
@@ -203,7 +203,7 @@ export async function getPlatformUser(authUserId: string): Promise<PlatformUser 
     if (role) {
       pu.role_level = role.level;
       pu.role_name = role.name;
-      pu.suite_permissions = (role.permissions as SuitePermissions) || null;
+      pu.olo_permissions = (role.permissions as OloPermissions) || null;
     }
   }
 

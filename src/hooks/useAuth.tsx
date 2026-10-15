@@ -66,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Refresh token expirado o inválido — limpiar sesión local y seguir
         if (!mounted) return;
         if (isSessionExpiredError(sessionErr)) {
-          console.warn('[Suite OLO] Sesión expirada durante inicialización — redirigiendo a login');
+          console.warn('[OLO Site] Sesión expirada durante inicialización — redirigiendo a login');
           try {
             await supabase.auth.signOut({ scope: 'local' });
           } catch {

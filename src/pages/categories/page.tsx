@@ -7,7 +7,7 @@ import {
   softDeleteCategory,
   type AppCategory as SupaCategory,
 } from '@/services/applications/applicationsService';
-import { useSuitePermissions } from '@/hooks/useSuitePermissions';
+import { useOloPermissions } from '@/hooks/useOloPermissions';
 
 interface AppCategory {
   id: string;
@@ -81,7 +81,7 @@ export default function CategoriesPage() {
   const [catList, setCatList] = useState<AppCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const { can } = useSuitePermissions();
+  const { can } = useOloPermissions();
 
   const showToast = useCallback((type: 'success' | 'error', message: string) => {
     setToast({ type, message });

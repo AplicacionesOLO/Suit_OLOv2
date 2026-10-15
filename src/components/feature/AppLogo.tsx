@@ -28,7 +28,7 @@ export default function AppLogo({ showText = true, direction = 'col', size = 'md
     return (
       <img
         src={logoUrl}
-        alt="SuiteOLO Logo"
+        alt="OLO Site Logo"
         className={`${logoSize} object-contain shrink-0 ${className}`}
       />
     );
@@ -37,10 +37,10 @@ export default function AppLogo({ showText = true, direction = 'col', size = 'md
   if (direction === 'row') {
     return (
       <div className={`flex items-center gap-2.5 ${className}`}>
-        <img src={logoUrl} alt="SuiteOLO Logo" className={`${logoSize} object-contain shrink-0`} />
+        <img src={logoUrl} alt="OLO Site Logo" className={`${logoSize} object-contain shrink-0`} />
         <div className="whitespace-nowrap">
-          <span className={`text-foreground-100 font-bold ${textSize} tracking-tight`}>Suite</span>
-          <span className={`text-primary-500 font-bold ${textSize} tracking-tight`}>OLO</span>
+          <span className={`text-primary-500 font-bold ${textSize} tracking-tight`}>OLO</span>{' '}
+          <span className={`text-foreground-100 font-bold ${textSize} tracking-tight`}>Site</span>
         </div>
       </div>
     );
@@ -48,10 +48,10 @@ export default function AppLogo({ showText = true, direction = 'col', size = 'md
 
   return (
     <div className={`flex flex-col items-center ${className}`}>
-      <img src={logoUrl} alt="SuiteOLO Logo" className={`${logoSize} object-contain`} />
+      <img src={logoUrl} alt="OLO Site Logo" className={`${logoSize} object-contain`} />
       <div className="whitespace-nowrap mt-1">
-        <span className={`text-foreground-100 font-bold ${textSize} tracking-tight`}>Suite</span>
-        <span className={`text-primary-500 font-bold ${textSize} tracking-tight`}>OLO</span>
+        <span className={`text-primary-500 font-bold ${textSize} tracking-tight`}>OLO</span>{' '}
+        <span className={`text-foreground-100 font-bold ${textSize} tracking-tight`}>Site</span>
       </div>
     </div>
   );

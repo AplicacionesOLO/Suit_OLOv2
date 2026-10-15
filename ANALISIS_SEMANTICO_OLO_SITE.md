@@ -1,14 +1,14 @@
-# ANÁLISIS SEMÁNTICO COMPLETO — SUITE OLO
+# ANÁLISIS SEMÁNTICO COMPLETO — OLO SITE
 
 > **Fecha:** 2026-06-22
 > **Versión:** Arquitectura Cerrada v1.0
-> **Propósito:** Documentación exhaustiva de la estructura semántica, jerarquía organizacional, flujo de datos, y modelo de seguridad del sistema SUITEOLO.
+> **Propósito:** Documentación exhaustiva de la estructura semántica, jerarquía organizacional, flujo de datos, y modelo de seguridad del sistema OLO SITE.
 
 ---
 
 ## 1. VISIÓN GENERAL DEL SISTEMA
 
-**Suite OLO** es un Enterprise Application Hub — plataforma centralizada de acceso, gobierno, seguridad y publicación de aplicaciones corporativas. Opera bajo modelo **Zero Trust** con SSO federado (Google OAuth), JWT, y control de acceso granular multi-tenant.
+**OLO Site** es un Enterprise Application Hub — plataforma centralizada de acceso, gobierno, seguridad y publicación de aplicaciones corporativas. Opera bajo modelo **Zero Trust** con SSO federado (Google OAuth), JWT, y control de acceso granular multi-tenant.
 
 ### 1.1 Propósito de Negocio
 
@@ -647,7 +647,7 @@ TODAS las páginas:
 | `useTenants()` | tenants, load, loading | /tenants |
 | `useApplicationAccess()` | myAccesses, loadMyAccesses, loading | /my-access |
 | `useRoles()` | roles, load, loading | /roles |
-| `useSuitePermissions()` | hasMenuAccess, can | Sidebar, RouteGuard |
+| `useOloPermissions()` | hasMenuAccess, can | Sidebar, RouteGuard |
 | `useTheme()` | theme, setTheme | Topbar |
 
 ---
@@ -801,7 +801,7 @@ src/
 │   └── feature/        ← Topbar, Sidebar, AuthGuard, RouteGuard, AppLayout
 ├── hooks/              ← useTenantContext, useAuth, useUsers, useClients,
 │                         useCountries, useWarehouses, useTenants,
-│                         useApplicationAccess, useSuitePermissions, etc.
+│                         useApplicationAccess, useOloPermissions, etc.
 ├── pages/
 │   ├── dashboard/      ← Enterprise Application Hub
 │   ├── applications/   ← CRUD de aplicaciones
@@ -841,7 +841,7 @@ src/
 
 ## 16. CONCLUSIÓN
 
-**Suite OLO es un sistema enterprise multi-tenant con una jerarquía organizacional en cascada de 5 niveles** (País ↔ Tenant → Almacén → Cliente → Usuario → Aplicación → Instancia), gobernada por:
+**OLO Site es un sistema enterprise multi-tenant con una jerarquía organizacional en cascada de 5 niveles** (País ↔ Tenant → Almacén → Cliente → Usuario → Aplicación → Instancia), gobernada por:
 
 1. **React Context como única fuente de verdad reactiva** — el Topbar es el selector de contexto global, y cuando cambia cualquier nivel, TODAS las páginas reaccionan en tiempo real sin F5.
 

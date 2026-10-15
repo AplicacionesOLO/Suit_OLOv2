@@ -322,7 +322,7 @@ export default function WorkspacePage() {
             {!instance.allows_iframe && (
               <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-left">
                 <span className="w-5 h-5 flex items-center justify-center text-amber-400 shrink-0 mt-0.5"><i className="ri-information-line"></i></span>
-                <p className="text-sm text-amber-300">Esta aplicación no permite ser embebida dentro de SuiteOLO. Se abrirá en una nueva pestaña.</p>
+                <p className="text-sm text-amber-300">Esta aplicación no permite ser embebida dentro de OLO Site. Se abrirá en una nueva pestaña.</p>
               </div>
             )}
 

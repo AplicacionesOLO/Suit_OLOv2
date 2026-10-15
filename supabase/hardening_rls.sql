@@ -1,5 +1,5 @@
 -- ============================================================
--- SUITE OLO — MULTI-TENANT HARDENING RLS
+-- OLO SITE — MULTI-TENANT HARDENING RLS
 -- Versión: 1.0.0
 -- Fecha:   2026-06-15
 -- 

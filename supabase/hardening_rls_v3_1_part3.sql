@@ -1,5 +1,5 @@
 -- ============================================================================
--- Suite OLO - HARDENING RLS V3.1 PARTE 3/3
+-- OLO Site - HARDENING RLS V3.1 PARTE 3/3
 -- Tests V3.1 + Resumen Final
 -- PREREQUISITO: Ejecutar hardening_rls_v3_1.sql y hardening_rls_v3_1_part2.sql PRIMERO
 --
@@ -12,7 +12,7 @@
 
 BEGIN;
 
-RAISE NOTICE 'Suite OLO - Hardening RLS V3.1 - Parte 3/3 (Tests + Resumen)';
+RAISE NOTICE 'OLO Site - Hardening RLS V3.1 - Parte 3/3 (Tests + Resumen)';
 RAISE NOTICE '25 tests CRITICOS (RAISE EXCEPTION): 5 V3.1 + 4 V3.0 + 16 V2.9';
 
 
@@ -498,7 +498,7 @@ DO $$
 BEGIN
   RAISE NOTICE '';
   RAISE NOTICE '============================================';
-  RAISE NOTICE 'Suite OLO - Hardening RLS V3.1 COMPLETADO';
+  RAISE NOTICE 'OLO Site - Hardening RLS V3.1 COMPLETADO';
   RAISE NOTICE '============================================';
   RAISE NOTICE '';
   RAISE NOTICE 'CORRECCION CRITICA V3.0 -> V3.1:';

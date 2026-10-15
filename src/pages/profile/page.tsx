@@ -45,7 +45,7 @@ export default function ProfilePage() {
       <div className="animate-fade-in space-y-6">
         <div>
           <h1 className="text-xl font-bold text-foreground-100">Perfil de Usuario</h1>
-          <p className="text-sm text-foreground-500 mt-1">Informacion personal, seguridad y actividad en Suite OLO.</p>
+          <p className="text-sm text-foreground-500 mt-1">Informacion personal, seguridad y actividad en OLO Site.</p>
         </div>
 
         {passwordSuccess && (

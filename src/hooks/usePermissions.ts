@@ -1,22 +1,22 @@
 import { useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import type { SuitePermissions } from '@/services/auth/authService';
-import { SUITE_MODULES, ALL_ACTIONS, type SuiteModule, type SuiteAction } from '@/hooks/useSuitePermissions';
+import type { OloPermissions } from '@/services/auth/authService';
+import { OLO_MODULES, ALL_ACTIONS, type OloModule, type OloAction } from '@/hooks/useOloPermissions';
 
-export interface SuitePermissionsState {
+export interface OloPermissionsState {
   modules: Record<string, { menu: boolean; actions: string[] }>;
 }
 
 export function usePermissions() {
   const { platformUser } = useAuth();
 
-  const initPermissions = useCallback((): SuitePermissionsState => {
+  const initPermissions = useCallback((): OloPermissionsState => {
     const modules: Record<string, { menu: boolean; actions: string[] }> = {};
-    SUITE_MODULES.forEach((m) => { modules[m] = { menu: false, actions: [] }; });
+    OLO_MODULES.forEach((m) => { modules[m] = { menu: false, actions: [] }; });
     return { modules };
   }, []);
 
-  const loadFromProfile = useCallback((permissions: SuitePermissions | null | undefined): SuitePermissionsState => {
+  const loadFromProfile = useCallback((permissions: OloPermissions | null | undefined): OloPermissionsState => {
     const state = initPermissions();
     if (permissions?.modules) {
       Object.entries(permissions.modules).forEach(([key, val]) => {
@@ -28,7 +28,7 @@ export function usePermissions() {
     return state;
   }, [initPermissions]);
 
-  const toggleMenu = useCallback((state: SuitePermissionsState, module: string): SuitePermissionsState => {
+  const toggleMenu = useCallback((state: OloPermissionsState, module: string): OloPermissionsState => {
     const next = { modules: { ...state.modules } };
     if (next.modules[module]) {
       const current = next.modules[module];
@@ -37,7 +37,7 @@ export function usePermissions() {
     return next;
   }, []);
 
-  const toggleAction = useCallback((state: SuitePermissionsState, module: string, action: string): SuitePermissionsState => {
+  const toggleAction = useCallback((state: OloPermissionsState, module: string, action: string): OloPermissionsState => {
     const next = { modules: { ...state.modules } };
     if (next.modules[module]) {
       const current = next.modules[module];
@@ -50,7 +50,7 @@ export function usePermissions() {
     return next;
   }, []);
 
-  const setAllActions = useCallback((state: SuitePermissionsState, module: string, enabled: boolean): SuitePermissionsState => {
+  const setAllActions = useCallback((state: OloPermissionsState, module: string, enabled: boolean): OloPermissionsState => {
     const next = { modules: { ...state.modules } };
     if (next.modules[module]) {
       next.modules[module] = {
@@ -61,7 +61,7 @@ export function usePermissions() {
     return next;
   }, []);
 
-  const countActivePermissions = useCallback((state: SuitePermissionsState): number => {
+  const countActivePermissions = useCallback((state: OloPermissionsState): number => {
     let count = 0;
     Object.values(state.modules).forEach((mod) => {
       count += mod.actions.length;

@@ -30,7 +30,7 @@ export default function AuthCallbackPage() {
         if (cancelled) return;
 
         if (error) {
-          console.error('[Suite OLO] exchangeCodeForSession error:', error.message);
+          console.error('[OLO Site] exchangeCodeForSession error:', error.message);
           setStatus('No se pudo verificar la sesión. Verifica tu conexión e intenta de nuevo.');
           setFailed(true);
           return;
@@ -55,7 +55,7 @@ export default function AuthCallbackPage() {
         }, 300);
       } catch (err) {
         if (cancelled) return;
-        console.error('[Suite OLO] callback exchange error:', err);
+        console.error('[OLO Site] callback exchange error:', err);
         setStatus('No se pudo verificar la sesión. Verifica tu conexión e intenta de nuevo.');
         setFailed(true);
       }
@@ -108,7 +108,7 @@ export default function AuthCallbackPage() {
         )}
 
         <p className="text-xs text-foreground-400/70">
-          Suite OLO &middot; Autenticación segura
+          OLO Site &middot; Autenticación segura
         </p>
       </div>
     </div>

@@ -44,6 +44,7 @@ export interface ApplicationEnriched extends Application {
   warehouse_name?: string;
   tenant_name?: string;
   tenant_code?: string;
+  client_ids?: string[];
 }
 
 export interface CreateApplicationPayload {
@@ -59,6 +60,7 @@ export interface CreateApplicationPayload {
   version?: string;
   integration_type?: string;
   tags?: string[] | null;
+  additional_client_ids?: string[];
 }
 
 export interface UpdateApplicationPayload {
@@ -74,6 +76,7 @@ export interface UpdateApplicationPayload {
   version?: string;
   integration_type?: string;
   tags?: string[] | null;
+  additional_client_ids?: string[];
 }
 
 export interface AppInstance {
@@ -301,14 +304,53 @@ export async function fetchApplications(): Promise<{ data: ApplicationEnriched[]
       if (tenantId) fallbackQuery.eq('tenant_id', tenantId);
       const fb = await fallbackQuery;
       if (fb.error) throw fb.error;
-      return { data: (fb.data || []).map((a: any) => ({ ...a, client_name: undefined, tenant_name: undefined })) as ApplicationEnriched[], error: null };
+      return { data: (fb.data || []).map((a: any) => ({ ...a, client_name: undefined, tenant_name: undefined, client_ids: a.client_id ? [a.client_id] : [] })) as ApplicationEnriched[], error: null };
     }
 
     // Enrich with joined data
     const enriched = await enrichApplications(data || []);
-    return { data: enriched, error: null };
+    const withClients = await attachApplicationClientIds(enriched);
+    return { data: withClients, error: null };
   } catch (err: any) {
     return { data: [], error: err.message || 'Error al cargar aplicaciones' };
+  }
+}
+
+async function attachApplicationClientIds(apps: ApplicationEnriched[]): Promise<ApplicationEnriched[]> {
+  if (!apps || apps.length === 0) return apps;
+  try {
+    const appIds = apps.map((a) => a.id);
+    const { data: links } = await supabase
+      .from('application_clients')
+      .select('application_id, client_id')
+      .in('application_id', appIds);
+    const map: Record<string, string[]> = {};
+    (links || []).forEach((l: any) => {
+      if (!map[l.application_id]) map[l.application_id] = [];
+      map[l.application_id].push(l.client_id);
+    });
+    return apps.map((a) => {
+      const primary = a.client_id ? [a.client_id] : [];
+      const extra = map[a.id] || [];
+      return { ...a, client_ids: [...new Set([...primary, ...extra])] };
+    });
+  } catch {
+    return apps.map((a) => ({ ...a, client_ids: a.client_id ? [a.client_id] : [] }));
+  }
+}
+
+async function syncApplicationClients(applicationId: string, tenantId: string, additionalClientIds: string[], primaryClientId: string | null): Promise<string | null> {
+  try {
+    await supabase.from('application_clients').delete().eq('application_id', applicationId);
+    const extraIds = [...new Set((additionalClientIds || []).filter((cid) => cid && cid !== primaryClientId))];
+    if (extraIds.length > 0) {
+      const rows = extraIds.map((cid) => ({ application_id: applicationId, client_id: cid, tenant_id: tenantId }));
+      const { error } = await supabase.from('application_clients').insert(rows);
+      if (error) return error.message;
+    }
+    return null;
+  } catch (err: any) {
+    return err.message || 'Error al sincronizar clientes';
   }
 }
 
@@ -584,6 +626,10 @@ export async function createApplication(payload: CreateApplicationPayload): Prom
       .select()
       .single();
     if (error) throw error;
+    if (payload.additional_client_ids !== undefined) {
+      const syncError = await syncApplicationClients(data.id, payload.tenant_id, payload.additional_client_ids, payload.client_id || null);
+      if (syncError) console.warn('[createApplication] sync clients warning:', syncError);
+    }
     return { data: data as Application, error: null };
   } catch (err: any) {
     return { data: null, error: err.message || 'Error al crear aplicación' };
@@ -613,6 +659,11 @@ export async function updateApplication(id: string, payload: UpdateApplicationPa
       .select()
       .single();
     if (error) throw error;
+    if (payload.additional_client_ids !== undefined) {
+      const tenantId = data.tenant_id || (await getEffectiveTenantId()) || '';
+      const syncError = await syncApplicationClients(data.id, tenantId, payload.additional_client_ids, payload.client_id !== undefined ? payload.client_id : data.client_id);
+      if (syncError) console.warn('[updateApplication] sync clients warning:', syncError);
+    }
     return { data: data as Application, error: null };
   } catch (err: any) {
     return { data: null, error: err.message || 'Error al actualizar aplicación' };

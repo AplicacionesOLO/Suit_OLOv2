@@ -21,7 +21,7 @@ export interface UserContextFull {
   scope_all_clients: boolean;
 }
 
-const CACHE_KEY = 'suiteolo.userContext';
+const CACHE_KEY = 'olosite.userContext';
 const CACHE_TTL = 30000; // 30 seconds
 
 let cachedContext: { ctx: UserContextFull; ts: number } | null = null;

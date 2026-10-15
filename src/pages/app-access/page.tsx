@@ -3,7 +3,7 @@ import AppLayout from '@/components/feature/AppLayout';
 import AppLogoImage from '@/components/base/AppLogoImage';
 import { useApplicationAccess } from '@/hooks/useApplicationAccess';
 import { useRoles } from '@/hooks/useRoles';
-import { useSuitePermissions } from '@/hooks/useSuitePermissions';
+import { useOloPermissions } from '@/hooks/useOloPermissions';
 
 const statusConfig: Record<string, { label: string; bg: string; text: string; border: string }> = {
   active: { label: 'Activo', bg: 'bg-primary-500/10', text: 'text-primary-400', border: 'border-primary-500/20' },
@@ -16,7 +16,7 @@ const statusConfig: Record<string, { label: string; bg: string; text: string; bo
 export default function AppAccessPage() {
   const { accesses, loading, assignAccess, revokeAccess, approveAccess, denyAccess } = useApplicationAccess();
   const { roles } = useRoles();
-  const { can } = useSuitePermissions();
+  const { can } = useOloPermissions();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterRole, setFilterRole] = useState('');

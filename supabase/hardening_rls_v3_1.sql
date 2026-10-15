@@ -1,5 +1,5 @@
 -- ============================================================================
--- Suite OLO - HARDENING RLS V3.1 (ENTERPRISE SECURITY BASELINE - FINAL)
+-- OLO Site - HARDENING RLS V3.1 (ENTERPRISE SECURITY BASELINE - FINAL)
 -- Version: 3.1.0 | Fecha: 2026-06-15
 --
 -- CORRECCIONES CRITICAS vs V3.0:
@@ -33,7 +33,7 @@
 
 BEGIN;
 
-RAISE NOTICE 'Suite OLO - Hardening RLS V3.1 - Iniciando Parte 1/2...';
+RAISE NOTICE 'OLO Site - Hardening RLS V3.1 - Iniciando Parte 1/2...';
 RAISE NOTICE 'CORRECCION V3.1: ELIMINACION de TODAS las politicas *_soft_delete (bypass de RLS via FOR UPDATE sin restriccion de columnas)';
 RAISE NOTICE 'soft_delete_record() es SECURITY DEFINER OWNER=postgres -> bypassea RLS. Las policies *_soft_delete eran innecesarias y peligrosas.';
 

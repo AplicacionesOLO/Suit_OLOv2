@@ -1,4 +1,4 @@
-# Suite OLO — Enterprise Application Hub
+# OLO Site — Enterprise Application Hub
 
 > **Plataforma centralizada de acceso, gobierno, seguridad y publicación de aplicaciones corporativas para Overseas Logistics Operations.**
 
@@ -6,7 +6,7 @@
 
 ## Tabla de Contenidos
 
-1. [¿Qué es Suite OLO?](#qué-es-suite-olo)
+1. [¿Qué es OLO Site?](#qué-es-olo-site)
 2. [Arquitectura General](#arquitectura-general)
 3. [Stack Tecnológico](#stack-tecnológico)
 4. [Estructura de Archivos](#estructura-de-archivos)
@@ -27,13 +27,13 @@
 
 ---
 
-## ¿Qué es Suite OLO?
+## ¿Qué es OLO Site?
 
-Suite OLO es el **panel de control corporativo** de Overseas Logistics Operations. Funciona como un **hub centralizado** donde los empleados de OLO descubren, acceden y gestionan todas las aplicaciones empresariales de la compañía.
+OLO Site es el **panel de control corporativo** de Overseas Logistics Operations. Funciona como un **hub centralizado** donde los empleados de OLO descubren, acceden y gestionan todas las aplicaciones empresariales de la compañía.
 
 ### El problema que resuelve
 
-OLO opera en múltiples países (Costa Rica, Panamá, México, Colombia, etc.) con múltiples bodegas, clientes y aplicaciones. Antes de Suite OLO, cada aplicación tenía su propio login, sus propios permisos, y no había una visión unificada de quién podía acceder a qué. Suite OLO centraliza todo esto en un solo lugar con **seguridad Zero Trust**.
+OLO opera en múltiples países (Costa Rica, Panamá, México, Colombia, etc.) con múltiples bodegas, clientes y aplicaciones. Antes de OLO Site, cada aplicación tenía su propio login, sus propios permisos, y no había una visión unificada de quién podía acceder a qué. OLO Site centraliza todo esto en un solo lugar con **seguridad Zero Trust**.
 
 ### Para quién es
 
@@ -105,7 +105,7 @@ La aplicación es una **Single Page Application (SPA)** construida con React que
 ## Estructura de Archivos
 
 ```
-suite-olo/
+olo-site/
 ├── index.html                    # Entry point HTML, CDN links, SEO meta tags
 ├── package.json                  # Dependencias y scripts
 ├── tailwind.config.ts            # Config de Tailwind + sistema de color OKLCH
@@ -222,7 +222,7 @@ suite-olo/
     │   ├── useSecurityAlerts.ts          # Alertas de seguridad
     │   ├── useSecuritySettings.ts        # Config de seguridad
     │   ├── useSessions.ts                # Sesiones
-    │   ├── useSuitePermissions.ts        # Control de acceso a módulos/menú
+    │   ├── useOloPermissions.ts        # Control de acceso a módulos/menú
     │   ├── useTenants.ts                 # Tenants
     │   ├── useUsers.ts                   # Usuarios
     │   ├── useWarehouses.ts              # Almacenes
@@ -247,7 +247,7 @@ suite-olo/
 
 ## Cómo se organiza el código
 
-Suite OLO sigue una arquitectura de **tres capas** bien definidas:
+OLO Site sigue una arquitectura de **tres capas** bien definidas:
 
 ### Capa 1: Páginas (`src/pages/`)
 
@@ -408,7 +408,7 @@ Cada rol tiene un `level` numérico. Las funciones RLS en la base de datos compa
 
 Además de los roles jerárquicos, existe un sistema de **permisos por módulo**. Cada módulo del sistema (dashboard, countries, users, etc.) tiene acciones (view, create, edit, delete).
 
-El hook `useSuitePermissions` consulta los permisos del usuario y expone:
+El hook `useOloPermissions` consulta los permisos del usuario y expone:
 
 - `hasMenuAccess(module)` — ¿Este usuario puede ver este ítem en la sidebar?
 - `can(module, action)` — ¿Este usuario puede ejecutar esta acción?
@@ -540,7 +540,7 @@ La página `/rls-test` (solo accesible con `VITE_ENABLE_RLS_TEST=true`) ejecuta 
 
 ### Cómo funciona
 
-Suite OLO usa **OKLCH** como espacio de color en vez de HEX o RGB. OKLCH es un espacio de color perceptual donde la luminosidad, chroma (saturación) y hue (tono) son independientes. Esto permite:
+OLO Site usa **OKLCH** como espacio de color en vez de HEX o RGB. OKLCH es un espacio de color perceptual donde la luminosidad, chroma (saturación) y hue (tono) son independientes. Esto permite:
 
 1. **Generar escalas completas** desde un solo color base
 2. **Dark mode y light mode** intercambiando valores de luminosidad
@@ -662,7 +662,7 @@ El archivo `src/router/config.tsx` define todas las rutas como un array de `Rout
 |--------|------|-------------|
 | Dashboard | `/dashboard` | Enterprise Hub: estadísticas, apps recientes, accesos rápidos. |
 | Mis Accesos | `/my-access` | Apps autorizadas del usuario con búsqueda, favoritos DnD, apertura embebida/externa. |
-| Workspace | `/workspace/:id` | Iframe/SSO para apps que se abren dentro de Suite OLO. |
+| Workspace | `/workspace/:id` | Iframe/SSO para apps que se abren dentro de OLO Site. |
 
 ### 🏢 Organización
 
@@ -731,7 +731,7 @@ Página → usa → Hook → llama → Servicio → consulta → Supabase
 | Sesiones | `useSessions` | `sessionsService` |
 | Alertas | `useSecurityAlerts` | `alertsService` |
 | Búsqueda Países | `useWorldCountries` | `countryCatalogService` |
-| Permisos Módulo | `useSuitePermissions` | `permissionsService` |
+| Permisos Módulo | `useOloPermissions` | `permissionsService` |
 
 ### Cómo agregar una nueva entidad
 
@@ -801,7 +801,7 @@ Todas las páginas manejan consistentemente:
 ```bash
 # 1. Clonar el repositorio
 git clone <repo-url>
-cd suite-olo
+cd olo-site
 
 # 2. Instalar dependencias
 npm install
@@ -914,4 +914,4 @@ npm run build        # Build limpio
 
 ---
 
-*Suite OLO — v1.0. Hecho con 💚 por el equipo de Overseas Logistics Operations.*
+*OLO Site — v1.0. Hecho con 💚 por el equipo de Overseas Logistics Operations.*

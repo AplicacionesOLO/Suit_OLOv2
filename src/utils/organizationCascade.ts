@@ -1,5 +1,5 @@
 // ================================================================
-// Helpers centrales de cascada organizacional Suite OLO
+// Helpers centrales de cascada organizacional OLO Site
 //
 // Jerarquía: PAÍS ↔ TENANT → ALMACÉN → CLIENTE → USUARIO → APLICACIONES
 //

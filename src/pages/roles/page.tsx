@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import AppLayout from '@/components/feature/AppLayout';
 import { useRoles } from '@/hooks/useRoles';
-import { SUITE_MODULES, ALL_ACTIONS, useSuitePermissions } from '@/hooks/useSuitePermissions';
+import { OLO_MODULES, ALL_ACTIONS, useOloPermissions } from '@/hooks/useOloPermissions';
 import { useAuth } from '@/hooks/useAuth';
 import type { RolePermissions } from '@/services/security/rolesService';
 
@@ -40,14 +40,14 @@ const moduleIcons: Record<string, string> = {
 
 function initPermissions(): RolePermissions {
   const modules: Record<string, { menu: boolean; actions: string[] }> = {};
-  SUITE_MODULES.forEach((m) => { modules[m] = { menu: false, actions: [] }; });
+  OLO_MODULES.forEach((m) => { modules[m] = { menu: false, actions: [] }; });
   return { modules };
 }
 
 export default function RolesPage() {
   const { roles, loading, addRole, editRole } = useRoles();
   const { platformUser } = useAuth();
-  const { can } = useSuitePermissions();
+  const { can } = useOloPermissions();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterLevel, setFilterLevel] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -370,7 +370,7 @@ export default function RolesPage() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {SUITE_MODULES.map((module) => {
+                  {OLO_MODULES.map((module) => {
                     const mod = permissionsState.modules[module];
                     const actionCount = mod?.actions?.length || 0;
                     const isActive = actionCount > 0;

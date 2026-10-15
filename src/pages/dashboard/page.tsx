@@ -154,7 +154,7 @@ export default function DashboardPage() {
             <h1 className="text-xl font-bold text-foreground-100">Dashboard</h1>
             <p className="text-sm text-foreground-500 mt-1">
               Resumen operativo de la plataforma{' '}
-              <span className="text-primary-500 font-medium">Suite OLO</span>
+              <span className="text-primary-500 font-medium">OLO Site</span>
 
             </p>
           </div>

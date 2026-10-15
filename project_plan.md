@@ -1,7 +1,7 @@
-# Suite OLO — Enterprise Application Hub
+# OLO Site — Enterprise Application Hub
 
 ## 1. Descripción del Proyecto
-Suite OLO es una plataforma empresarial centralizada de acceso, gobierno, seguridad y publicación de aplicaciones corporativas. Funciona como un Enterprise Application Hub donde los usuarios visualizan únicamente las aplicaciones autorizadas según tenant, rol, perfil y permisos. Diseñada bajo modelo Zero Trust con SSO federado, JWT y control de acceso granular.
+OLO Site es una plataforma empresarial centralizada de acceso, gobierno, seguridad y publicación de aplicaciones corporativas. Funciona como un Enterprise Application Hub donde los usuarios visualizan únicamente las aplicaciones autorizadas según tenant, rol, perfil y permisos. Diseñada bajo modelo Zero Trust con SSO federado, JWT y control de acceso granular.
 
 **Público objetivo:** Corporaciones multinacionales, holdings y organizaciones con múltiples aplicaciones empresariales que necesitan un punto único de gobierno y acceso.
 
@@ -127,7 +127,7 @@ Suite OLO es una plataforma empresarial centralizada de acceso, gobierno, seguri
 - Dashboard como portal de aplicaciones con búsqueda, categorías, favoritos, recientes
 - CRUD de Categorías, Aplicaciones, Instancias
 - Catálogo empresarial, Asignación, Configuración de Integración
-- Rebranding completo a Suite OLO
+- Rebranding completo a OLO Site
 - Navegación actualizada con nueva jerarquía
 
 ### Fase 3: Supabase Enterprise Foundation ✅ COMPLETADO

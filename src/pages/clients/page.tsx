@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import AppLayout from '@/components/feature/AppLayout';
 import { useClients } from '@/hooks/useClients';
-import { useSuitePermissions } from '@/hooks/useSuitePermissions';
+import { useOloPermissions } from '@/hooks/useOloPermissions';
 import { useTenantContext } from '@/hooks/useTenantContext';
 import type { ClientWithDetails } from '@/services/operations/clientsService';
 
@@ -18,7 +18,7 @@ export default function ClientsPage() {
     editClient,
     toggleStatus,
   } = useClients();
-  const { can } = useSuitePermissions();
+  const { can } = useOloPermissions();
   const ctx = useTenantContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCountry, setFilterCountry] = useState('');

@@ -132,7 +132,7 @@ export default function IntegrationPage() {
           <div className="space-y-4">
             <div className="glass-panel rounded-2xl p-6">
               <h2 className="text-sm font-semibold text-foreground-200 mb-4">JWT Federado</h2>
-              <p className="text-xs text-foreground-500 mb-6">Configura la federación de tokens JWT para que las aplicaciones externas confíen en la autenticación de Suite OLO.</p>
+              <p className="text-xs text-foreground-500 mb-6">Configura la federación de tokens JWT para que las aplicaciones externas confíen en la autenticación de OLO Site.</p>
 
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -178,7 +178,7 @@ export default function IntegrationPage() {
 
               <div className="space-y-3">
                 {[
-                  { domain: '*.suiteolo.io', status: 'allowed', desc: 'Todos los subdominios de Suite OLO' },
+                  { domain: '*.suiteolo.io', status: 'allowed', desc: 'Todos los subdominios de OLO Site' },
                   { domain: 'hacienda.go.cr', status: 'allowed', desc: 'Facturación electrónica Costa Rica' },
                   { domain: 'dgi.gob.pa', status: 'allowed', desc: 'Facturación electrónica Panamá' },
                   { domain: 'dian.gov.co', status: 'allowed', desc: 'Facturación electrónica Colombia' },
@@ -218,7 +218,7 @@ export default function IntegrationPage() {
           <div className="space-y-4">
             <div className="glass-panel rounded-2xl p-6">
               <h2 className="text-sm font-semibold text-foreground-200 mb-4">Políticas de Seguridad de Integración</h2>
-              <p className="text-xs text-foreground-500 mb-6">Define las reglas de seguridad para la comunicación entre Suite OLO y las aplicaciones integradas.</p>
+              <p className="text-xs text-foreground-500 mb-6">Define las reglas de seguridad para la comunicación entre OLO Site y las aplicaciones integradas.</p>
 
               <div className="space-y-4">
                 {[

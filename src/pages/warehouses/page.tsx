@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import AppLayout from '@/components/feature/AppLayout';
 import { useWarehouses } from '@/hooks/useWarehouses';
-import { useSuitePermissions } from '@/hooks/useSuitePermissions';
+import { useOloPermissions } from '@/hooks/useOloPermissions';
 import { useTenantContext } from '@/hooks/useTenantContext';
 import type { WarehouseWithDetails } from '@/services/operations/warehousesService';
 
@@ -16,7 +16,7 @@ export default function WarehousesPage() {
     toggleStatus,
     loadTenantsByCountry,
   } = useWarehouses();
-  const { can } = useSuitePermissions();
+  const { can } = useOloPermissions();
   const ctx = useTenantContext();
   const [searchQuery, setSearchQuery] = useState('');
 

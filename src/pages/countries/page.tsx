@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/feature/AppLayout';
 import { useCountries } from '@/hooks/useCountries';
 import { useWorldCountries } from '@/hooks/useWorldCountries';
-import { useSuitePermissions } from '@/hooks/useSuitePermissions';
+import { useOloPermissions } from '@/hooks/useOloPermissions';
 import { useTenantContext } from '@/hooks/useTenantContext';
 import { supabase } from '@/services/supabase/client';
 import MultiSelect from '@/components/base/MultiSelect';
@@ -21,7 +21,7 @@ export default function CountriesPage() {
     refresh,
   } = useCountries();
   const world = useWorldCountries();
-  const { can } = useSuitePermissions();
+  const { can } = useOloPermissions();
   const ctx = useTenantContext();
 
   const [searchQuery, setSearchQuery] = useState('');

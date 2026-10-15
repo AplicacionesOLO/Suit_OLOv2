@@ -1,7 +1,7 @@
 import { type ReactNode, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { useSuitePermissions } from '@/hooks/useSuitePermissions';
+import { useOloPermissions } from '@/hooks/useOloPermissions';
 import AppLogo from '@/components/feature/AppLogo';
 
 const ALWAYS_ACCESSIBLE = ['/my-access', '/profile', '/workspace'];
@@ -39,7 +39,7 @@ interface RouteGuardProps {
 
 export default function RouteGuard({ children }: RouteGuardProps) {
   const { isAuthenticated, loading, platformUser } = useAuth();
-  const { can, isSuperAdmin } = useSuitePermissions();
+  const { can, isSuperAdmin } = useOloPermissions();
   const navigate = useNavigate();
 
   const pathname = window.location.pathname;

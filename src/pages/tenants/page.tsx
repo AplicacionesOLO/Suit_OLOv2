@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/feature/AppLayout';
 import { useTenants } from '@/hooks/useTenants';
-import { useSuitePermissions } from '@/hooks/useSuitePermissions';
+import { useOloPermissions } from '@/hooks/useOloPermissions';
 import { useTenantContext } from '@/hooks/useTenantContext';
 import { supabase } from '@/services/supabase/client';
 import MultiSelect from '@/components/base/MultiSelect';
@@ -82,7 +82,7 @@ export default function TenantsPage() {
     countries,
     refresh,
   } = useTenants();
-  const { can } = useSuitePermissions();
+  const { can } = useOloPermissions();
   const ctx = useTenantContext();
 
   const [searchQuery, setSearchQuery] = useState('');

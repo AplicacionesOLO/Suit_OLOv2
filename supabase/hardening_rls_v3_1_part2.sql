@@ -1,5 +1,5 @@
 -- ============================================================================
--- Suite OLO - HARDENING RLS V3.1 PARTE 2/3
+-- OLO Site - HARDENING RLS V3.1 PARTE 2/3
 -- Integridad, Anti-escalamiento, Reconstruccion RLS, Trigger
 -- PREREQUISITO: Ejecutar hardening_rls_v3_1.sql PRIMERO
 --
@@ -10,7 +10,7 @@
 
 BEGIN;
 
-RAISE NOTICE 'Suite OLO - Hardening RLS V3.1 - Parte 2/3 (Integridad + Reconstruccion RLS)';
+RAISE NOTICE 'OLO Site - Hardening RLS V3.1 - Parte 2/3 (Integridad + Reconstruccion RLS)';
 
 
 -- ============================================================================

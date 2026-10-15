@@ -161,7 +161,7 @@ export default function CatalogPage() {
         <div className="animate-fade-in space-y-6">
           <div>
             <h1 className="text-xl font-bold text-foreground-100">Catalogo Empresarial</h1>
-            <p className="text-sm text-foreground-500 mt-1">Explora todas las aplicaciones disponibles en la plataforma Suite OLO.</p>
+            <p className="text-sm text-foreground-500 mt-1">Explora todas las aplicaciones disponibles en la plataforma OLO Site.</p>
           </div>
           <div className="glass-panel rounded-2xl p-16 text-center">
             <div className="w-16 h-16 rounded-2xl bg-secondary-500/10 border border-secondary-500/20 flex items-center justify-center mx-auto mb-5">
@@ -191,7 +191,7 @@ export default function CatalogPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-xl font-bold text-foreground-100">Catalogo Empresarial</h1>
-            <p className="text-sm text-foreground-500 mt-1">Explora todas las aplicaciones disponibles en la plataforma Suite OLO.</p>
+            <p className="text-sm text-foreground-500 mt-1">Explora todas las aplicaciones disponibles en la plataforma OLO Site.</p>
           </div>
         </div>
 

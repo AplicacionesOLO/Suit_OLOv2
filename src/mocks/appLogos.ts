@@ -117,6 +117,16 @@ export const appLogoMap: Record<string, { light: string; dark: string }> = {
     dark: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/b64ad836-0f14-4f50-9978-a2e6304be0bd_compressed_Cedi-Hora-dark.webp',
   },
 
+  // ===== SEXTA TANDA =====
+  'Portal Talento': {
+    light: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/2b54d19e-d3ff-47f6-8119-f7fde93eeb58_compressed_Portal-Talento.webp',
+    dark: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/71d163c7-62f6-49df-8918-907d536523d5_compressed_Portal-Talento-dark.webp',
+  },
+  'Portal de Talento': {
+    light: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/2b54d19e-d3ff-47f6-8119-f7fde93eeb58_compressed_Portal-Talento.webp',
+    dark: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/71d163c7-62f6-49df-8918-907d536523d5_compressed_Portal-Talento-dark.webp',
+  },
+
   // ===== Fallbacks by app code (primer tanda) =====
   'FLETES': {
     light: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/f4234750-fce9-4ff8-a051-c10f974efec4_compressed_fletes-y-transporte.webp',
@@ -229,6 +239,32 @@ export const appLogoMap: Record<string, { light: string; dark: string }> = {
   'APP_CEDI HORAS': {
     light: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/5c893a27-b0c9-495f-b2d2-ad2978ba5f6f_compressed_Cedi-Hora.webp',
     dark: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/b64ad836-0f14-4f50-9978-a2e6304be0bd_compressed_Cedi-Hora-dark.webp',
+  },
+
+  // ===== SÉPTIMA TANDA (3 apps) =====
+  'OLOcopiloto': {
+    light: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/93184c90-fe8d-4cd6-854d-cb1689adfd21_compressed_OLOcopiloto.webp',
+    dark: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/3076c453-050b-44fb-8350-2007e0e0ae09_compressed_OLOcopiloto-dark.webp',
+  },
+  'OLO Copiloto': {
+    light: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/93184c90-fe8d-4cd6-854d-cb1689adfd21_compressed_OLOcopiloto.webp',
+    dark: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/3076c453-050b-44fb-8350-2007e0e0ae09_compressed_OLOcopiloto-dark.webp',
+  },
+  'TMS_OMS': {
+    light: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/4f925778-5a9d-4caa-89d8-a702f995782f_compressed_TMS_OMS.webp',
+    dark: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/3d1a2260-8fb0-467f-8d18-00264e88b5ad_compressed_TMS_OMS-dark.webp',
+  },
+  'TMS OMS': {
+    light: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/4f925778-5a9d-4caa-89d8-a702f995782f_compressed_TMS_OMS.webp',
+    dark: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/3d1a2260-8fb0-467f-8d18-00264e88b5ad_compressed_TMS_OMS-dark.webp',
+  },
+  'Convertidor PDF-TIFF': {
+    light: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/666b648e-3f8a-4d46-a704-eb0746af632a_compressed_Convertidor-PDF-TIFF.webp',
+    dark: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/01f2ea96-82dd-4a94-8807-2d04138d2981_compressed_Convertidor-PDF-TIFF-dark.webp',
+  },
+  'Convertidor PDF TIFF': {
+    light: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/666b648e-3f8a-4d46-a704-eb0746af632a_compressed_Convertidor-PDF-TIFF.webp',
+    dark: 'https://storage.helloreaddy.io/project_files/437d9be5-f316-4ce4-bdea-9d5839ae0518/01f2ea96-82dd-4a94-8807-2d04138d2981_compressed_Convertidor-PDF-TIFF-dark.webp',
   },
 };
 

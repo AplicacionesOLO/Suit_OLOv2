@@ -1,5 +1,5 @@
 // ================================================================
-// Tipos compartidos para la cascada organizacional Suite OLO
+// Tipos compartidos para la cascada organizacional OLO Site
 //
 // Jerarquía: PAÍS ↔ TENANT → ALMACÉN → CLIENTE → USUARIO → APLICACIONES
 //
