@@ -43,7 +43,7 @@ function SortableCard({ fav, isEditing, onOpen }: SortableCardProps) {
     zIndex: isDragging ? 50 : 'auto',
   };
 
-  const isEmbedded = fav.instance_open_mode === 'embedded';
+  const isEmbedded = fav.instance_open_mode === 'embedded' && fav.instance_allows_iframe !== false;
 
   return (
     <div

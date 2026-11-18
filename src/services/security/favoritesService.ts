@@ -18,6 +18,7 @@ export interface FavoriteWithDetails extends UserFavorite {
   instance_name?: string;
   instance_url?: string;
   instance_open_mode?: string;
+  instance_allows_iframe?: boolean;
   tenant_id?: string;
   tenant_name?: string;
   client_name?: string;
@@ -84,7 +85,7 @@ export async function getFavorites(): Promise<{ data: FavoriteWithDetails[]; err
     if (instanceIds.length > 0) {
       const { data: instances } = await supabase
         .from('application_instances')
-        .select('id, instance_name, url, open_mode, client_id')
+        .select('id, instance_name, url, open_mode, allows_iframe, client_id')
         .in('id', instanceIds);
       (instances || []).forEach((i) => { instMap[i.id] = i; });
     }
@@ -167,6 +168,7 @@ export async function getFavorites(): Promise<{ data: FavoriteWithDetails[]; err
           instance_name: inst?.instance_name,
           instance_url: inst?.url,
           instance_open_mode: inst?.open_mode || 'external',
+          instance_allows_iframe: inst?.allows_iframe ?? false,
           tenant_id: access?.tenant_id || null,
           tenant_name: access?.tenant_id ? tenantMap[access.tenant_id] : undefined,
           client_name: effectiveClient?.name,

@@ -739,9 +739,6 @@ export async function updateInstance(id: string, payload: UpdateInstancePayload)
     if (payload.open_in_new_tab !== undefined) updateData.open_in_new_tab = payload.open_in_new_tab;
     if (payload.allows_iframe !== undefined) {
       updateData.allows_iframe = payload.allows_iframe;
-      if (!payload.allows_iframe && payload.open_mode === 'embedded') {
-        updateData.open_mode = 'external';
-      }
     }
     if (payload.sso_enabled !== undefined) updateData.sso_enabled = payload.sso_enabled;
     if (payload.jwt_federated !== undefined) updateData.jwt_federated = payload.jwt_federated;

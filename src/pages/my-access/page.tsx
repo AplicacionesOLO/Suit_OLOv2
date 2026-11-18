@@ -21,7 +21,7 @@ function AppCard({ acc, isFav, isToggling, onToggle, onOpen, pending = false }: 
   pending?: boolean;
 }) {
   const openMode = acc.instance_open_mode || 'external';
-  const isEmbedded = openMode === 'embedded';
+  const isEmbedded = openMode === 'embedded' && acc.instance_allows_iframe !== false;
 
   return (
     <div
@@ -121,7 +121,7 @@ export default function MyAccessPage() {
     const instanceId = acc.instance_id;
     const instanceUrl = acc.instance_url || acc.application_base_url;
 
-    if (openMode === 'embedded' && instanceId) {
+    if (openMode === 'embedded' && instanceId && acc.instance_allows_iframe !== false) {
       navigate(`/workspace/${instanceId}`);
     } else if (instanceUrl) {
       window.open(instanceUrl, '_blank', 'noopener,noreferrer');
@@ -149,7 +149,7 @@ export default function MyAccessPage() {
     const instanceId = fav.instance_id;
     const instanceUrl = fav.instance_url || fav.application_base_url;
 
-    if (openMode === 'embedded' && instanceId) {
+    if (openMode === 'embedded' && instanceId && fav.instance_allows_iframe !== false) {
       navigate(`/workspace/${instanceId}`);
     } else if (instanceUrl) {
       window.open(instanceUrl, '_blank', 'noopener,noreferrer');

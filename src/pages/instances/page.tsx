@@ -22,6 +22,7 @@ import {
 } from '@/services/applications/applicationsService';
 import { useOloPermissions } from '@/hooks/useOloPermissions';
 import { useTenantContext } from '@/hooks/useTenantContext';
+import { useIframeProbe } from '@/hooks/useIframeProbe';
 
 interface AppInstance {
   id: string;
@@ -38,6 +39,7 @@ interface AppInstance {
   instanceName: string;
   url: string;
   status: 'active' | 'inactive' | 'deploying';
+  openMode: 'embedded' | 'external';
   openInOLO: boolean;
   openInNewTab: boolean;
   allowsIframe: boolean;
@@ -86,6 +88,7 @@ export default function InstancesPage() {
   const [modalSso, setModalSso] = useState(true);
   const [modalJwt, setModalJwt] = useState(true);
   const [modalIframe, setModalIframe] = useState(true);
+  const [modalOpenMode, setModalOpenMode] = useState<'embedded' | 'external'>('embedded');
   const [modalNewTab, setModalNewTab] = useState(false);
   const [modalSaving, setModalSaving] = useState(false);
   const [modalErrors, setModalErrors] = useState<Record<string, string>>({});
@@ -139,6 +142,7 @@ export default function InstancesPage() {
     setModalSso(true);
     setModalJwt(true);
     setModalIframe(true);
+    setModalOpenMode('embedded');
     setModalNewTab(false);
     setModalErrors({});
     setShowModal(true);
@@ -154,6 +158,7 @@ export default function InstancesPage() {
     setModalSso(inst.ssoEnabled);
     setModalJwt(inst.jwtFederated);
     setModalIframe(inst.allowsIframe);
+    setModalOpenMode(inst.openMode);
     setModalNewTab(inst.openInNewTab);
     setModalErrors({});
     setShowModal(true);
@@ -183,7 +188,7 @@ export default function InstancesPage() {
           url: modalUrl,
           client_id: modalClient || null,
           allows_iframe: modalIframe,
-          open_mode: modalIframe ? 'embedded' : 'external',
+          open_mode: modalOpenMode,
           sso_enabled: modalSso,
           jwt_federated: modalJwt,
           open_in_new_tab: modalNewTab,
@@ -198,7 +203,7 @@ export default function InstancesPage() {
           instance_name: modalName,
           url: modalUrl || null,
           allows_iframe: modalIframe,
-          open_mode: modalIframe ? 'embedded' : 'external',
+          open_mode: modalOpenMode,
           sso_enabled: modalSso,
           jwt_federated: modalJwt,
           open_in_new_tab: modalNewTab,
@@ -213,7 +218,7 @@ export default function InstancesPage() {
     } finally {
       setModalSaving(false);
     }
-  }, [editingInstance, modalCountry, modalTenant, modalWarehouse, modalClient, modalApp, modalName, modalUrl, modalIframe, modalSso, modalJwt, modalNewTab, showToast]);
+  }, [editingInstance, modalCountry, modalTenant, modalWarehouse, modalClient, modalApp, modalName, modalUrl, modalIframe, modalOpenMode, modalSso, modalJwt, modalNewTab, showToast]);
 
   useEffect(() => { if (!showModal) loadData(); }, [showModal]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -251,6 +256,7 @@ export default function InstancesPage() {
           instanceName: inst.instance_name,
           url: inst.url || '',
           status: (inst.status as AppInstance['status']) || 'active',
+          openMode: inst.open_mode === 'embedded' ? 'embedded' : 'external',
           openInOLO: inst.open_in_olo,
           openInNewTab: inst.open_in_new_tab,
           allowsIframe: inst.allows_iframe,
@@ -289,6 +295,21 @@ export default function InstancesPage() {
     if (filterStatus) result = result.filter((i) => i.status === filterStatus);
     return result;
   }, [searchQuery, filterTenant, filterStatus, instanceList, showDeleted, ctx.currentClientId, ctx.currentWarehouseId, ctx.currentTenantId, ctx.currentCountryId, ctx.showAll]);
+
+  // Detección automática: instancias embebidas cuyo sitio rechaza mostrarse en iframe
+  const embeddedUrls = useMemo(
+    () => filtered.filter((i) => i.openMode === 'embedded' && !i.deletedAt && i.url).map((i) => i.url),
+    [filtered],
+  );
+  const { results: iframeProbes, recheck: recheckIframes } = useIframeProbe(embeddedUrls);
+  const blockedInstances = useMemo(
+    () => filtered.filter((i) => i.openMode === 'embedded' && !i.deletedAt && i.url && iframeProbes[i.url] === 'blocked'),
+    [filtered, iframeProbes],
+  );
+  const probingCount = useMemo(
+    () => embeddedUrls.filter((u) => iframeProbes[u] === 'checking').length,
+    [embeddedUrls, iframeProbes],
+  );
 
   const tenantNames = [...new Set(instanceList.map((i) => i.tenantName))];
   const deletedCount = instanceList.filter((i) => i.deletedAt).length;
@@ -344,6 +365,28 @@ export default function InstancesPage() {
             )}
           </div>
 
+          {blockedInstances.length > 0 && (
+            <div className="mx-4 mb-4 mt-4 flex flex-col sm:flex-row sm:items-start gap-3 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20">
+              <span className="w-5 h-5 flex items-center justify-center text-red-400 shrink-0 mt-0.5"><i className="ri-error-warning-line text-base"></i></span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-red-400">
+                  {blockedInstances.length === 1
+                    ? '1 instancia embebida no carga dentro de OLO Site'
+                    : `${blockedInstances.length} instancias embebidas no cargan dentro de OLO Site`}
+                </p>
+                <p className="text-2xs text-foreground-500 mt-1">
+                  El sitio rechaza mostrarse en un iframe (cabeceras X-Frame-Options o Content-Security-Policy), o su URL no es segura. Cambiala a modo Externa o pedile al proveedor que habilite ser embebido.
+                </p>
+                <p className="text-2xs text-foreground-400 mt-1.5 break-words">
+                  {blockedInstances.map((i) => i.instanceName).join(' · ')}
+                </p>
+              </div>
+              <button onClick={recheckIframes} className="flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg border border-red-500/30 text-2xs font-medium text-red-400 hover:bg-red-500/10 transition-all whitespace-nowrap cursor-pointer shrink-0">
+                <span className="w-3.5 h-3.5 flex items-center justify-center"><i className="ri-refresh-line"></i></span> Volver a comprobar
+              </button>
+            </div>
+          )}
+
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -363,6 +406,8 @@ export default function InstancesPage() {
                 {filtered.map((inst) => {
                   const st = statusConfig[inst.status];
                   const isDeleted = !!inst.deletedAt;
+                  const probeStatus = inst.url ? iframeProbes[inst.url] : undefined;
+                  const iframeBlocked = inst.openMode === 'embedded' && !isDeleted && probeStatus === 'blocked';
                   return (
                     <tr key={inst.id} className={`border-b border-secondary-500/5 hover:bg-background-100/50 transition-colors ${isDeleted ? 'opacity-50' : ''}`}>
                       <td className="px-5 py-3.5"><span className="text-sm font-medium text-foreground-200">{inst.instanceName}</span></td>
@@ -372,12 +417,34 @@ export default function InstancesPage() {
                       <td className="px-5 py-3.5"><span className="text-sm text-foreground-400">{inst.countryName || '—'}</span></td>
                       <td className="px-5 py-3.5"><code className="text-xs text-foreground-500 font-mono truncate max-w-[140px] block">{inst.url}</code></td>
                       <td className="px-5 py-3.5">
-                        {inst.allowsIframe ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-2xs font-medium bg-accent-500/10 text-accent-400 border border-accent-500/20 whitespace-nowrap">
-                            <i className="ri-layout-line text-xs"></i> Embebida
-                          </span>
+                        {inst.openMode === 'embedded' ? (
+                          <div className="flex flex-col items-start gap-1">
+                            <span
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-2xs font-medium border whitespace-nowrap ${iframeBlocked ? 'bg-red-500/10 text-red-400 border-red-500/25' : 'bg-accent-500/10 text-accent-400 border-accent-500/20'}`}
+                              title={iframeBlocked
+                                ? 'Modo embebido, pero el sitio bloquea iframes (X-Frame-Options / CSP)'
+                                : inst.allowsIframe ? 'Se muestra dentro de OLO Site' : 'Modo embebido, pero esta instancia no permite iframe'}
+                            >
+                              <i className={`${iframeBlocked ? 'ri-forbid-line' : 'ri-layout-line'} text-xs`}></i> Embebida
+                              {(iframeBlocked || !inst.allowsIframe) && (
+                                <span className={`w-3 h-3 flex items-center justify-center ${iframeBlocked ? 'text-red-400' : 'text-amber-400'}`}><i className="ri-alert-line text-xs"></i></span>
+                              )}
+                            </span>
+                            {iframeBlocked && (
+                              <span className="text-2xs text-red-400 flex items-center gap-1 whitespace-nowrap">
+                                <span className="w-3 h-3 flex items-center justify-center"><i className="ri-error-warning-line text-xs"></i></span>
+                                El sitio bloquea iframes
+                              </span>
+                            )}
+                            {!iframeBlocked && probeStatus === 'checking' && (
+                              <span className="text-2xs text-foreground-600 flex items-center gap-1 whitespace-nowrap">
+                                <span className="w-3 h-3 flex items-center justify-center"><i className="ri-loader-4-line animate-spin text-xs"></i></span>
+                                Comprobando...
+                              </span>
+                            )}
+                          </div>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-2xs font-medium bg-secondary-500/10 text-secondary-400 border border-secondary-500/20 whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-2xs font-medium bg-secondary-500/10 text-secondary-400 border border-secondary-500/20 whitespace-nowrap" title="Se abre en una pestaña aparte">
                             <i className="ri-external-link-line text-xs"></i> Externa
                           </span>
                         )}
@@ -407,8 +474,14 @@ export default function InstancesPage() {
             </table>
           </div>
 
-          <div className="p-4 border-t border-secondary-500/10 flex items-center justify-between">
+          <div className="p-4 border-t border-secondary-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <span className="text-xs text-foreground-600">{filtered.length} instancias{showDeleted ? ' (incluye eliminadas)' : ''}</span>
+            {probingCount > 0 && (
+              <span className="text-2xs text-foreground-600 flex items-center gap-1.5">
+                <span className="w-3.5 h-3.5 flex items-center justify-center"><i className="ri-loader-4-line animate-spin"></i></span>
+                Comprobando bloqueo de iframes ({probingCount})
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -493,6 +566,55 @@ export default function InstancesPage() {
                   <label className="block text-xs font-medium text-foreground-400 mb-1.5">URL</label>
                   <input type="text" value={modalUrl} onChange={(e) => setModalUrl(e.target.value)} className="w-full h-10 bg-background-100 border border-secondary-500/20 rounded-lg px-3 text-sm text-foreground-200 outline-none focus:border-primary-500/40 transition-all font-mono" placeholder="https://app.suiteolo.io" />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-foreground-400 mb-1.5">Modo de apertura</label>
+                <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-background-100 border border-secondary-500/20">
+                  <button
+                    type="button"
+                    onClick={() => setModalOpenMode('embedded')}
+                    className={`flex items-center justify-center gap-2 h-9 rounded-lg text-sm font-medium transition-all cursor-pointer ${modalOpenMode === 'embedded' ? 'bg-accent-500 text-background-50 shadow-sm' : 'text-foreground-400 hover:text-foreground-200'}`}
+                  >
+                    <span className="w-4 h-4 flex items-center justify-center"><i className="ri-layout-line"></i></span>
+                    Embebida
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setModalOpenMode('external')}
+                    className={`flex items-center justify-center gap-2 h-9 rounded-lg text-sm font-medium transition-all cursor-pointer ${modalOpenMode === 'external' ? 'bg-secondary-500 text-background-50 shadow-sm' : 'text-foreground-400 hover:text-foreground-200'}`}
+                  >
+                    <span className="w-4 h-4 flex items-center justify-center"><i className="ri-external-link-line"></i></span>
+                    Externa
+                  </button>
+                </div>
+                <p className="text-2xs text-foreground-600 mt-1.5">
+                  {modalOpenMode === 'embedded'
+                    ? 'Se mostrará dentro de OLO Site, en el área de trabajo.'
+                    : 'Se abrirá siempre en una nueva pestaña del navegador.'}
+                </p>
+                {modalOpenMode === 'embedded' && !modalIframe && (
+                  <div className="flex items-start gap-2 mt-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                    <span className="w-4 h-4 flex items-center justify-center text-amber-400 shrink-0 mt-0.5"><i className="ri-alert-line text-xs"></i></span>
+                    <p className="text-2xs text-amber-400">Elegiste modo embebido, pero la instancia no permite iframe. Se abrirá en una pestaña nueva hasta que habilites ese permiso.</p>
+                  </div>
+                )}
+                {modalOpenMode === 'embedded' && isEditing && editingInstance?.url && iframeProbes[editingInstance.url] === 'blocked' && (
+                  <div className="flex flex-col gap-2 mt-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20">
+                    <div className="flex items-start gap-2">
+                      <span className="w-4 h-4 flex items-center justify-center text-red-400 shrink-0 mt-0.5"><i className="ri-forbid-line text-xs"></i></span>
+                      <p className="text-2xs text-red-400">Este sitio rechaza mostrarse dentro de un iframe (X-Frame-Options / CSP). Si la dejás en modo embebido, el área de trabajo va a quedar vacía.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setModalOpenMode('external')}
+                      className="self-start flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-2xs font-medium text-red-400 border border-red-500/30 hover:bg-red-500/10 transition-all whitespace-nowrap cursor-pointer"
+                    >
+                      <span className="w-3.5 h-3.5 flex items-center justify-center"><i className="ri-external-link-line text-xs"></i></span>
+                      Cambiar a modo Externa
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
